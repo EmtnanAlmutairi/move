@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  function isAdmin() {
+    return request.auth != null &&
+      exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+  }
+
+  match /databases/{database}/documents {
+    match /admins/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /waitlist/{documentId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly(["email", "source", "createdAt"]) &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.source == "landing-page" &&
+        request.resource.data.createdAt == request.time;
+    }
+  }
+}

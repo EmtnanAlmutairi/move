@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOVE Admin</title>
+  <meta
+    name="description"
+    content="Simple Firebase admin dashboard for MOVE waitlist signups."
+  />
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Archivo:wght@600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-body">
+  <main class="admin-shell">
+    <header class="admin-hero">
+      <a href="index.html" class="admin-brand" aria-label="Back to MOVE landing page">
+        <img src="logo.png" alt="MOVE" class="admin-logo" width="1564" height="938" />
+      </a>
+      <div class="admin-hero-copy">
+        <span class="admin-kicker">Firebase Admin</span>
+        <h1>Manage MOVE waitlist signups.</h1>
+        <p>
+          Sign in with your Firebase Authentication admin account to review signups,
+          export CSV, and verify who has access.
+        </p>
+      </div>
+    </header>
+
+    <section class="admin-card auth-card" id="authCard">
+      <div class="card-head">
+        <div>
+          <span class="card-kicker">Login</span>
+          <h2>Admin sign in</h2>
+        </div>
+      </div>
+
+      <form id="adminLoginForm" class="admin-form">
+        <label class="admin-field">
+          <span>Email</span>
+          <input type="email" name="email" autocomplete="email" required />
+        </label>
+
+        <label class="admin-field">
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+
+        <button type="submit" class="admin-btn admin-btn-primary" id="loginButton">
+          Sign in
+        </button>
+      </form>
+
+      <p class="panel-message" id="authMessage" aria-live="polite"></p>
+    </section>
+
+    <section class="admin-card dashboard-card panel-hidden" id="dashboardCard">
+      <div class="card-head card-head-wide">
+        <div>
+          <span class="card-kicker">Dashboard</span>
+          <h2>Waitlist overview</h2>
+        </div>
+
+        <div class="dashboard-actions">
+          <button type="button" class="admin-btn admin-btn-secondary" id="refreshButton">
+            Refresh
+          </button>
+          <button type="button" class="admin-btn admin-btn-secondary" id="exportButton">
+            Export CSV
+          </button>
+          <button type="button" class="admin-btn admin-btn-secondary" id="copyUidButton">
+            Copy UID
+          </button>
+          <button type="button" class="admin-btn admin-btn-primary" id="signOutButton">
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      <div class="identity-bar">
+        <div>
+          <small>Signed in as</small>
+          <strong id="currentUserEmail">Not signed in</strong>
+        </div>
+        <div>
+          <small>Current UID</small>
+          <strong id="currentUserUid">-</strong>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card">
+          <small>Total signups</small>
+          <strong id="signupsCount">0</strong>
+        </article>
+        <article class="stat-card">
+          <small>Latest signup</small>
+          <strong id="latestSignup">No data yet</strong>
+        </article>
+        <article class="stat-card">
+          <small>Access</small>
+          <strong id="accessState">Checking</strong>
+        </article>
+      </div>
+
+      <div class="setup-note panel-hidden" id="setupNote">
+        <strong>Admin access not granted yet.</strong>
+        <p>
+          Create a Firestore document at
+          <code>admins/&lt;your-uid&gt;</code>
+          in the Firebase console, then press Refresh.
+        </p>
+        <p class="setup-path">
+          Suggested fields:
+          <code>{ email: "your@email.com", role: "owner" }</code>
+        </p>
+        <a
+          href="https://console.firebase.google.com/project/move-6cef6/firestore/data"
+          target="_blank"
+          rel="noreferrer"
+          class="admin-inline-link"
+        >
+          Open Firestore Console
+        </a>
+      </div>
+
+      <p class="panel-message" id="dashboardMessage" aria-live="polite"></p>
+
+      <div class="entries-card">
+        <div class="entries-head">
+          <h3>Waitlist signups</h3>
+          <span id="entriesMeta">Newest first</span>
+        </div>
+
+        <div class="entries-state" id="entriesState">Waiting for admin access.</div>
+        <ul class="entries-list" id="entriesList"></ul>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
