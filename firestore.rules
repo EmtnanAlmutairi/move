@@ -1,11 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
-  function isAdmin() {
-    return request.auth != null &&
-      exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-  }
-
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     match /admins/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
@@ -21,6 +21,72 @@ service cloud.firestore {
         request.resource.data.email.size() < 320 &&
         request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
         request.resource.data.source == "landing-page" &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    match /preorders/{documentId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly(["fullName", "email", "phone", "source", "createdAt"]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 120 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 7 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.source == "landing-page-preorder" &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    match /coachApplications/{documentId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          "fullName",
+          "email",
+          "phone",
+          "weightKg",
+          "goals",
+          "sportType",
+          "trainingLocation",
+          "equipment",
+          "healthIssues",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 120 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 7 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.weightKg is number &&
+        request.resource.data.weightKg > 20 &&
+        request.resource.data.weightKg < 350 &&
+        request.resource.data.goals is string &&
+        request.resource.data.goals.size() >= 3 &&
+        request.resource.data.goals.size() <= 1000 &&
+        request.resource.data.sportType is string &&
+        request.resource.data.sportType.size() >= 2 &&
+        request.resource.data.sportType.size() <= 40 &&
+        request.resource.data.trainingLocation is string &&
+        request.resource.data.trainingLocation.size() >= 2 &&
+        request.resource.data.trainingLocation.size() <= 20 &&
+        request.resource.data.equipment is string &&
+        request.resource.data.equipment.size() <= 1000 &&
+        request.resource.data.healthIssues is string &&
+        request.resource.data.healthIssues.size() <= 1000 &&
+        request.resource.data.source == "landing-page-coach" &&
         request.resource.data.createdAt == request.time;
     }
   }

@@ -2,7 +2,7 @@ import {
   collection,
   doc,
   getDoc,
-  onSnapshot,
+  getDocs,
   orderBy,
   query
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -15,7 +15,6 @@ import { auth, db } from "./firebase-client.js";
 
 const state = {
   entries: [],
-  unsubscribe: null,
   user: null,
   hasAdminAccess: false
 };
@@ -85,7 +84,6 @@ async function handleLoginSubmit(event) {
 }
 
 async function handleAuthStateChanged(user) {
-  stopListening();
   state.user = user;
   state.hasAdminAccess = false;
   state.entries = [];
@@ -120,14 +118,13 @@ async function handleAuthStateChanged(user) {
     state.hasAdminAccess = true;
     elements.accessState.textContent = "Approved";
     elements.setupNote.classList.add("panel-hidden");
-    setDashboardMessage("Live waitlist data is connected.");
-    subscribeToWaitlist();
+    await loadWaitlist();
   } catch (error) {
     console.error("Failed to verify admin access", error);
     elements.accessState.textContent = "Error";
     elements.setupNote.classList.remove("panel-hidden");
     elements.entriesState.textContent = "Could not verify admin access.";
-    setDashboardMessage("Check your Firebase Authentication and Firestore configuration.");
+    setDashboardMessage(getFriendlyFirestoreError(error));
     updateActionState();
   }
 }
@@ -148,38 +145,35 @@ function showDashboardState() {
   updateActionState();
 }
 
-function subscribeToWaitlist() {
+async function loadWaitlist() {
   elements.entriesState.textContent = "Loading waitlist signups...";
 
   const waitlistQuery = query(collection(db, "waitlist"), orderBy("createdAt", "desc"));
 
-  state.unsubscribe = onSnapshot(
-    waitlistQuery,
-    function (snapshot) {
-      state.entries = snapshot.docs.map(function (docSnapshot) {
-        const data = docSnapshot.data();
-        return {
-          id: docSnapshot.id,
-          email: data.email || "",
-          source: data.source || "unknown",
-          createdAt: data.createdAt || null
-        };
-      });
+  try {
+    const snapshot = await getDocs(waitlistQuery);
+    state.entries = snapshot.docs.map(function (docSnapshot) {
+      const data = docSnapshot.data();
+      return {
+        id: docSnapshot.id,
+        email: data.email || "",
+        source: data.source || "unknown",
+        createdAt: data.createdAt || null
+      };
+    });
 
-      renderEntries(state.entries);
-      elements.accessState.textContent = "Approved";
-      setDashboardMessage("Dashboard synced successfully.");
-      updateActionState();
-    },
-    function (error) {
-      console.error("Failed to read waitlist", error);
-      state.entries = [];
-      renderEntries([]);
-      elements.entriesState.textContent = "Could not load waitlist data.";
-      setDashboardMessage("This account is signed in, but Firestore did not allow the query.");
-      updateActionState();
-    }
-  );
+    renderEntries(state.entries);
+    elements.accessState.textContent = "Approved";
+    setDashboardMessage("Dashboard synced successfully.");
+    updateActionState();
+  } catch (error) {
+    console.error("Failed to read waitlist", error);
+    state.entries = [];
+    renderEntries([]);
+    elements.entriesState.textContent = "Could not load waitlist data.";
+    setDashboardMessage(getFriendlyFirestoreError(error));
+    updateActionState();
+  }
 }
 
 async function refreshDashboard() {
@@ -192,7 +186,6 @@ async function refreshDashboard() {
 }
 
 async function handleSignOut() {
-  stopListening();
   await signOut(auth);
 }
 
@@ -289,13 +282,6 @@ function updateActionState() {
   elements.exportButton.disabled = !state.hasAdminAccess || !state.entries.length;
 }
 
-function stopListening() {
-  if (state.unsubscribe) {
-    state.unsubscribe();
-    state.unsubscribe = null;
-  }
-}
-
 function setAuthLoading(isLoading) {
   elements.loginButton.disabled = isLoading;
   elements.loginButton.textContent = isLoading ? "Signing in..." : "Sign in";
@@ -325,6 +311,21 @@ function getFriendlyAuthError(error) {
   }
 
   return "Sign-in failed. Check Firebase Auth and your admin account.";
+}
+
+function getFriendlyFirestoreError(error) {
+  const message = error && error.message ? error.message : "";
+  const code = error && error.code ? error.code : "";
+
+  if (message.indexOf("Database '(default)' not found") !== -1) {
+    return "Create a Firestore database for project move-6cef6 in the Firebase console, then refresh.";
+  }
+
+  if (code === "permission-denied") {
+    return "This account is not allowed to read waitlist data yet. Create admins/<your-uid> in Firestore.";
+  }
+
+  return "Check Firestore setup for this project, then try again.";
 }
 
 function formatDate(timestamp) {

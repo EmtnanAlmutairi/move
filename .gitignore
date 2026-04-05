@@ -1,0 +1,5 @@
+.firebase-config/
+.firebase/
+firebase-debug.log
+server.out.log
+server.err.log

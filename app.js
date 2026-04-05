@@ -13,53 +13,117 @@ window.addEventListener("DOMContentLoaded", function () {
     window.lucide.createIcons();
   }
 
-  initializeWaitlistForm();
+  initializeTrainerForm();
+  initializePreorderForm();
   initializeAnimations();
 });
 
-function initializeWaitlistForm() {
-  const form = document.getElementById("waitlistForm");
-  const formMessage = document.getElementById("formMessage");
+function initializeTrainerForm() {
+  const form = document.getElementById("trainerForm");
+  const formMessage = document.getElementById("trainerFormMessage");
 
   if (!form || !formMessage) {
     return;
   }
 
-  const emailInput = form.querySelector('input[name="email"]');
   const submitButton = form.querySelector('button[type="submit"]');
   const defaultButtonLabel = submitButton ? submitButton.textContent : "";
 
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-    const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
+    const payload = {
+      fullName: getFormValue(form, "fullName"),
+      email: getFormValue(form, "email").toLowerCase(),
+      phone: getFormValue(form, "phone"),
+      weightKg: Number(getFormValue(form, "weightKg")),
+      goals: getFormValue(form, "goals"),
+      sportType: getFormValue(form, "sportType"),
+      trainingLocation: getFormValue(form, "trainingLocation"),
+      equipment: getFormValue(form, "equipment"),
+      healthIssues: getFormValue(form, "healthIssues") || "لا يوجد",
+      source: "landing-page-coach",
+      createdAt: serverTimestamp()
+    };
 
-    if (!email) {
-      formMessage.textContent = "\u064A\u0631\u062C\u0649 \u0625\u062F\u062E\u0627\u0644 \u0628\u0631\u064A\u062F \u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u0635\u062D\u064A\u062D.";
+    if (
+      !payload.fullName ||
+      !payload.email ||
+      !payload.phone ||
+      !Number.isFinite(payload.weightKg) ||
+      payload.weightKg <= 0 ||
+      !payload.goals ||
+      !payload.sportType ||
+      !payload.trainingLocation
+    ) {
+      formMessage.textContent = "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.";
       return;
     }
 
     if (submitButton) {
       submitButton.disabled = true;
-      submitButton.textContent = "\u062C\u0627\u0631\u064A \u0627\u0644\u0625\u0631\u0633\u0627\u0644...";
+      submitButton.textContent = "جاري الإرسال...";
     }
 
-    formMessage.textContent = "\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u0628\u064A\u0627\u0646\u0627\u062A\u0643...";
+    formMessage.textContent = "جاري حفظ بيانات المدرب...";
 
     try {
-      await addDoc(collection(db, "waitlist"), {
-        email: email,
-        source: "landing-page",
-        createdAt: serverTimestamp()
-      });
-
-      formMessage.textContent =
-        "\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 " + email + " \u0641\u064A \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0628\u0643\u0631\u0629.";
+      await addDoc(collection(db, "coachApplications"), payload);
+      formMessage.textContent = "تم استلام تسجيلك كمدرب بنجاح.";
       form.reset();
     } catch (error) {
-      console.error("Failed to save waitlist signup", error);
-      formMessage.textContent =
-        "\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u0627\u0644\u0637\u0644\u0628 \u062D\u0627\u0644\u064A\u0627\u064B. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.";
+      console.error("Failed to save coach application", error);
+      formMessage.textContent = getSubmissionErrorMessage(error);
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = defaultButtonLabel;
+      }
+    }
+  });
+}
+
+function initializePreorderForm() {
+  const form = document.getElementById("preorderForm");
+  const formMessage = document.getElementById("preorderFormMessage");
+
+  if (!form || !formMessage) {
+    return;
+  }
+
+  const submitButton = form.querySelector('button[type="submit"]');
+  const defaultButtonLabel = submitButton ? submitButton.textContent : "";
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const payload = {
+      fullName: getFormValue(form, "fullName"),
+      email: getFormValue(form, "email").toLowerCase(),
+      phone: getFormValue(form, "phone"),
+      source: "landing-page-preorder",
+      createdAt: serverTimestamp()
+    };
+
+    if (!payload.fullName || !payload.email || !payload.phone) {
+      formMessage.textContent = "يرجى تعبئة الاسم والإيميل ورقم الجوال.";
+      return;
+    }
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "جاري الإرسال...";
+    }
+
+    formMessage.textContent = "جاري حفظ طلبك المسبق...";
+
+    try {
+      await addDoc(collection(db, "preorders"), payload);
+      formMessage.textContent = "تم تسجيلك في الطلب المسبق بنجاح.";
+      form.reset();
+    } catch (error) {
+      console.error("Failed to save preorder signup", error);
+      formMessage.textContent = getSubmissionErrorMessage(error);
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
@@ -135,4 +199,23 @@ function initializeAnimations() {
       }
     });
   });
+}
+
+function getFormValue(form, fieldName) {
+  const field = form.querySelector('[name="' + fieldName + '"]');
+  return field ? field.value.trim() : "";
+}
+
+function getSubmissionErrorMessage(error) {
+  const message = error && error.message ? error.message : "";
+
+  if (message.indexOf("Database '(default)' not found") !== -1) {
+    return "يجب تفعيل Firestore أولاً في مشروع Firebase.";
+  }
+
+  if (message.indexOf("Missing or insufficient permissions") !== -1) {
+    return "تم رفض الحفظ بسبب قواعد Firestore. تأكد من تحديث قواعد الأمان.";
+  }
+
+  return "تعذر حفظ الطلب حالياً. حاول مرة أخرى.";
 }

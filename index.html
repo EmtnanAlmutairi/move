@@ -38,10 +38,11 @@
           <li><a href="#system">النظام</a></li>
           <li><a href="#coaching">التجربة</a></li>
           <li><a href="#communities">المجتمعات</a></li>
-          <li><a href="#waitlist">التسجيل</a></li>
+          <li><a href="#coach-signup">تسجيل المدربين</a></li>
+          <li><a href="#preorder">الطلب المسبق</a></li>
         </ul>
 
-        <a href="#waitlist" class="btn btn-primary">حمّل التطبيق</a>
+        <a href="#preorder" class="btn btn-primary">حمّل التطبيق</a>
       </nav>
     </header>
 
@@ -66,7 +67,7 @@
           </p>
 
           <div class="hero-actions" data-animate="fade-up">
-            <a href="#waitlist" class="btn btn-primary btn-lg">احجز وصولك المبكر</a>
+            <a href="#preorder" class="btn btn-primary btn-lg">احجز وصولك المبكر</a>
             <a href="#system" class="btn btn-secondary btn-lg">شاهد مزايا التطبيق</a>
           </div>
 
@@ -351,27 +352,109 @@
         </div>
       </section>
 
-      <section id="waitlist" class="section cta-section">
-        <div class="cta-panel" data-animate="fade-up">
-          <span class="section-kicker">EARLY ACCESS</span>
-          <h2>احجز مكانك قبل إطلاق التطبيق.</h2>
+      <section id="coach-signup" class="section cta-section">
+        <div class="cta-panel registration-panel" data-animate="fade-up">
+          <span class="section-kicker">COACH REGISTRATION</span>
+          <h2>تسجيل المدربين</h2>
           <p>
-            اترك بريدك لتجربة النسخة الأولى من التطبيق والحصول على أولوية في
-            الوصول والعروض التأسيسية.
+            سجّل بياناتك كمدرب، وشارك معنا تفاصيل أهدافك الرياضية ونوع التدريب ومكانه
+            والمعدات المتوفرة والحالة الصحية، لنقدر نبني تجربة مناسبة لك.
           </p>
 
-          <form class="waitlist-form" id="waitlistForm">
-            <input
-              type="email"
-              name="email"
-              placeholder="البريد الإلكتروني"
-              autocomplete="email"
-              required
-            />
-            <button type="submit" class="btn btn-primary">أضفني الآن</button>
+          <form class="form-grid" id="trainerForm">
+            <label class="form-field">
+              <span>الاسم الكامل</span>
+              <input type="text" name="fullName" autocomplete="name" required />
+            </label>
+
+            <label class="form-field">
+              <span>البريد الإلكتروني</span>
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+
+            <label class="form-field">
+              <span>رقم الجوال</span>
+              <input type="tel" name="phone" autocomplete="tel" required />
+            </label>
+
+            <label class="form-field">
+              <span>الوزن الحالي (كجم)</span>
+              <input type="number" name="weightKg" min="20" max="350" step="0.1" required />
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>الأهداف الرياضية</span>
+              <textarea name="goals" rows="3" placeholder="مثل: تنشيف، زيادة كتلة عضلية، تحسين اللياقة..." required></textarea>
+            </label>
+
+            <label class="form-field">
+              <span>نوع الرياضة</span>
+              <select name="sportType" required>
+                <option value="">اختر نوع الرياضة</option>
+                <option value="strength">تمارين قوة</option>
+                <option value="bodybuilding">بناء أجسام</option>
+                <option value="crossfit">كروس فت</option>
+                <option value="cardio">كارديو وتحمل</option>
+                <option value="martial_arts">رياضات قتالية</option>
+                <option value="other">أخرى</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span>مكان التمرين</span>
+              <select name="trainingLocation" required>
+                <option value="">اختر مكان التمرين</option>
+                <option value="gym">نادي</option>
+                <option value="home">بيت</option>
+                <option value="both">النادي والبيت</option>
+              </select>
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>المعدات المتوفرة</span>
+              <textarea name="equipment" rows="2" placeholder="مثل: دمبل، بار، جهاز مشي، حبال مقاومة..."></textarea>
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>المشاكل الصحية أو الإصابات</span>
+              <textarea name="healthIssues" rows="3" placeholder="اكتب الحالة أو اكتب: لا يوجد"></textarea>
+            </label>
+
+            <button type="submit" class="btn btn-primary form-submit">إرسال تسجيل المدرب</button>
           </form>
 
-          <p class="form-message" id="formMessage" aria-live="polite"></p>
+          <p class="form-message" id="trainerFormMessage" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="preorder" class="section cta-section">
+        <div class="cta-panel preorder-panel" data-animate="fade-up">
+          <span class="section-kicker">PRE-ORDER</span>
+          <h2>الطلب المسبق</h2>
+          <p>
+            في النهاية، إذا تبغى أولوية الوصول عند الإطلاق، سجّل اسمك وإيميلك ورقمك.
+          </p>
+
+          <form class="form-grid form-grid-compact" id="preorderForm">
+            <label class="form-field">
+              <span>الاسم</span>
+              <input type="text" name="fullName" autocomplete="name" required />
+            </label>
+
+            <label class="form-field">
+              <span>البريد الإلكتروني</span>
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+
+            <label class="form-field">
+              <span>رقم الجوال</span>
+              <input type="tel" name="phone" autocomplete="tel" required />
+            </label>
+
+            <button type="submit" class="btn btn-primary form-submit">سجلني في الطلب المسبق</button>
+          </form>
+
+          <p class="form-message" id="preorderFormMessage" aria-live="polite"></p>
         </div>
       </section>
     </main>
@@ -393,16 +476,23 @@
         lucide.createIcons();
       }
 
-      const form = document.getElementById("waitlistForm");
-      const formMessage = document.getElementById("formMessage");
+      const attachFallbackForm = function (formId, messageId, successMessage) {
+        const form = document.getElementById(formId);
+        const message = document.getElementById(messageId);
 
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        const email = form.querySelector('input[name="email"]').value.trim();
+        if (!form || !message) {
+          return;
+        }
 
-        formMessage.textContent = "تم تسجيل " + email + " في القائمة المبكرة.";
-        form.reset();
-      });
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          message.textContent = successMessage;
+          form.reset();
+        });
+      };
+
+      attachFallbackForm("trainerForm", "trainerFormMessage", "تم استلام تسجيل المدرب.");
+      attachFallbackForm("preorderForm", "preorderFormMessage", "تم تسجيلك في الطلب المسبق.");
 
       if (!window.gsap || !window.ScrollTrigger) {
         return;

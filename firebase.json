@@ -1,16 +1,22 @@
 {
-  "firestore": {
-    "rules": "firestore.rules"
-  },
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**",
-      "functions/**",
-      "server*.log",
-      "serve.ps1"
-    ]
-  }
+    "firestore":  {
+                      "rules":  "firestore.rules"
+                  },
+    "hosting":  {
+                    "public":  ".",
+                    "ignore":  [
+                                   "firebase.json",
+                                   ".firebaserc",
+                                   ".firebase-config/**",
+                                   ".git/**",
+                                   ".vscode/**",
+                                   "**/.*",
+                                   "**/node_modules/**",
+                                   "functions/**",
+                                   "README.md",
+                                   "firestore.rules",
+                                   "server*.log",
+                                   "serve.ps1"
+                               ]
+                }
 }
