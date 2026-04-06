@@ -39,10 +39,10 @@
           <li><a href="#coaching">التجربة</a></li>
           <li><a href="#communities">المجتمعات</a></li>
           <li><a href="#coach-signup">تسجيل المدربين</a></li>
-          <li><a href="#preorder">الطلب المسبق</a></li>
+          <li><a href="#trainee-signup">تسجيل المتدربين</a></li>
         </ul>
 
-        <a href="#preorder" class="btn btn-primary">حمّل التطبيق</a>
+        <a href="#trainee-signup" class="btn btn-primary">حمّل التطبيق</a>
       </nav>
     </header>
 
@@ -67,7 +67,7 @@
           </p>
 
           <div class="hero-actions" data-animate="fade-up">
-            <a href="#preorder" class="btn btn-primary btn-lg">احجز وصولك المبكر</a>
+            <a href="#trainee-signup" class="btn btn-primary btn-lg">احجز وصولك المبكر</a>
             <a href="#system" class="btn btn-secondary btn-lg">شاهد مزايا التطبيق</a>
           </div>
 
@@ -361,7 +361,7 @@
             والمعدات المتوفرة والحالة الصحية، لنقدر نبني تجربة مناسبة لك.
           </p>
 
-          <form class="form-grid" id="trainerForm">
+          <form class="form-grid legacy-hidden" id="trainerFormLegacy">
             <label class="form-field">
               <span>الاسم الكامل</span>
               <input type="text" name="fullName" autocomplete="name" required />
@@ -423,19 +423,94 @@
             <button type="submit" class="btn btn-primary form-submit">إرسال تسجيل المدرب</button>
           </form>
 
+          <p class="form-message legacy-hidden" id="trainerFormMessageLegacy" aria-live="polite"></p>
+
+          <form class="form-grid" id="trainerForm">
+            <label class="form-field">
+              <span>الاسم الكامل</span>
+              <input type="text" name="fullName" autocomplete="name" required />
+            </label>
+
+            <label class="form-field">
+              <span>البريد الإلكتروني</span>
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+
+            <label class="form-field">
+              <span>رقم الجوال</span>
+              <input type="tel" name="phone" autocomplete="tel" inputmode="tel" minlength="8" maxlength="24" pattern="^[0-9+()\\-\\s]{8,24}$" required />
+            </label>
+
+            <label class="form-field">
+              <span>سنوات الخبرة التدريبية</span>
+              <input type="number" name="yearsExperience" min="0" max="50" step="1" required />
+            </label>
+
+            <label class="form-field">
+              <span>مجال التخصص</span>
+              <select name="specialization" required>
+                <option value="">اختر التخصص</option>
+                <option value="fat-loss">تنشيف وخسارة وزن</option>
+                <option value="muscle-gain">بناء عضلات</option>
+                <option value="strength">قوة وأداء</option>
+                <option value="general-fitness">لياقة عامة</option>
+                <option value="rehab">تأهيل وإصابات</option>
+                <option value="other">أخرى</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span>الشهادات أو الاعتمادات</span>
+              <input type="text" name="certifications" placeholder="مثال: NASM, ACE, ISSA" required />
+            </label>
+
+            <label class="form-field">
+              <span>نمط التدريب</span>
+              <select name="coachingType" required>
+                <option value="">اختر نمط التدريب</option>
+                <option value="online">عن بعد</option>
+                <option value="in-person">حضوري</option>
+                <option value="hybrid">هجين (عن بعد + حضوري)</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span>مكان تقديم التدريب</span>
+              <select name="coachingLocation" required>
+                <option value="">اختر مكان التدريب</option>
+                <option value="gym">داخل نادي</option>
+                <option value="home-visits">زيارات منزلية</option>
+                <option value="both">الاثنين</option>
+              </select>
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>نبذة الخبرة والمنهج التدريبي</span>
+              <textarea name="experienceDetails" rows="3" placeholder="اكتب خبراتك، الفئات التي تعمل معها، وأسلوبك في التدريب..." required></textarea>
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>أوقات التفرغ</span>
+              <textarea name="availability" rows="2" placeholder="مثال: أيام الأسبوع مساءً، الويكند صباحًا..." required></textarea>
+            </label>
+
+            <button type="submit" class="btn btn-primary form-submit">إرسال طلب المدرب</button>
+          </form>
+
           <p class="form-message" id="trainerFormMessage" aria-live="polite"></p>
         </div>
       </section>
 
-      <section id="preorder" class="section cta-section">
+      <section id="trainee-signup" class="section cta-section">
         <div class="cta-panel preorder-panel" data-animate="fade-up">
-          <span class="section-kicker">PRE-ORDER</span>
-          <h2>الطلب المسبق</h2>
+          <span class="section-kicker">TRAINEE INTEREST</span>
+          <h2>تسجيل المتدربين</h2>
           <p>
-            في النهاية، إذا تبغى أولوية الوصول عند الإطلاق، سجّل اسمك وإيميلك ورقمك.
+            هذا النموذج للفرد المهتم بالتدريب. شارك هدفك ومكان التمرين والمعدات
+            المتوفرة حتى نوصلك بالمدرب المناسب.
           </p>
 
-          <form class="form-grid form-grid-compact" id="preorderForm">
+          <form class="form-grid form-grid-compact legacy-hidden" id="preorderFormLegacy">
             <label class="form-field">
               <span>الاسم</span>
               <input type="text" name="fullName" autocomplete="name" required />
@@ -454,14 +529,76 @@
             <button type="submit" class="btn btn-primary form-submit">سجلني في الطلب المسبق</button>
           </form>
 
-          <p class="form-message" id="preorderFormMessage" aria-live="polite"></p>
+          <p class="form-message legacy-hidden" id="preorderFormMessageLegacy" aria-live="polite"></p>
+
+          <form class="form-grid" id="traineeForm">
+            <label class="form-field">
+              <span>الاسم</span>
+              <input type="text" name="fullName" autocomplete="name" required />
+            </label>
+
+            <label class="form-field">
+              <span>البريد الإلكتروني</span>
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+
+            <label class="form-field">
+              <span>رقم الجوال</span>
+              <input type="tel" name="phone" autocomplete="tel" inputmode="tel" minlength="8" maxlength="24" pattern="^[0-9+()\\-\\s]{8,24}$" required />
+            </label>
+
+            <label class="form-field">
+              <span>الهدف الأساسي</span>
+              <select name="goal" required>
+                <option value="">اختر الهدف</option>
+                <option value="fat-loss">خسارة وزن</option>
+                <option value="muscle-gain">زيادة عضلات</option>
+                <option value="fitness">تحسين اللياقة</option>
+                <option value="performance">تحسين الأداء</option>
+                <option value="rehab">العودة بعد إصابة</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span>مستواك الحالي</span>
+              <select name="fitnessLevel" required>
+                <option value="">اختر المستوى</option>
+                <option value="beginner">مبتدئ</option>
+                <option value="intermediate">متوسط</option>
+                <option value="advanced">متقدم</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span>فين تتمرن غالبًا؟</span>
+              <select name="trainingLocation" required>
+                <option value="">اختر مكان التمرين</option>
+                <option value="gym">في النادي</option>
+                <option value="home">في البيت</option>
+                <option value="both">الاثنين</option>
+              </select>
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>المعدات المتوفرة لديك</span>
+              <textarea name="equipment" rows="2" placeholder="مثال: دمبل، بار، جهاز مشي، بدون معدات..." required></textarea>
+            </label>
+
+            <label class="form-field form-field-full">
+              <span>ملاحظات صحية أو إصابات (اختياري)</span>
+              <textarea name="healthNotes" rows="2" placeholder="اكتب إن وجد"></textarea>
+            </label>
+
+            <button type="submit" class="btn btn-primary form-submit">إرسال تسجيل المتدرب</button>
+          </form>
+
+          <p class="form-message" id="traineeFormMessage" aria-live="polite"></p>
         </div>
       </section>
     </main>
 
     <footer class="footer">
       <p>MOVE App © 2026 | Training. Nutrition. Recovery.</p>
-      <p><a href="admin.html" class="footer-admin-link">Admin Panel</a></p>
     </footer>
   </div>
 
@@ -492,7 +629,7 @@
       };
 
       attachFallbackForm("trainerForm", "trainerFormMessage", "تم استلام تسجيل المدرب.");
-      attachFallbackForm("preorderForm", "preorderFormMessage", "تم تسجيلك في الطلب المسبق.");
+      attachFallbackForm("traineeForm", "traineeFormMessage", "تم استلام تسجيل المتدرب.");
 
       if (!window.gsap || !window.ScrollTrigger) {
         return;

@@ -24,26 +24,7 @@ service cloud.firestore {
         request.resource.data.createdAt == request.time;
     }
 
-    match /preorders/{documentId} {
-      allow read: if isAdmin();
-      allow update, delete: if false;
-      allow create: if
-        request.resource.data.keys().hasOnly(["fullName", "email", "phone", "source", "createdAt"]) &&
-        request.resource.data.fullName is string &&
-        request.resource.data.fullName.size() >= 2 &&
-        request.resource.data.fullName.size() <= 120 &&
-        request.resource.data.email is string &&
-        request.resource.data.email.size() > 5 &&
-        request.resource.data.email.size() < 320 &&
-        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
-        request.resource.data.phone is string &&
-        request.resource.data.phone.size() >= 7 &&
-        request.resource.data.phone.size() <= 24 &&
-        request.resource.data.source == "landing-page-preorder" &&
-        request.resource.data.createdAt == request.time;
-    }
-
-    match /coachApplications/{documentId} {
+    match /traineeInterests/{documentId} {
       allow read: if isAdmin();
       allow update, delete: if false;
       allow create: if
@@ -51,12 +32,11 @@ service cloud.firestore {
           "fullName",
           "email",
           "phone",
-          "weightKg",
-          "goals",
-          "sportType",
+          "goal",
+          "fitnessLevel",
           "trainingLocation",
           "equipment",
-          "healthIssues",
+          "healthNotes",
           "source",
           "createdAt"
         ]) &&
@@ -70,22 +50,75 @@ service cloud.firestore {
         request.resource.data.phone is string &&
         request.resource.data.phone.size() >= 7 &&
         request.resource.data.phone.size() <= 24 &&
-        request.resource.data.weightKg is number &&
-        request.resource.data.weightKg > 20 &&
-        request.resource.data.weightKg < 350 &&
-        request.resource.data.goals is string &&
-        request.resource.data.goals.size() >= 3 &&
-        request.resource.data.goals.size() <= 1000 &&
-        request.resource.data.sportType is string &&
-        request.resource.data.sportType.size() >= 2 &&
-        request.resource.data.sportType.size() <= 40 &&
+        request.resource.data.phone.matches("^\\+?[0-9\\-()\\s]{8,24}$") &&
+        request.resource.data.goal is string &&
+        request.resource.data.goal.size() >= 3 &&
+        request.resource.data.goal.size() <= 40 &&
+        request.resource.data.fitnessLevel is string &&
+        request.resource.data.fitnessLevel.size() >= 3 &&
+        request.resource.data.fitnessLevel.size() <= 20 &&
         request.resource.data.trainingLocation is string &&
-        request.resource.data.trainingLocation.size() >= 2 &&
+        request.resource.data.trainingLocation.size() >= 3 &&
         request.resource.data.trainingLocation.size() <= 20 &&
         request.resource.data.equipment is string &&
+        request.resource.data.equipment.size() >= 2 &&
         request.resource.data.equipment.size() <= 1000 &&
-        request.resource.data.healthIssues is string &&
-        request.resource.data.healthIssues.size() <= 1000 &&
+        request.resource.data.healthNotes is string &&
+        request.resource.data.healthNotes.size() <= 1000 &&
+        request.resource.data.source == "landing-page-trainee" &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    match /coachApplications/{documentId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          "fullName",
+          "email",
+          "phone",
+          "yearsExperience",
+          "specialization",
+          "certifications",
+          "coachingType",
+          "coachingLocation",
+          "experienceDetails",
+          "availability",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 120 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 7 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.phone.matches("^\\+?[0-9\\-()\\s]{8,24}$") &&
+        request.resource.data.yearsExperience is number &&
+        request.resource.data.yearsExperience >= 0 &&
+        request.resource.data.yearsExperience <= 50 &&
+        request.resource.data.specialization is string &&
+        request.resource.data.specialization.size() >= 3 &&
+        request.resource.data.specialization.size() <= 40 &&
+        request.resource.data.certifications is string &&
+        request.resource.data.certifications.size() >= 2 &&
+        request.resource.data.certifications.size() <= 300 &&
+        request.resource.data.coachingType is string &&
+        request.resource.data.coachingType.size() >= 3 &&
+        request.resource.data.coachingType.size() <= 20 &&
+        request.resource.data.coachingLocation is string &&
+        request.resource.data.coachingLocation.size() >= 3 &&
+        request.resource.data.coachingLocation.size() <= 30 &&
+        request.resource.data.experienceDetails is string &&
+        request.resource.data.experienceDetails.size() >= 10 &&
+        request.resource.data.experienceDetails.size() <= 2000 &&
+        request.resource.data.availability is string &&
+        request.resource.data.availability.size() >= 3 &&
+        request.resource.data.availability.size() <= 500 &&
         request.resource.data.source == "landing-page-coach" &&
         request.resource.data.createdAt == request.time;
     }

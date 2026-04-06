@@ -4,6 +4,12 @@
                   },
     "hosting":  {
                     "public":  ".",
+                    "rewrites":  [
+                                     {
+                                         "source":  "/admin",
+                                         "destination":  "/admin.html"
+                                     }
+                                 ],
                     "ignore":  [
                                    "firebase.json",
                                    ".firebaserc",

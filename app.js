@@ -14,7 +14,7 @@ window.addEventListener("DOMContentLoaded", function () {
   }
 
   initializeTrainerForm();
-  initializePreorderForm();
+  initializeTraineeForm();
   initializeAnimations();
 });
 
@@ -35,13 +35,14 @@ function initializeTrainerForm() {
     const payload = {
       fullName: getFormValue(form, "fullName"),
       email: getFormValue(form, "email").toLowerCase(),
-      phone: getFormValue(form, "phone"),
-      weightKg: Number(getFormValue(form, "weightKg")),
-      goals: getFormValue(form, "goals"),
-      sportType: getFormValue(form, "sportType"),
-      trainingLocation: getFormValue(form, "trainingLocation"),
-      equipment: getFormValue(form, "equipment"),
-      healthIssues: getFormValue(form, "healthIssues") || "لا يوجد",
+      phone: normalizePhone(getFormValue(form, "phone")),
+      yearsExperience: Number(getFormValue(form, "yearsExperience")),
+      specialization: getFormValue(form, "specialization"),
+      certifications: getFormValue(form, "certifications"),
+      coachingType: getFormValue(form, "coachingType"),
+      coachingLocation: getFormValue(form, "coachingLocation"),
+      experienceDetails: getFormValue(form, "experienceDetails"),
+      availability: getFormValue(form, "availability"),
       source: "landing-page-coach",
       createdAt: serverTimestamp()
     };
@@ -50,11 +51,15 @@ function initializeTrainerForm() {
       !payload.fullName ||
       !payload.email ||
       !payload.phone ||
-      !Number.isFinite(payload.weightKg) ||
-      payload.weightKg <= 0 ||
-      !payload.goals ||
-      !payload.sportType ||
-      !payload.trainingLocation
+      !isLikelyValidPhone(payload.phone) ||
+      !Number.isFinite(payload.yearsExperience) ||
+      payload.yearsExperience < 0 ||
+      !payload.specialization ||
+      !payload.certifications ||
+      !payload.coachingType ||
+      !payload.coachingLocation ||
+      !payload.experienceDetails ||
+      !payload.availability
     ) {
       formMessage.textContent = "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.";
       return;
@@ -69,7 +74,7 @@ function initializeTrainerForm() {
 
     try {
       await addDoc(collection(db, "coachApplications"), payload);
-      formMessage.textContent = "تم استلام تسجيلك كمدرب بنجاح.";
+      formMessage.textContent = "تم استلام طلب المدرب بنجاح.";
       form.reset();
     } catch (error) {
       console.error("Failed to save coach application", error);
@@ -83,9 +88,9 @@ function initializeTrainerForm() {
   });
 }
 
-function initializePreorderForm() {
-  const form = document.getElementById("preorderForm");
-  const formMessage = document.getElementById("preorderFormMessage");
+function initializeTraineeForm() {
+  const form = document.getElementById("traineeForm");
+  const formMessage = document.getElementById("traineeFormMessage");
 
   if (!form || !formMessage) {
     return;
@@ -100,13 +105,27 @@ function initializePreorderForm() {
     const payload = {
       fullName: getFormValue(form, "fullName"),
       email: getFormValue(form, "email").toLowerCase(),
-      phone: getFormValue(form, "phone"),
-      source: "landing-page-preorder",
+      phone: normalizePhone(getFormValue(form, "phone")),
+      goal: getFormValue(form, "goal"),
+      fitnessLevel: getFormValue(form, "fitnessLevel"),
+      trainingLocation: getFormValue(form, "trainingLocation"),
+      equipment: getFormValue(form, "equipment"),
+      healthNotes: getFormValue(form, "healthNotes") || "none",
+      source: "landing-page-trainee",
       createdAt: serverTimestamp()
     };
 
-    if (!payload.fullName || !payload.email || !payload.phone) {
-      formMessage.textContent = "يرجى تعبئة الاسم والإيميل ورقم الجوال.";
+    if (
+      !payload.fullName ||
+      !payload.email ||
+      !payload.phone ||
+      !isLikelyValidPhone(payload.phone) ||
+      !payload.goal ||
+      !payload.fitnessLevel ||
+      !payload.trainingLocation ||
+      !payload.equipment
+    ) {
+      formMessage.textContent = "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.";
       return;
     }
 
@@ -115,14 +134,14 @@ function initializePreorderForm() {
       submitButton.textContent = "جاري الإرسال...";
     }
 
-    formMessage.textContent = "جاري حفظ طلبك المسبق...";
+    formMessage.textContent = "جاري حفظ تسجيل المتدرب...";
 
     try {
-      await addDoc(collection(db, "preorders"), payload);
-      formMessage.textContent = "تم تسجيلك في الطلب المسبق بنجاح.";
+      await addDoc(collection(db, "traineeInterests"), payload);
+      formMessage.textContent = "تم استلام تسجيل المتدرب بنجاح.";
       form.reset();
     } catch (error) {
-      console.error("Failed to save preorder signup", error);
+      console.error("Failed to save trainee signup", error);
       formMessage.textContent = getSubmissionErrorMessage(error);
     } finally {
       if (submitButton) {
@@ -204,6 +223,15 @@ function initializeAnimations() {
 function getFormValue(form, fieldName) {
   const field = form.querySelector('[name="' + fieldName + '"]');
   return field ? field.value.trim() : "";
+}
+
+function normalizePhone(value) {
+  return value.replace(/\s+/g, "");
+}
+
+function isLikelyValidPhone(value) {
+  const digitsOnly = value.replace(/\D/g, "");
+  return digitsOnly.length >= 8 && digitsOnly.length <= 15;
 }
 
 function getSubmissionErrorMessage(error) {
