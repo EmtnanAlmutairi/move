@@ -143,7 +143,8 @@ textarea {
     transform 0.25s ease,
     box-shadow 0.25s ease,
     border-color 0.25s ease,
-    background-color 0.25s ease;
+    background-color 0.25s ease,
+    opacity 0.25s ease;
 }
 
 .btn:hover {
@@ -320,6 +321,20 @@ textarea {
 .experience-card {
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.hero-stats article:hover,
+.bento-card:hover,
+.result-panel:hover,
+.experience-card:hover,
+.community-showcase:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 28px 76px rgba(17, 17, 17, 0.16);
+  border-color: rgba(17, 17, 17, 0.16);
 }
 
 .hero-stats article {
@@ -516,6 +531,11 @@ textarea {
   font-size: 0.9rem;
   letter-spacing: 0.08em;
   white-space: nowrap;
+  transition: transform 0.25s ease;
+}
+
+.ticker-track span:hover {
+  transform: translateY(-2px);
 }
 
 @keyframes ticker {
@@ -908,11 +928,27 @@ textarea {
   position: relative;
   padding: 38px;
   border-radius: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
   background:
     radial-gradient(circle at top left, rgba(181, 255, 69, 0.28), transparent 28%),
     radial-gradient(circle at bottom right, rgba(255, 122, 24, 0.18), transparent 28%),
     rgba(255, 250, 241, 0.9);
   overflow: hidden;
+}
+
+.cta-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(181, 255, 69, 0.12),
+      rgba(255, 122, 24, 0.06) 45%,
+      transparent 70%
+    );
 }
 
 .registration-panel,
@@ -924,8 +960,8 @@ textarea {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 24px;
+  gap: 16px;
+  margin-top: 28px;
 }
 
 .form-grid-compact {
@@ -935,11 +971,29 @@ textarea {
 .form-field {
   display: grid;
   gap: 8px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.62);
+  border: 1px solid var(--line);
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.form-field:focus-within {
+  border-color: rgba(17, 17, 17, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(181, 255, 69, 0.12), transparent 46%),
+    rgba(255, 252, 246, 0.78);
+  box-shadow: 0 14px 36px rgba(17, 17, 17, 0.06);
 }
 
 .form-field span {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1e1a16;
 }
 
 .form-field-full,
@@ -954,13 +1008,18 @@ textarea {
   min-height: 54px;
   padding: 12px 16px;
   border: 1px solid rgba(17, 17, 17, 0.12);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
   color: var(--ink);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
 }
 
 .form-grid textarea {
   min-height: 100px;
+  border-radius: 18px;
   resize: vertical;
 }
 
@@ -968,13 +1027,28 @@ textarea {
 .form-grid select:focus,
 .form-grid textarea:focus {
   outline: none;
-  border-color: rgba(17, 17, 17, 0.3);
+  border-color: rgba(17, 17, 17, 0.24);
+  box-shadow:
+    0 0 0 3px rgba(181, 255, 69, 0.22),
+    0 0 0 6px rgba(255, 122, 24, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.form-submit {
+  margin-top: 6px;
+}
+
+.form-submit:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .form-message {
   min-height: 28px;
-  margin: 16px 4px 0 0;
-  color: var(--muted);
+  margin: 18px 4px 0 0;
+  color: #2f2a24;
+  font-weight: 600;
 }
 
 .footer {
@@ -1039,6 +1113,10 @@ textarea {
 
   .hero {
     padding-top: 52px;
+  }
+
+  .cta-panel {
+    padding: 28px 22px;
   }
 
   .hero-stats,
@@ -1123,5 +1201,20 @@ textarea {
   .experience-card,
   .result-panel {
     border-radius: 24px;
+  }
+
+  .form-field {
+    padding: 10px;
+    border-radius: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
