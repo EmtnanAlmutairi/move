@@ -12,6 +12,40 @@
   <style>
     .config-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
     .config-grid .full { grid-column: 1/-1; }
+    .dashboard-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; margin-top: 16px; }
+    .panel-stack { display: grid; gap: 16px; }
+    .quick-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .admin-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(17, 17, 17, 0.1);
+      background: rgba(255, 255, 255, 0.75);
+      color: #111;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .mini-card {
+      border-radius: 20px;
+      border: 1px solid rgba(17, 17, 17, 0.08);
+      background: rgba(255, 255, 255, 0.66);
+      padding: 16px;
+    }
+    .mini-card h4 { margin: 0 0 10px; font-size: 18px; }
+    .mini-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+    .mini-list li {
+      border-radius: 14px;
+      border: 1px solid rgba(17, 17, 17, 0.08);
+      background: rgba(255, 255, 255, 0.75);
+      padding: 12px;
+    }
+    .mini-title { margin: 0; font-weight: 800; }
+    .mini-meta { margin: 5px 0 0; color: #645c52; font-size: 13px; }
+    .empty-state { margin: 0; color: #6a6056; font-size: 14px; }
+    @media (max-width: 980px){ .dashboard-grid{ grid-template-columns: 1fr; } }
     @media (max-width: 720px){ .config-grid{ grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -47,6 +81,38 @@
         </div>
       </div>
 
+      <section class="identity-bar">
+        <article>
+          <small>Signed-in Admin</small>
+          <strong id="adminIdentityEmail">-</strong>
+        </article>
+        <article>
+          <small>Last Sync</small>
+          <strong id="adminLastSync">-</strong>
+        </article>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <small>Subscriptions</small>
+          <strong id="subscriptionsCount">0</strong>
+        </article>
+        <article class="stat-card">
+          <small>Active Injuries</small>
+          <strong id="injuriesCount">0</strong>
+        </article>
+        <article class="stat-card">
+          <small>Open Threads</small>
+          <strong id="threadsCount">0</strong>
+        </article>
+      </section>
+
+      <div class="quick-links">
+        <a href="/move" class="admin-chip">Open App</a>
+        <a href="/coach" class="admin-chip">Coach Portal</a>
+        <a href="/admin" class="admin-chip">Landing Admin</a>
+      </div>
+
       <form id="configForm" class="admin-form config-grid">
         <label class="admin-field">
           <span>Workout Plan Version</span>
@@ -78,6 +144,23 @@
 
         <button class="admin-btn admin-btn-primary full" type="submit" id="saveButton">Save Config</button>
       </form>
+
+      <section class="dashboard-grid">
+        <div class="panel-stack">
+          <article class="mini-card">
+            <h4>Recent Subscriptions</h4>
+            <ul id="recentSubscriptionsList" class="mini-list"></ul>
+            <p id="recentSubscriptionsEmpty" class="empty-state">No subscriptions yet.</p>
+          </article>
+        </div>
+        <div class="panel-stack">
+          <article class="mini-card">
+            <h4>Recent Injury Reports</h4>
+            <ul id="recentInjuriesList" class="mini-list"></ul>
+            <p id="recentInjuriesEmpty" class="empty-state">No injury reports yet.</p>
+          </article>
+        </div>
+      </section>
 
       <p class="panel-message" id="dashboardMessage"></p>
     </section>
