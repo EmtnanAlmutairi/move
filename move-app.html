@@ -14,19 +14,28 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand">MOVE</div>
-      <div class="topbar-right">
+      <div class="brand-block">
+        <div class="brand">MOVE</div>
         <span class="small-muted" id="todayLabel"></span>
+      </div>
+      <div class="topbar-right">
+        <a href="coach-portal.html" class="ghost-btn inline-link">دخول المدرب</a>
         <button id="openOnboardingBtn" class="ghost-btn">تعديل الهدف</button>
       </div>
     </header>
 
     <main class="content" id="content">
       <section class="screen active" data-screen="home">
-        <div class="gradient-card">
-          <div class="kicker">الهدف اليومي</div>
-          <h2 id="readinessValue">75%</h2>
-          <p>اقتربت من هدفك اليومي. استمر على نفس الوتيرة.</p>
+        <div class="gradient-card hero-card">
+          <div class="hero-head">
+            <div>
+              <div class="kicker">الهدف اليومي</div>
+              <h2 id="readinessValue">75%</h2>
+            </div>
+            <span class="badge light" id="planVersionBadge">خطة v2.4</span>
+          </div>
+          <p>اقتربت من هدفك اليومي. استمر بنفس الثبات لتحقق نتيجة أقوى.</p>
+          <div class="progress-track"><span id="goalProgressBar"></span></div>
           <div class="stats-grid">
             <article><strong id="statSleep">7.4h</strong><span>النوم</span></article>
             <article><strong id="statSteps">9044</strong><span>الخطوات</span></article>
@@ -37,17 +46,17 @@
         <article class="card">
           <div class="card-head">
             <h3>تمرين اليوم</h3>
-            <span class="badge" id="planVersionBadge">خطة v2.4</span>
+            <span class="badge" id="challengeBadge">مفعلة</span>
           </div>
           <div class="workout-item featured" id="featuredWorkout"></div>
         </article>
 
         <article class="card">
           <div class="card-head">
-            <h3>التحديات والمجتمع</h3>
-            <span class="badge" id="challengeBadge">مفعلة</span>
+            <h3>المجتمع الصحي</h3>
+            <button class="ghost-btn mini" type="button" data-tab-jump="community">عرض الكل</button>
           </div>
-          <p class="muted">شارك في تحديات أسبوعية مع فريقك الصحي والمجتمع.</p>
+          <div id="communityHighlights"></div>
         </article>
       </section>
 
@@ -63,20 +72,27 @@
 
       <section class="screen" data-screen="workout">
         <article class="card">
-          <h3>تمارين مصورة من المدرب</h3>
-          <p class="muted">الخطة تتغير تلقائيا من إعدادات الأدمن.</p>
+          <div class="card-head">
+            <h3>مكتبة التمارين المصورة</h3>
+            <span class="badge">تحديث من لوحة الأدمن</span>
+          </div>
+          <div class="workout-filter" id="workoutFilters"></div>
           <div id="workoutLibrary"></div>
         </article>
       </section>
 
       <section class="screen" data-screen="nutrition">
-        <article class="gradient-card slim">
+        <article class="gradient-card slim nutrition-hero">
           <div class="kicker">خطة التغذية</div>
           <h2 id="nutritionVersion">v1.9</h2>
           <p>سعرات ومغذيات مخصصة حسب هدفك.</p>
+          <div class="macro-grid" id="macroGrid"></div>
         </article>
         <article class="card">
-          <h3>وجبات اليوم</h3>
+          <div class="card-head">
+            <h3>وجبات اليوم</h3>
+            <span class="badge" id="todayCalories">0 سعرة</span>
+          </div>
           <div id="mealList"></div>
         </article>
       </section>
@@ -114,8 +130,28 @@
 
       <section class="screen" data-screen="community">
         <article class="card">
-          <h3>المحادثات</h3>
-          <div id="chatList"></div>
+          <div class="community-switch">
+            <button class="switch-btn active" type="button" data-community-view="feed">التغذية الاجتماعية</button>
+            <button class="switch-btn" type="button" data-community-view="chat">المحادثات</button>
+          </div>
+
+          <div class="community-view active" data-community-panel="feed">
+            <div id="communityFeed"></div>
+          </div>
+
+          <div class="community-view" data-community-panel="chat">
+            <div class="chat-layout">
+              <div class="chat-list" id="chatList"></div>
+              <div class="chat-thread">
+                <h4 id="chatThreadTitle">فريق الدعم المتكامل</h4>
+                <div id="chatThreadMessages"></div>
+                <form id="chatComposeForm" class="chat-compose">
+                  <input name="message" placeholder="اكتب رسالتك..." required />
+                  <button type="submit" class="primary-btn">إرسال</button>
+                </form>
+              </div>
+            </div>
+          </div>
         </article>
       </section>
 

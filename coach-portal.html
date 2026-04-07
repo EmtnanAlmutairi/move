@@ -1,0 +1,83 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOVE Coach Portal</title>
+  <meta name="description" content="MOVE Coach Portal: تسجيل دخول المدرب ومتابعة المتدربين والخطط." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="stylesheet" href="coach-portal.css" />
+</head>
+<body>
+  <main class="coach-shell">
+    <header class="coach-header">
+      <a href="move-app.html" class="brand">MOVE</a>
+      <p>بوابة المدرب</p>
+    </header>
+
+    <section class="panel" id="coachAuthCard">
+      <h1>دخول المدرب</h1>
+      <p class="muted">سجل دخولك لمتابعة الجلسات والخطط وتحديثات المتدربين.</p>
+      <form id="coachLoginForm" class="form-grid">
+        <label>
+          <span>الإيميل</span>
+          <input type="email" name="email" autocomplete="email" required />
+        </label>
+        <label>
+          <span>كلمة المرور</span>
+          <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="primary-btn" id="coachLoginBtn">دخول</button>
+      </form>
+      <p class="message" id="coachAuthMessage"></p>
+    </section>
+
+    <section class="panel hidden" id="coachDashboard">
+      <div class="dash-head">
+        <div>
+          <h2>لوحة المدرب</h2>
+          <p class="muted" id="coachWelcome">جاهز لإدارة يومك</p>
+        </div>
+        <button type="button" id="coachSignOutBtn" class="ghost-btn">تسجيل خروج</button>
+      </div>
+
+      <div class="kpi-grid">
+        <article><strong id="coachTraineesCount">0</strong><span>متدربين نشطين</span></article>
+        <article><strong id="coachSessionsCount">0</strong><span>جلسات اليوم</span></article>
+        <article><strong id="coachInjuriesCount">0</strong><span>بلاغات إصابة</span></article>
+      </div>
+
+      <article class="card">
+        <div class="card-head">
+          <h3>جلسات اليوم</h3>
+          <span class="badge">الآن</span>
+        </div>
+        <div id="coachSessions"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h3>آخر بلاغات الإصابات</h3>
+          <button class="ghost-btn mini" type="button" id="coachRefreshBtn">تحديث</button>
+        </div>
+        <div id="coachInjuries"></div>
+      </article>
+
+      <article class="card">
+        <h3>ملاحظات سريعة للمتدربين</h3>
+        <form id="coachNotesForm" class="notes-form">
+          <input name="note" placeholder="اكتب ملاحظة توجيهية سريعة..." required />
+          <button type="submit" class="primary-btn">إضافة</button>
+        </form>
+        <div id="coachNotes"></div>
+      </article>
+      <p class="message" id="coachDashboardMessage"></p>
+    </section>
+  </main>
+
+  <script type="module" src="coach-portal.js"></script>
+</body>
+</html>
