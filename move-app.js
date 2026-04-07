@@ -61,6 +61,8 @@ const state = {
     preferredDays: []
   },
   scheduleOverrides: {},
+  orderedWorkoutIds: [],
+  dragWorkoutId: "",
   memberTeam: {
     coachName: "سيتم التعيين قريباً",
     nutritionName: "سيتم التعيين قريباً",
@@ -81,10 +83,16 @@ const state = {
   supportMessages: [],
   unreadCoachMessages: 0,
   lastUnreadCoachMessages: 0,
-  supportUnsubscribe: null
+  supportUnsubscribe: null,
+  reminderIntervalId: null
 };
 
 window.addEventListener("DOMContentLoaded", init);
+window.addEventListener("beforeunload", function () {
+  if (state.reminderIntervalId) {
+    clearInterval(state.reminderIntervalId);
+  }
+});
 
 async function init() {
   showAppNotice("جاري تحميل بياناتك الصحية...");
@@ -117,6 +125,7 @@ async function init() {
   ]);
 
   requestNotificationPermissionIfNeeded();
+  startProfileReminderLoop();
   startSupportMessagesListener();
   restoreLastTab();
   showAppNotice("");
@@ -412,6 +421,9 @@ async function loadMemberSchedule() {
       }
       return acc;
     }, {});
+    state.orderedWorkoutIds = Array.isArray(data.orderedWorkoutIds)
+      ? data.orderedWorkoutIds.map(function (item) { return String(item || ""); }).filter(Boolean)
+      : [];
   } catch (error) {
     console.error("Failed to load member schedule", error);
   }
@@ -468,6 +480,7 @@ async function onProfileSubmit(event) {
     })));
     renderDashboard();
     renderMemberExperience();
+    startProfileReminderLoop();
     if (message) message.textContent = "تم حفظ الملف بنجاح.";
   } catch (error) {
     console.error("Failed to save profile", error);
@@ -481,6 +494,7 @@ async function persistMemberSchedule() {
     await setDoc(doc(db, "memberSchedules", state.userUid), {
       memberUid: state.userUid,
       overrides: state.scheduleOverrides,
+      orderedWorkoutIds: state.orderedWorkoutIds,
       updatedAt: serverTimestamp()
     }, { merge: true });
   } catch (error) {
@@ -696,20 +710,68 @@ function bindWorkoutToggles() {
 function bindProfileActions() {
   const profileForm = document.getElementById("profileForm");
   const weeklyList = document.getElementById("weeklyList");
+  const dropzones = document.getElementById("scheduleDropzones");
 
   if (profileForm) {
     profileForm.addEventListener("submit", onProfileSubmit);
   }
 
   if (weeklyList) {
-    weeklyList.addEventListener("change", function (event) {
+    weeklyList.addEventListener("dragstart", function (event) {
       const target = event.target;
-      if (!(target instanceof HTMLSelectElement)) return;
-      const workoutId = target.getAttribute("data-schedule-workout");
+      if (!(target instanceof HTMLElement)) return;
+      const card = target.closest("[data-workout-id]");
+      if (!card) return;
+      const workoutId = String(card.getAttribute("data-workout-id") || "");
       if (!workoutId) return;
-      const nextDay = String(target.value || "");
-      if (!WEEK_DAYS.includes(nextDay)) return;
+      state.dragWorkoutId = workoutId;
+      card.classList.add("dragging");
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", workoutId);
+      }
+    });
+
+    weeklyList.addEventListener("dragend", function (event) {
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        target.classList.remove("dragging");
+      }
+      state.dragWorkoutId = "";
+    });
+  }
+
+  if (dropzones) {
+    dropzones.addEventListener("dragover", function (event) {
+      event.preventDefault();
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const zone = target.closest("[data-drop-day]");
+      if (!zone) return;
+      zone.classList.add("active-drop");
+    });
+
+    dropzones.addEventListener("dragleave", function (event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const zone = target.closest("[data-drop-day]");
+      if (!zone) return;
+      zone.classList.remove("active-drop");
+    });
+
+    dropzones.addEventListener("drop", function (event) {
+      event.preventDefault();
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const zone = target.closest("[data-drop-day]");
+      if (!zone) return;
+      zone.classList.remove("active-drop");
+
+      const nextDay = String(zone.getAttribute("data-drop-day") || "");
+      const workoutId = state.dragWorkoutId || (event.dataTransfer ? event.dataTransfer.getData("text/plain") : "");
+      if (!workoutId || !WEEK_DAYS.includes(nextDay)) return;
       state.scheduleOverrides[workoutId] = nextDay;
+      reorderWorkoutIds(workoutId);
       renderWeeklyPlan();
       renderWorkoutLibrary();
       persistMemberSchedule();
@@ -964,6 +1026,7 @@ function renderAll() {
   renderMemberTeam();
   renderMemberExperience();
   renderProfile();
+  renderScheduleDropzones();
   renderCommunityHighlights();
   renderWeeklyPlan();
   renderWorkoutLibrary();
@@ -1054,8 +1117,45 @@ function renderProfile() {
 function getEffectiveWorkoutDay(workout) {
   const overrideDay = state.scheduleOverrides[workout.id];
   if (overrideDay && WEEK_DAYS.includes(overrideDay)) return overrideDay;
+  if (state.profile.preferredDays.length) {
+    const ordered = getOrderedWorkouts(state.workouts);
+    const idx = ordered.findIndex(function (item) { return item.id === workout.id; });
+    if (idx >= 0) {
+      return state.profile.preferredDays[idx % state.profile.preferredDays.length];
+    }
+  }
   if (WEEK_DAYS.includes(workout.day)) return workout.day;
   return "الأحد";
+}
+
+function getOrderedWorkouts(list) {
+  const items = list.slice();
+  if (!state.orderedWorkoutIds.length) return items;
+  const rank = state.orderedWorkoutIds.reduce(function (acc, id, idx) {
+    acc[id] = idx;
+    return acc;
+  }, {});
+  return items.sort(function (a, b) {
+    const ra = Number.isFinite(rank[a.id]) ? rank[a.id] : 9999;
+    const rb = Number.isFinite(rank[b.id]) ? rank[b.id] : 9999;
+    if (ra !== rb) return ra - rb;
+    return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+  });
+}
+
+function reorderWorkoutIds(workoutId) {
+  const unique = Array.from(new Set(state.orderedWorkoutIds.concat(state.workouts.map(function (item) { return item.id; }))));
+  if (!unique.includes(workoutId)) return;
+  state.orderedWorkoutIds = unique.filter(function (id) { return id !== workoutId; });
+  state.orderedWorkoutIds.unshift(workoutId);
+}
+
+function renderScheduleDropzones() {
+  const container = document.getElementById("scheduleDropzones");
+  if (!container) return;
+  container.innerHTML = WEEK_DAYS.map(function (day) {
+    return '<div class="schedule-zone" data-drop-day="' + day + '">اسحب التمرين إلى ' + day + "</div>";
+  }).join("");
 }
 
 function renderMemberTeam() {
@@ -1097,29 +1197,27 @@ function renderWeeklyPlan() {
   const weeklyProgress = document.getElementById("weeklyProgress");
   if (!weeklyList || !weeklyProgress) return;
 
+  const orderedWorkouts = getOrderedWorkouts(state.workouts);
   const doneMap = readWorkoutDoneMap();
-  const doneCount = state.workouts.filter(function (item) {
+  const doneCount = orderedWorkouts.filter(function (item) {
     return Boolean(doneMap[item.id]);
   }).length;
 
-  weeklyProgress.textContent = doneCount + " من " + state.workouts.length;
+  weeklyProgress.textContent = doneCount + " من " + orderedWorkouts.length;
 
-  weeklyList.innerHTML = state.workouts
+  weeklyList.innerHTML = orderedWorkouts
     .map(function (workout) {
       const done = Boolean(doneMap[workout.id]);
       const effectiveDay = getEffectiveWorkoutDay(workout);
-      const dayOptions = WEEK_DAYS.map(function (day) {
-        return '<option value="' + day + '"' + (day === effectiveDay ? " selected" : "") + ">" + day + "</option>";
-      }).join("");
 
       return (
-        '<article class="plan-item">' +
+        '<article class="plan-item" draggable="true" data-workout-id="' + workout.id + '">' +
         '<div class="plan-row">' +
         '<button class="badge toggle-done" data-workout-toggle="' + workout.id + '">' + (done ? "مكتمل" : "تحديد كمكتمل") + "</button>" +
         '<div>' +
         '<p class="item-title">' + escapeHtml(workout.title) + "</p>" +
         '<p class="item-sub">' + escapeHtml(effectiveDay + " • " + workout.durationMin + " دقيقة • " + workout.intensity) + "</p>" +
-        '<select data-schedule-workout="' + workout.id + '">' + dayOptions + "</select>" +
+        '<p class="item-meta"><span>اسحب البطاقة وحدد اليوم من الأعلى</span></p>' +
         "</div>" +
         "</div>" +
         "</article>"
@@ -1133,10 +1231,11 @@ function renderWorkoutLibrary() {
   if (!workoutLibrary) return;
 
   const doneMap = readWorkoutDoneMap();
+  const orderedWorkouts = getOrderedWorkouts(state.workouts);
 
   const byFilter = state.workoutFilter === "all"
-    ? state.workouts
-    : state.workouts.filter((workout) => workout.focus === state.workoutFilter);
+    ? orderedWorkouts
+    : orderedWorkouts.filter((workout) => workout.focus === state.workoutFilter);
 
   const visibleWorkouts = state.workoutSearch
     ? byFilter.filter(function (workout) {
@@ -1480,6 +1579,43 @@ function updateUnreadNotifications() {
   }
 
   state.lastUnreadCoachMessages = state.unreadCoachMessages;
+}
+
+function startProfileReminderLoop() {
+  if (state.reminderIntervalId) {
+    clearInterval(state.reminderIntervalId);
+    state.reminderIntervalId = null;
+  }
+
+  state.reminderIntervalId = window.setInterval(function () {
+    maybeTriggerWorkoutReminder();
+  }, 60 * 1000);
+
+  maybeTriggerWorkoutReminder();
+}
+
+function maybeTriggerWorkoutReminder() {
+  const reminderTime = String(state.profile.reminderTime || "");
+  if (!/^\d{2}:\d{2}$/.test(reminderTime)) return;
+
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const current = hh + ":" + mm;
+  if (current !== reminderTime) return;
+
+  const key = "moveLastReminderDate";
+  const today = now.toISOString().slice(0, 10);
+  const last = localStorage.getItem(key);
+  if (last === today) return;
+  localStorage.setItem(key, today);
+
+  const body = "حان وقت تدريبك اليوم. افتح الجدول وابدأ أول تمرين.";
+  showAppNotice(body);
+
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification("MOVE Reminder", { body: body, silent: false });
+  }
 }
 
 function requestNotificationPermissionIfNeeded() {

@@ -366,6 +366,36 @@ body {
 .plan-row select {
   min-width: 130px;
 }
+.plan-item[draggable="true"] {
+  cursor: grab;
+}
+.plan-item.dragging {
+  opacity: 0.45;
+}
+.schedule-dropzones {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+}
+.schedule-zone {
+  border: 1px dashed #e2cfc2;
+  border-radius: 999px;
+  background: #fffaf6;
+  color: #6b5b50;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.schedule-zone.active-drop {
+  border-color: #ff6d4a;
+  background: #ffe8de;
+  color: #a13922;
+}
 .pref-days {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

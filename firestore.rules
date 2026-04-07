@@ -150,11 +150,14 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           "memberUid",
           "overrides",
+          "orderedWorkoutIds",
           "updatedAt"
         ]) &&
         request.resource.data.memberUid is string &&
         request.resource.data.memberUid == memberUid &&
         request.resource.data.overrides is map &&
+        request.resource.data.orderedWorkoutIds is list &&
+        request.resource.data.orderedWorkoutIds.size() <= 500 &&
         request.resource.data.updatedAt == request.time;
     }
 

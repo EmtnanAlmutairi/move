@@ -30,6 +30,7 @@ const state = {
   isAdmin: false,
   assignmentSearch: "",
   subscriptions: [],
+  memberProfilesByUid: {},
   injuries: [],
   threads: [],
   practitioners: []
@@ -170,7 +171,8 @@ async function loadDashboardData() {
   elements.dashboardMessage.textContent = "Refreshing dashboard...";
 
   try {
-    await Promise.all([loadConfig(), loadSubscriptions(), loadInjuries(), loadSupportThreads(), loadPractitioners()]);
+    await loadSubscriptions();
+    await Promise.all([loadConfig(), loadInjuries(), loadSupportThreads(), loadPractitioners(), loadMemberProfiles()]);
 
     renderSummary();
     renderFinanceOverview();
@@ -191,6 +193,25 @@ async function loadDashboardData() {
     console.error(error);
     elements.dashboardMessage.textContent = "Failed to refresh dashboard.";
   }
+}
+
+async function loadMemberProfiles() {
+  const map = {};
+  await Promise.all(
+    state.subscriptions.slice(0, 120).map(async function (item) {
+      const memberUid = String(item.memberUid || "");
+      if (!memberUid) return;
+      try {
+        const snap = await getDoc(doc(db, "memberProfiles", memberUid));
+        if (snap.exists()) {
+          map[memberUid] = snap.data();
+        }
+      } catch (error) {
+        console.error("Failed to load member profile", memberUid, error);
+      }
+    })
+  );
+  state.memberProfilesByUid = map;
 }
 
 async function loadConfig() {
@@ -540,11 +561,19 @@ function renderAssignmentPreview(subscription) {
     return;
   }
 
+  const memberUid = String(subscription.memberUid || "");
+  const profile = state.memberProfilesByUid[memberUid] || {};
+  const reminder = String(profile.reminderTime || "غير محدد");
+  const preferredDays = Array.isArray(profile.preferredDays) && profile.preferredDays.length
+    ? profile.preferredDays.join("، ")
+    : "غير محدد";
+
   elements.assignmentPreview.innerHTML =
     '<li>' +
     '<p class="mini-title">' + escapeHtml(subscription.fullName || "مشترك") + "</p>" +
     '<p class="mini-meta">' + escapeHtml("الجوال: " + (subscription.phone || "-")) + "</p>" +
     '<p class="mini-meta">' + escapeHtml("الهدف: " + (subscription.goal || "-") + " • الخطة: " + (subscription.planId || "-")) + "</p>" +
+    '<p class="mini-meta">' + escapeHtml("تذكير: " + reminder + " • أيام مفضلة: " + preferredDays) + "</p>" +
     '<p class="mini-meta">' + escapeHtml(
       "الفريق الحالي - مدرب: " + practitionerName(elements.assignmentCoachUid.value || subscription.assignedCoachUid) +
       " | تغذية: " + practitionerName(elements.assignmentNutritionUid.value || subscription.assignedNutritionUid) +

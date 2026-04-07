@@ -43,6 +43,7 @@ const state = {
   subscriptions: [],
   visibleSubscriptions: [],
   myClientMemberUids: [],
+  memberProfilesByUid: {},
   workouts: [],
   meals: [],
   posts: [],
@@ -76,6 +77,7 @@ function cacheElements() {
   elements.threadsCount = document.getElementById("coachThreadsCount");
   elements.staffRoleBadge = document.getElementById("staffRoleBadge");
   elements.myClientsList = document.getElementById("myClientsList");
+  elements.activeMemberProfileCard = document.getElementById("activeMemberProfileCard");
   elements.activeMemberSelect = document.getElementById("activeMemberSelect");
   elements.financeClients = document.getElementById("financeClients");
   elements.financeGross = document.getElementById("financeGross");
@@ -246,6 +248,7 @@ async function loadDashboardData() {
   elements.dashboardMessage.textContent = "جاري تحديث البيانات...";
 
   await loadSubscriptions();
+  await loadMemberProfiles();
   await Promise.all([
     loadWorkouts(),
     loadMeals(),
@@ -254,6 +257,24 @@ async function loadDashboardData() {
 
   render();
   elements.dashboardMessage.textContent = "تم تحديث البيانات.";
+}
+
+async function loadMemberProfiles() {
+  const map = {};
+  const targets = state.myClientMemberUids.slice(0, 80);
+  await Promise.all(
+    targets.map(async function (memberUid) {
+      try {
+        const snap = await getDoc(doc(db, "memberProfiles", memberUid));
+        if (snap.exists()) {
+          map[memberUid] = snap.data();
+        }
+      } catch (error) {
+        console.error("Failed to load member profile", memberUid, error);
+      }
+    })
+  );
+  state.memberProfilesByUid = map;
 }
 
 async function loadSubscriptions() {
@@ -768,12 +789,34 @@ function render() {
   renderKpis();
   renderFinance();
   renderActiveMemberSelect();
+  renderActiveMemberProfile();
   renderMyClients();
   renderWorkouts();
   renderMeals();
   renderPosts();
   renderSupportInbox();
   renderSelectedThread();
+}
+
+function renderActiveMemberProfile() {
+  if (!elements.activeMemberProfileCard) return;
+  if (!state.activeMemberUid) {
+    elements.activeMemberProfileCard.innerHTML = "";
+    return;
+  }
+
+  const profile = state.memberProfilesByUid[state.activeMemberUid] || {};
+  const reminder = String(profile.reminderTime || "غير محدد");
+  const preferredDays = Array.isArray(profile.preferredDays) && profile.preferredDays.length
+    ? profile.preferredDays.join("، ")
+    : "غير محدد";
+
+  elements.activeMemberProfileCard.innerHTML =
+    '<article class="item">' +
+    '<strong>تفضيلات المتدرب النشط</strong>' +
+    '<p>تذكير التدريب: ' + escapeHtml(reminder) + '</p>' +
+    '<p>الأيام المفضلة: ' + escapeHtml(preferredDays) + '</p>' +
+    '</article>';
 }
 
 function renderFinance() {
@@ -1067,6 +1110,7 @@ async function onActiveMemberChanged() {
   state.selectedThreadId = threads.length ? threads[0].threadId : null;
   renderWorkouts();
   renderMeals();
+  renderActiveMemberProfile();
   renderSupportInbox();
   renderSelectedThread();
   renderKpis();
