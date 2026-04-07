@@ -17,12 +17,7 @@ import {
   signInWithEmailAndPassword,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import {
-  getDownloadURL,
-  ref,
-  uploadBytes
-} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
-import { auth, db, storage, initializeAnalytics } from "./firebase-client.js";
+import { auth, db, initializeAnalytics } from "./firebase-client.js";
 
 initializeAnalytics();
 
@@ -291,8 +286,7 @@ async function onWorkoutSubmit(event) {
 
   const form = event.currentTarget;
   const editId = form.editId.value.trim();
-  const videoUrl = await resolveWorkoutVideoUrl(form, editId);
-  if (videoUrl === null) return;
+  const videoUrl = form.videoUrl.value.trim();
 
   const payload = {
     title: form.title.value.trim(),
@@ -331,29 +325,6 @@ async function onWorkoutSubmit(event) {
   } catch (error) {
     console.error("Failed to save workout", error);
     elements.dashboardMessage.textContent = "تعذر حفظ فيديو التدريب.";
-  }
-}
-
-async function resolveWorkoutVideoUrl(form, editId) {
-  const directUrl = form.videoUrl.value.trim();
-  const file = form.videoFile.files && form.videoFile.files[0];
-
-  if (!file) return directUrl;
-
-  if (!state.user) return null;
-
-  elements.dashboardMessage.textContent = "جاري رفع الفيديو...";
-
-  try {
-    const safeName = file.name.replace(/\s+/g, "-").toLowerCase();
-    const path = "coach-videos/" + state.user.uid + "/" + Date.now() + "-" + safeName;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file, { contentType: file.type || "video/mp4" });
-    return await getDownloadURL(storageRef);
-  } catch (error) {
-    console.error("Failed to upload video", error);
-    elements.dashboardMessage.textContent = "فشل رفع الفيديو. تأكد من صلاحيات Storage.";
-    return null;
   }
 }
 
