@@ -89,6 +89,12 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(255, 106, 68, .2);
 }
 .full { grid-column: 1 / -1; }
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
 .primary-btn,
 .ghost-btn {
@@ -107,6 +113,15 @@ textarea:focus {
   color: #2f261f;
   background: #f4eee7;
   padding: 0 14px;
+}
+.ghost-btn.small {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.ghost-btn.small.danger {
+  background: #ffeae3;
+  color: #d63d1d;
 }
 
 .dash-head {
@@ -179,6 +194,11 @@ section + section { margin-top: 10px; }
   background: #fffdfa;
 }
 .item p { margin: 4px 0 0; color: #6a5f55; font-size: 14px; }
+.item-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
 
 .support-layout {
   display: grid;

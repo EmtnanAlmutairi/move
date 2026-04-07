@@ -143,7 +143,10 @@
             <div class="chat-layout">
               <div class="chat-list" id="chatList"></div>
               <div class="chat-thread">
-                <h4 id="chatThreadTitle">فريق الدعم المتكامل</h4>
+                <div class="card-head">
+                  <h4 id="chatThreadTitle">فريق الدعم المتكامل</h4>
+                  <button type="button" class="ghost-btn mini" id="markChatReadBtn">تحديد كمقروءة</button>
+                </div>
                 <div id="chatThreadMessages"></div>
                 <form id="chatComposeForm" class="chat-compose">
                   <input name="message" placeholder="اكتب رسالتك..." required />
@@ -170,7 +173,7 @@
       <button class="tab-btn" data-tab="workout">التمارين</button>
       <button class="tab-btn" data-tab="nutrition">التغذية</button>
       <button class="tab-btn" data-tab="recovery">الاستشفاء</button>
-      <button class="tab-btn" data-tab="community">المجتمع</button>
+      <button class="tab-btn" data-tab="community">المجتمع <span class="nav-badge hidden" id="navCommunityBadge">0</span></button>
       <button class="tab-btn" data-tab="devices">الأجهزة</button>
     </nav>
   </div>

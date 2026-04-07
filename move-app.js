@@ -59,6 +59,8 @@ const state = {
     { id: "d3", name: "Garmin Connect", status: "غير متصل" }
   ],
   supportMessages: [],
+  unreadCoachMessages: 0,
+  lastUnreadCoachMessages: 0,
   supportUnsubscribe: null
 };
 
@@ -86,6 +88,7 @@ async function init() {
     loadCommunityFeed()
   ]);
 
+  requestNotificationPermissionIfNeeded();
   startSupportMessagesListener();
   renderAll();
 }
@@ -335,6 +338,7 @@ function bindCommunitySwitch() {
 
 function bindChatActions() {
   const composeForm = document.getElementById("chatComposeForm");
+  const markReadBtn = document.getElementById("markChatReadBtn");
   if (!composeForm) return;
 
   composeForm.addEventListener("submit", async function (event) {
@@ -361,6 +365,12 @@ function bindChatActions() {
       console.error("Failed to send support message", error);
     }
   });
+
+  if (markReadBtn) {
+    markReadBtn.addEventListener("click", function () {
+      markSupportAsRead();
+    });
+  }
 }
 
 function bindWorkoutToggles() {
@@ -410,6 +420,7 @@ function startSupportMessagesListener() {
           return toMillis(a.createdAt) - toMillis(b.createdAt);
         });
 
+      updateUnreadNotifications();
       renderChats();
       renderChatThread();
     },
@@ -771,7 +782,7 @@ function renderChats() {
   chatList.innerHTML =
     '<article class="chat-item active">' +
     '<div class="item-row">' +
-    '<span class="badge">دعم MOVE</span>' +
+    '<span class="badge">' + (state.unreadCoachMessages > 0 ? state.unreadCoachMessages + " جديد" : "دعم MOVE") + "</span>" +
     '<div>' +
     '<p class="item-title">فريق الدعم المتكامل</p>' +
     '<p class="item-sub">' + escapeHtml(lastMessage ? lastMessage.text : "ابدأ محادثتك مع الفريق") + "</p>" +
@@ -853,6 +864,73 @@ function getProfileFromStorage() {
   } catch (error) {
     return {};
   }
+}
+
+function getLastSeenSupportAt() {
+  const raw = localStorage.getItem("moveLastSeenSupportAt");
+  const value = Number(raw || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function setLastSeenSupportAt(value) {
+  localStorage.setItem("moveLastSeenSupportAt", String(value));
+}
+
+function markSupportAsRead() {
+  const lastMessage = state.supportMessages.length
+    ? state.supportMessages[state.supportMessages.length - 1]
+    : null;
+
+  if (lastMessage) {
+    setLastSeenSupportAt(toMillis(lastMessage.createdAt));
+  } else {
+    setLastSeenSupportAt(Date.now());
+  }
+
+  updateUnreadNotifications();
+  renderChats();
+}
+
+function updateUnreadNotifications() {
+  const navCommunityBadge = document.getElementById("navCommunityBadge");
+  const lastSeen = getLastSeenSupportAt();
+
+  state.unreadCoachMessages = state.supportMessages.filter(function (message) {
+    return message.senderRole === "coach" && toMillis(message.createdAt) > lastSeen;
+  }).length;
+
+  if (navCommunityBadge) {
+    if (state.unreadCoachMessages > 0) {
+      navCommunityBadge.textContent = String(state.unreadCoachMessages);
+      navCommunityBadge.classList.remove("hidden");
+      document.title = "(" + state.unreadCoachMessages + ") MOVE";
+    } else {
+      navCommunityBadge.classList.add("hidden");
+      document.title = "MOVE App MVP";
+    }
+  }
+
+  if (
+    state.unreadCoachMessages > state.lastUnreadCoachMessages &&
+    document.hidden &&
+    "Notification" in window &&
+    Notification.permission === "granted"
+  ) {
+    new Notification("MOVE", {
+      body: "لديك رسالة جديدة من فريقك الصحي.",
+      silent: true
+    });
+  }
+
+  state.lastUnreadCoachMessages = state.unreadCoachMessages;
+}
+
+function requestNotificationPermissionIfNeeded() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "default") return;
+  Notification.requestPermission().catch(function () {
+    return null;
+  });
 }
 
 function toMillis(timestampValue) {

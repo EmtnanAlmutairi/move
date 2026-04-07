@@ -12,6 +12,7 @@
 }
 
 * { box-sizing: border-box; }
+.hidden { display: none !important; }
 body {
   margin: 0;
   font-family: "IBM Plex Sans Arabic", sans-serif;
@@ -362,6 +363,18 @@ textarea:focus {
   cursor: pointer;
 }
 .tab-btn.active { color: #fff; background: linear-gradient(135deg, var(--grad-a), var(--grad-b)); }
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ff5937;
+  color: #fff;
+  font-size: 10px;
+  margin-right: 4px;
+}
 
 .modal {
   border: 0;

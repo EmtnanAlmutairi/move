@@ -1,6 +1,7 @@
 ﻿import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -8,14 +9,20 @@
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp
+  serverTimestamp,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import { auth, db, initializeAnalytics } from "./firebase-client.js";
+import {
+  getDownloadURL,
+  ref,
+  uploadBytes
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
+import { auth, db, storage, initializeAnalytics } from "./firebase-client.js";
 
 initializeAnalytics();
 
@@ -57,12 +64,18 @@ function cacheElements() {
 
   elements.workoutForm = document.getElementById("coachWorkoutForm");
   elements.workoutsList = document.getElementById("coachWorkoutsList");
+  elements.cancelWorkoutEditBtn = document.getElementById("cancelWorkoutEditBtn");
+  elements.saveWorkoutBtn = document.getElementById("saveWorkoutBtn");
 
   elements.mealForm = document.getElementById("coachMealForm");
   elements.mealsList = document.getElementById("coachMealsList");
+  elements.cancelMealEditBtn = document.getElementById("cancelMealEditBtn");
+  elements.saveMealBtn = document.getElementById("saveMealBtn");
 
   elements.postForm = document.getElementById("coachPostForm");
   elements.postsList = document.getElementById("coachPostsList");
+  elements.cancelPostEditBtn = document.getElementById("cancelPostEditBtn");
+  elements.savePostBtn = document.getElementById("savePostBtn");
 
   elements.threadsList = document.getElementById("coachThreadsList");
   elements.selectedThreadTitle = document.getElementById("coachSelectedThreadTitle");
@@ -85,6 +98,14 @@ function bindEvents() {
   elements.mealForm.addEventListener("submit", onMealSubmit);
   elements.postForm.addEventListener("submit", onPostSubmit);
   elements.replyForm.addEventListener("submit", onReplySubmit);
+
+  elements.cancelWorkoutEditBtn.addEventListener("click", clearWorkoutForm);
+  elements.cancelMealEditBtn.addEventListener("click", clearMealForm);
+  elements.cancelPostEditBtn.addEventListener("click", clearPostForm);
+
+  elements.workoutsList.addEventListener("click", onWorkoutListAction);
+  elements.mealsList.addEventListener("click", onMealListAction);
+  elements.postsList.addEventListener("click", onPostListAction);
 
   elements.threadsList.addEventListener("click", function (event) {
     const target = event.target;
@@ -188,7 +209,7 @@ async function loadDashboardData() {
 
 async function loadSubscriptions() {
   try {
-    const snapshot = await getDocs(query(collection(db, "subscriptions"), orderBy("createdAt", "desc"), limit(60)));
+    const snapshot = await getDocs(query(collection(db, "subscriptions"), orderBy("createdAt", "desc"), limit(100)));
     state.subscriptions = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
   } catch (error) {
     console.error("Failed to load subscriptions", error);
@@ -198,7 +219,7 @@ async function loadSubscriptions() {
 
 async function loadWorkouts() {
   try {
-    const snapshot = await getDocs(query(collection(db, "workoutVideos"), orderBy("sortOrder", "asc"), limit(60)));
+    const snapshot = await getDocs(query(collection(db, "workoutVideos"), orderBy("sortOrder", "asc"), limit(120)));
     state.workouts = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
   } catch (error) {
     console.error("Failed to load workouts", error);
@@ -208,7 +229,7 @@ async function loadWorkouts() {
 
 async function loadMeals() {
   try {
-    const snapshot = await getDocs(query(collection(db, "nutritionMeals"), orderBy("sortOrder", "asc"), limit(60)));
+    const snapshot = await getDocs(query(collection(db, "nutritionMeals"), orderBy("sortOrder", "asc"), limit(120)));
     state.meals = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
   } catch (error) {
     console.error("Failed to load meals", error);
@@ -218,7 +239,7 @@ async function loadMeals() {
 
 async function loadPosts() {
   try {
-    const snapshot = await getDocs(query(collection(db, "communityPosts"), orderBy("createdAt", "desc"), limit(40)));
+    const snapshot = await getDocs(query(collection(db, "communityPosts"), orderBy("createdAt", "desc"), limit(60)));
     state.posts = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
   } catch (error) {
     console.error("Failed to load posts", error);
@@ -229,7 +250,7 @@ async function loadPosts() {
 function startSupportListener() {
   teardownSupportListener();
 
-  const supportQuery = query(collection(db, "supportMessages"), orderBy("createdAt", "desc"), limit(300));
+  const supportQuery = query(collection(db, "supportMessages"), orderBy("createdAt", "desc"), limit(400));
 
   state.supportUnsubscribe = onSnapshot(
     supportQuery,
@@ -269,6 +290,10 @@ async function onWorkoutSubmit(event) {
   if (!state.user || !state.isStaff) return;
 
   const form = event.currentTarget;
+  const editId = form.editId.value.trim();
+  const videoUrl = await resolveWorkoutVideoUrl(form, editId);
+  if (videoUrl === null) return;
+
   const payload = {
     title: form.title.value.trim(),
     coachName: form.coachName.value.trim(),
@@ -276,11 +301,9 @@ async function onWorkoutSubmit(event) {
     durationMin: Number(form.durationMin.value),
     intensity: form.intensity.value,
     focus: form.focus.value,
-    videoUrl: form.videoUrl.value.trim(),
+    videoUrl: videoUrl,
     instructions: form.instructions.value.trim(),
     sortOrder: Number(form.sortOrder.value),
-    createdByUid: state.user.uid,
-    createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
 
@@ -290,18 +313,47 @@ async function onWorkoutSubmit(event) {
   }
 
   try {
-    await addDoc(collection(db, "workoutVideos"), payload);
-    form.reset();
-    form.intensity.value = "متوسطة";
-    form.focus.value = "strength";
-    form.sortOrder.value = "10";
+    if (editId) {
+      await updateDoc(doc(db, "workoutVideos", editId), payload);
+      elements.dashboardMessage.textContent = "تم تحديث فيديو التدريب.";
+    } else {
+      await addDoc(collection(db, "workoutVideos"), Object.assign({}, payload, {
+        createdByUid: state.user.uid,
+        createdAt: serverTimestamp()
+      }));
+      elements.dashboardMessage.textContent = "تم نشر فيديو التدريب.";
+    }
+
+    clearWorkoutForm();
     await loadWorkouts();
     renderWorkouts();
     renderKpis();
-    elements.dashboardMessage.textContent = "تم نشر فيديو التدريب.";
   } catch (error) {
-    console.error("Failed to add workout", error);
-    elements.dashboardMessage.textContent = "تعذر نشر فيديو التدريب.";
+    console.error("Failed to save workout", error);
+    elements.dashboardMessage.textContent = "تعذر حفظ فيديو التدريب.";
+  }
+}
+
+async function resolveWorkoutVideoUrl(form, editId) {
+  const directUrl = form.videoUrl.value.trim();
+  const file = form.videoFile.files && form.videoFile.files[0];
+
+  if (!file) return directUrl;
+
+  if (!state.user) return null;
+
+  elements.dashboardMessage.textContent = "جاري رفع الفيديو...";
+
+  try {
+    const safeName = file.name.replace(/\s+/g, "-").toLowerCase();
+    const path = "coach-videos/" + state.user.uid + "/" + Date.now() + "-" + safeName;
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file, { contentType: file.type || "video/mp4" });
+    return await getDownloadURL(storageRef);
+  } catch (error) {
+    console.error("Failed to upload video", error);
+    elements.dashboardMessage.textContent = "فشل رفع الفيديو. تأكد من صلاحيات Storage.";
+    return null;
   }
 }
 
@@ -310,6 +362,7 @@ async function onMealSubmit(event) {
   if (!state.user || !state.isStaff) return;
 
   const form = event.currentTarget;
+  const editId = form.editId.value.trim();
   const payload = {
     title: form.title.value.trim(),
     time: form.time.value.trim(),
@@ -318,8 +371,6 @@ async function onMealSubmit(event) {
     carbs: Number(form.carbs.value),
     fat: Number(form.fat.value),
     sortOrder: Number(form.sortOrder.value),
-    createdByUid: state.user.uid,
-    createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
 
@@ -329,16 +380,24 @@ async function onMealSubmit(event) {
   }
 
   try {
-    await addDoc(collection(db, "nutritionMeals"), payload);
-    form.reset();
-    form.sortOrder.value = "10";
+    if (editId) {
+      await updateDoc(doc(db, "nutritionMeals", editId), payload);
+      elements.dashboardMessage.textContent = "تم تحديث الوجبة.";
+    } else {
+      await addDoc(collection(db, "nutritionMeals"), Object.assign({}, payload, {
+        createdByUid: state.user.uid,
+        createdAt: serverTimestamp()
+      }));
+      elements.dashboardMessage.textContent = "تم نشر الوجبة الغذائية.";
+    }
+
+    clearMealForm();
     await loadMeals();
     renderMeals();
     renderKpis();
-    elements.dashboardMessage.textContent = "تم نشر الوجبة الغذائية.";
   } catch (error) {
-    console.error("Failed to add meal", error);
-    elements.dashboardMessage.textContent = "تعذر نشر الوجبة.";
+    console.error("Failed to save meal", error);
+    elements.dashboardMessage.textContent = "تعذر حفظ الوجبة.";
   }
 }
 
@@ -347,13 +406,11 @@ async function onPostSubmit(event) {
   if (!state.user || !state.isStaff) return;
 
   const form = event.currentTarget;
+  const editId = form.editId.value.trim();
   const payload = {
     title: form.title.value.trim(),
     body: form.body.value.trim(),
-    authorRole: form.authorRole.value.trim() || "فريق MOVE",
-    createdByUid: state.user.uid,
-    source: "coach-portal",
-    createdAt: serverTimestamp()
+    authorRole: form.authorRole.value.trim() || "فريق MOVE"
   };
 
   if (!payload.title || !payload.body) {
@@ -362,15 +419,24 @@ async function onPostSubmit(event) {
   }
 
   try {
-    await addDoc(collection(db, "communityPosts"), payload);
-    form.reset();
-    form.authorRole.value = "فريق MOVE";
+    if (editId) {
+      await updateDoc(doc(db, "communityPosts", editId), payload);
+      elements.dashboardMessage.textContent = "تم تحديث المنشور.";
+    } else {
+      await addDoc(collection(db, "communityPosts"), Object.assign({}, payload, {
+        createdByUid: state.user.uid,
+        source: "coach-portal",
+        createdAt: serverTimestamp()
+      }));
+      elements.dashboardMessage.textContent = "تم نشر المنشور في المجتمع.";
+    }
+
+    clearPostForm();
     await loadPosts();
     renderPosts();
-    elements.dashboardMessage.textContent = "تم نشر المنشور في المجتمع.";
   } catch (error) {
-    console.error("Failed to add post", error);
-    elements.dashboardMessage.textContent = "تعذر نشر المنشور.";
+    console.error("Failed to save post", error);
+    elements.dashboardMessage.textContent = "تعذر حفظ المنشور.";
   }
 }
 
@@ -407,6 +473,161 @@ async function onReplySubmit(event) {
   }
 }
 
+async function onWorkoutListAction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const editTrigger = target.closest("[data-edit-workout]");
+  if (editTrigger) {
+    const id = editTrigger.getAttribute("data-edit-workout");
+    const workout = state.workouts.find((item) => item.id === id);
+    if (!workout) return;
+
+    const form = elements.workoutForm;
+    form.editId.value = workout.id;
+    form.title.value = workout.title || "";
+    form.coachName.value = workout.coachName || "";
+    form.day.value = workout.day || "";
+    form.durationMin.value = workout.durationMin || 30;
+    form.intensity.value = workout.intensity || "متوسطة";
+    form.focus.value = workout.focus || "strength";
+    form.videoUrl.value = workout.videoUrl || "";
+    form.instructions.value = workout.instructions || "";
+    form.sortOrder.value = workout.sortOrder || 10;
+    elements.cancelWorkoutEditBtn.classList.remove("hidden");
+    elements.saveWorkoutBtn.textContent = "حفظ تعديل الفيديو";
+    return;
+  }
+
+  const deleteTrigger = target.closest("[data-delete-workout]");
+  if (deleteTrigger) {
+    const id = deleteTrigger.getAttribute("data-delete-workout");
+    if (!id || !confirm("حذف هذا الفيديو؟")) return;
+
+    try {
+      await deleteDoc(doc(db, "workoutVideos", id));
+      if (elements.workoutForm.editId.value === id) clearWorkoutForm();
+      await loadWorkouts();
+      renderWorkouts();
+      renderKpis();
+      elements.dashboardMessage.textContent = "تم حذف الفيديو.";
+    } catch (error) {
+      console.error("Failed to delete workout", error);
+      elements.dashboardMessage.textContent = "تعذر حذف الفيديو.";
+    }
+  }
+}
+
+async function onMealListAction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const editTrigger = target.closest("[data-edit-meal]");
+  if (editTrigger) {
+    const id = editTrigger.getAttribute("data-edit-meal");
+    const meal = state.meals.find((item) => item.id === id);
+    if (!meal) return;
+
+    const form = elements.mealForm;
+    form.editId.value = meal.id;
+    form.title.value = meal.title || "";
+    form.time.value = meal.time || "";
+    form.kcal.value = meal.kcal || 0;
+    form.protein.value = meal.protein || 0;
+    form.carbs.value = meal.carbs || 0;
+    form.fat.value = meal.fat || 0;
+    form.sortOrder.value = meal.sortOrder || 10;
+    elements.cancelMealEditBtn.classList.remove("hidden");
+    elements.saveMealBtn.textContent = "حفظ تعديل الوجبة";
+    return;
+  }
+
+  const deleteTrigger = target.closest("[data-delete-meal]");
+  if (deleteTrigger) {
+    const id = deleteTrigger.getAttribute("data-delete-meal");
+    if (!id || !confirm("حذف هذه الوجبة؟")) return;
+
+    try {
+      await deleteDoc(doc(db, "nutritionMeals", id));
+      if (elements.mealForm.editId.value === id) clearMealForm();
+      await loadMeals();
+      renderMeals();
+      renderKpis();
+      elements.dashboardMessage.textContent = "تم حذف الوجبة.";
+    } catch (error) {
+      console.error("Failed to delete meal", error);
+      elements.dashboardMessage.textContent = "تعذر حذف الوجبة.";
+    }
+  }
+}
+
+async function onPostListAction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const editTrigger = target.closest("[data-edit-post]");
+  if (editTrigger) {
+    const id = editTrigger.getAttribute("data-edit-post");
+    const post = state.posts.find((item) => item.id === id);
+    if (!post) return;
+
+    const form = elements.postForm;
+    form.editId.value = post.id;
+    form.title.value = post.title || "";
+    form.authorRole.value = post.authorRole || "فريق MOVE";
+    form.body.value = post.body || "";
+    elements.cancelPostEditBtn.classList.remove("hidden");
+    elements.savePostBtn.textContent = "حفظ تعديل المنشور";
+    return;
+  }
+
+  const deleteTrigger = target.closest("[data-delete-post]");
+  if (deleteTrigger) {
+    const id = deleteTrigger.getAttribute("data-delete-post");
+    if (!id || !confirm("حذف هذا المنشور؟")) return;
+
+    try {
+      await deleteDoc(doc(db, "communityPosts", id));
+      if (elements.postForm.editId.value === id) clearPostForm();
+      await loadPosts();
+      renderPosts();
+      elements.dashboardMessage.textContent = "تم حذف المنشور.";
+    } catch (error) {
+      console.error("Failed to delete post", error);
+      elements.dashboardMessage.textContent = "تعذر حذف المنشور.";
+    }
+  }
+}
+
+function clearWorkoutForm() {
+  const form = elements.workoutForm;
+  form.reset();
+  form.editId.value = "";
+  form.intensity.value = "متوسطة";
+  form.focus.value = "strength";
+  form.sortOrder.value = "10";
+  elements.cancelWorkoutEditBtn.classList.add("hidden");
+  elements.saveWorkoutBtn.textContent = "نشر فيديو التدريب";
+}
+
+function clearMealForm() {
+  const form = elements.mealForm;
+  form.reset();
+  form.editId.value = "";
+  form.sortOrder.value = "10";
+  elements.cancelMealEditBtn.classList.add("hidden");
+  elements.saveMealBtn.textContent = "نشر الوجبة";
+}
+
+function clearPostForm() {
+  const form = elements.postForm;
+  form.reset();
+  form.editId.value = "";
+  form.authorRole.value = "فريق MOVE";
+  elements.cancelPostEditBtn.classList.add("hidden");
+  elements.savePostBtn.textContent = "نشر في المجتمع";
+}
+
 function render() {
   renderKpis();
   renderWorkouts();
@@ -437,6 +658,10 @@ function renderWorkouts() {
         '<strong>' + escapeHtml(item.title || "تمرين") + ' - ' + escapeHtml(item.day || "-") + '</strong>' +
         '<p>' + escapeHtml((item.durationMin || 0) + " دقيقة • " + (item.intensity || "")) + '</p>' +
         '<p>' + (item.videoUrl ? '<a target="_blank" rel="noopener noreferrer" href="' + escapeHtml(item.videoUrl) + '">رابط الفيديو</a>' : "لا يوجد رابط فيديو") + '</p>' +
+        '<div class="item-actions">' +
+        '<button class="ghost-btn small" type="button" data-edit-workout="' + item.id + '">تعديل</button>' +
+        '<button class="ghost-btn small danger" type="button" data-delete-workout="' + item.id + '">حذف</button>' +
+        '</div>' +
         '</article>'
       );
     })
@@ -455,6 +680,10 @@ function renderMeals() {
         '<article class="item">' +
         '<strong>' + escapeHtml(item.title || "وجبة") + ' - ' + escapeHtml(item.time || "") + '</strong>' +
         '<p>' + escapeHtml((item.kcal || 0) + " سعرة • بروتين " + (item.protein || 0) + "ج") + '</p>' +
+        '<div class="item-actions">' +
+        '<button class="ghost-btn small" type="button" data-edit-meal="' + item.id + '">تعديل</button>' +
+        '<button class="ghost-btn small danger" type="button" data-delete-meal="' + item.id + '">حذف</button>' +
+        '</div>' +
         '</article>'
       );
     })
@@ -468,12 +697,16 @@ function renderPosts() {
   }
 
   elements.postsList.innerHTML = state.posts
-    .slice(0, 8)
+    .slice(0, 12)
     .map(function (item) {
       return (
         '<article class="item">' +
         '<strong>' + escapeHtml(item.title || "منشور") + '</strong>' +
         '<p>' + escapeHtml(item.body || "") + '</p>' +
+        '<div class="item-actions">' +
+        '<button class="ghost-btn small" type="button" data-edit-post="' + item.id + '">تعديل</button>' +
+        '<button class="ghost-btn small danger" type="button" data-delete-post="' + item.id + '">حذف</button>' +
+        '</div>' +
         '</article>'
       );
     })

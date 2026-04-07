@@ -57,6 +57,7 @@
       <section class="card">
         <div class="card-head"><h3>إضافة فيديو تدريب</h3><span class="badge">Workout</span></div>
         <form id="coachWorkoutForm" class="form-grid">
+          <input type="hidden" name="editId" />
           <label><span>العنوان</span><input name="title" required /></label>
           <label><span>اسم المدرب</span><input name="coachName" required /></label>
           <label><span>اليوم</span><input name="day" placeholder="الأحد" required /></label>
@@ -64,9 +65,13 @@
           <label><span>الشدة</span><select name="intensity"><option>خفيفة</option><option selected>متوسطة</option><option>عالية</option></select></label>
           <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option></select></label>
           <label class="full"><span>رابط الفيديو</span><input name="videoUrl" placeholder="https://..." /></label>
+          <label class="full"><span>أو رفع ملف فيديو</span><input type="file" name="videoFile" accept="video/*" /></label>
           <label class="full"><span>تعليمات</span><textarea name="instructions" rows="2"></textarea></label>
           <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
-          <button type="submit" class="primary-btn">نشر فيديو التدريب</button>
+          <div class="form-actions">
+            <button type="button" class="ghost-btn hidden" id="cancelWorkoutEditBtn">إلغاء التعديل</button>
+            <button type="submit" class="primary-btn" id="saveWorkoutBtn">نشر فيديو التدريب</button>
+          </div>
         </form>
         <div id="coachWorkoutsList" class="item-list"></div>
       </section>
@@ -74,6 +79,7 @@
       <section class="card">
         <div class="card-head"><h3>إضافة وجبة غذائية</h3><span class="badge">Nutrition</span></div>
         <form id="coachMealForm" class="form-grid">
+          <input type="hidden" name="editId" />
           <label><span>اسم الوجبة</span><input name="title" required /></label>
           <label><span>الوقت</span><input name="time" placeholder="08:00 ص" required /></label>
           <label><span>السعرات</span><input type="number" name="kcal" min="0" max="3000" required /></label>
@@ -81,7 +87,10 @@
           <label><span>كارب (جم)</span><input type="number" name="carbs" min="0" max="400" required /></label>
           <label><span>دهون (جم)</span><input type="number" name="fat" min="0" max="300" required /></label>
           <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
-          <button type="submit" class="primary-btn">نشر الوجبة</button>
+          <div class="form-actions">
+            <button type="button" class="ghost-btn hidden" id="cancelMealEditBtn">إلغاء التعديل</button>
+            <button type="submit" class="primary-btn" id="saveMealBtn">نشر الوجبة</button>
+          </div>
         </form>
         <div id="coachMealsList" class="item-list"></div>
       </section>
@@ -89,10 +98,14 @@
       <section class="card">
         <div class="card-head"><h3>منشور المجتمع الصحي</h3><span class="badge">Community</span></div>
         <form id="coachPostForm" class="form-grid">
+          <input type="hidden" name="editId" />
           <label><span>العنوان</span><input name="title" required /></label>
           <label><span>الدور</span><input name="authorRole" value="فريق MOVE" required /></label>
           <label class="full"><span>المحتوى</span><textarea name="body" rows="3" required></textarea></label>
-          <button type="submit" class="primary-btn">نشر في المجتمع</button>
+          <div class="form-actions">
+            <button type="button" class="ghost-btn hidden" id="cancelPostEditBtn">إلغاء التعديل</button>
+            <button type="submit" class="primary-btn" id="savePostBtn">نشر في المجتمع</button>
+          </div>
         </form>
         <div id="coachPostsList" class="item-list"></div>
       </section>

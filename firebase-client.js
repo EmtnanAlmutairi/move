@@ -5,6 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDbxZRRqDAKekUdq_iDu_acdJ7Y2aHK8vY",
@@ -19,6 +20,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 function initializeAnalytics() {
   return isAnalyticsSupported()
@@ -32,4 +34,4 @@ function initializeAnalytics() {
     });
 }
 
-export { app, auth, db, initializeAnalytics };
+export { app, auth, db, storage, initializeAnalytics };
