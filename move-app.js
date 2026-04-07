@@ -803,6 +803,7 @@ async function loadCommunityFeed() {
 function renderAll() {
   renderDashboard();
   renderMemberTeam();
+  renderMemberExperience();
   renderCommunityHighlights();
   renderWeeklyPlan();
   renderWorkoutLibrary();
@@ -821,10 +822,15 @@ function renderDashboard() {
   const challengeBadge = document.getElementById("challengeBadge");
   const featuredWorkout = document.getElementById("featuredWorkout");
   const goalProgressBar = document.getElementById("goalProgressBar");
+  const memberGreeting = document.getElementById("memberGreeting");
 
   const progress = calculateProgressPercent();
 
   if (readinessValue) readinessValue.textContent = progress + "%";
+  if (memberGreeting) {
+    const fullName = (state.existingSubscription && state.existingSubscription.fullName) || getProfileFromStorage().fullName || "";
+    memberGreeting.textContent = fullName ? ("أهلاً " + fullName) : "رحلة صحية مخصصة";
+  }
   if (planVersionBadge) planVersionBadge.textContent = "خطة " + (state.config.workoutPlanVersion || "v2.4");
   if (challengeBadge) challengeBadge.textContent = state.config.challengesEnabled ? "التحديات مفعلة" : "التحديات متوقفة";
   if (goalProgressBar) goalProgressBar.style.width = progress + "%";
@@ -847,6 +853,25 @@ function renderDashboard() {
       (featured.videoUrl ? '<a class="badge video-link" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(featured.videoUrl) + '">فتح الفيديو</a>' : '<span class="badge">فيديو قريباً</span>') +
       "</div>";
   }
+}
+
+function renderMemberExperience() {
+  const badge = document.getElementById("memberPlanBadge");
+  const box = document.getElementById("memberExperienceSummary");
+  if (!badge || !box) return;
+
+  const profile = state.existingSubscription || getProfileFromStorage();
+  const goalText = profile.goal ? goalLabel(profile.goal) : "غير محدد";
+  const planText = profile.planId ? planLabel(profile.planId) : "غير مفعل";
+
+  badge.textContent = planText;
+
+  box.innerHTML =
+    '<div class="exp-grid">' +
+    '<article class="exp-chip"><strong>' + escapeHtml(goalText) + '</strong><span>الهدف</span></article>' +
+    '<article class="exp-chip"><strong>' + escapeHtml(String(state.workouts.length)) + '</strong><span>تمارينك هذا الأسبوع</span></article>' +
+    '<article class="exp-chip"><strong>' + escapeHtml(String(state.meals.length)) + '</strong><span>وجباتك اليومية</span></article>' +
+    "</div>";
 }
 
 function renderMemberTeam() {
@@ -1297,6 +1322,19 @@ function toMillis(timestampValue) {
 
 function normalizePhone(value) {
   return value.replace(/\s+/g, "");
+}
+
+function goalLabel(goal) {
+  if (goal === "muscle-gain") return "بناء العضلات";
+  if (goal === "weight-loss") return "خسارة الوزن";
+  if (goal === "fitness") return "الحفاظ على اللياقة";
+  return String(goal || "غير محدد");
+}
+
+function planLabel(planId) {
+  if (planId === "move-plus") return "MOVE Plus";
+  if (planId === "move-pro") return "MOVE Pro Team";
+  return String(planId || "غير مفعل");
 }
 
 function isLikelyValidPhone(value) {

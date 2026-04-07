@@ -22,6 +22,18 @@ import { auth, db, initializeAnalytics } from "./firebase-client.js";
 
 initializeAnalytics();
 
+const PLAN_PRICES = {
+  "move-plus": 299,
+  "move-pro": 499
+};
+
+const ROLE_SHARE = {
+  coach: 0.35,
+  nutrition: 0.2,
+  physio: 0.2,
+  admin: 0.25
+};
+
 const elements = {};
 const state = {
   user: null,
@@ -65,6 +77,11 @@ function cacheElements() {
   elements.staffRoleBadge = document.getElementById("staffRoleBadge");
   elements.myClientsList = document.getElementById("myClientsList");
   elements.activeMemberSelect = document.getElementById("activeMemberSelect");
+  elements.financeClients = document.getElementById("financeClients");
+  elements.financeGross = document.getElementById("financeGross");
+  elements.financeShare = document.getElementById("financeShare");
+  elements.financePayout = document.getElementById("financePayout");
+  elements.financePlanBreakdown = document.getElementById("financePlanBreakdown");
   elements.workoutSection = document.getElementById("coachWorkoutSection");
   elements.mealSection = document.getElementById("coachMealSection");
   elements.postSection = document.getElementById("coachPostSection");
@@ -749,6 +766,7 @@ function clearPostForm() {
 
 function render() {
   renderKpis();
+  renderFinance();
   renderActiveMemberSelect();
   renderMyClients();
   renderWorkouts();
@@ -756,6 +774,49 @@ function render() {
   renderPosts();
   renderSupportInbox();
   renderSelectedThread();
+}
+
+function renderFinance() {
+  if (!elements.financeClients || !elements.financeGross || !elements.financeShare || !elements.financePayout) return;
+
+  const share = Number(ROLE_SHARE[state.staffRole] || 0);
+  const subscriptions = state.visibleSubscriptions.slice();
+  const gross = subscriptions.reduce(function (sum, item) {
+    const price = Number(PLAN_PRICES[item.planId] || 0);
+    return sum + price;
+  }, 0);
+  const payout = Math.round(gross * share);
+
+  elements.financeClients.textContent = String(subscriptions.length);
+  elements.financeGross.textContent = formatCurrency(gross);
+  elements.financeShare.textContent = Math.round(share * 100) + "%";
+  elements.financePayout.textContent = formatCurrency(payout);
+
+  if (!elements.financePlanBreakdown) return;
+  if (!subscriptions.length) {
+    elements.financePlanBreakdown.innerHTML = '<article class="item"><strong>لا يوجد عملاء بعد</strong><p>سيظهر التحليل المالي عند تعيين أول مشترك.</p></article>';
+    return;
+  }
+
+  const counts = subscriptions.reduce(function (acc, item) {
+    const planId = String(item.planId || "other");
+    acc[planId] = Number(acc[planId] || 0) + 1;
+    return acc;
+  }, {});
+
+  elements.financePlanBreakdown.innerHTML = Object.keys(counts)
+    .map(function (planId) {
+      const count = Number(counts[planId] || 0);
+      const price = Number(PLAN_PRICES[planId] || 0);
+      const total = count * price;
+      return (
+        '<article class="item">' +
+        '<strong>' + escapeHtml(planLabel(planId)) + '</strong>' +
+        '<p>' + escapeHtml(count + " مشترك • " + formatCurrency(total)) + '</p>' +
+        '</article>'
+      );
+    })
+    .join("");
 }
 
 function renderKpis() {
@@ -1026,6 +1087,16 @@ function roleLabel(role) {
   if (role === "physio") return "أخصائي علاج طبيعي";
   if (role === "admin") return "إدارة";
   return role || "Staff";
+}
+
+function planLabel(planId) {
+  if (planId === "move-plus") return "MOVE Plus";
+  if (planId === "move-pro") return "MOVE Pro Team";
+  return planId || "Plan";
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("ar-SA").format(Number(value || 0)) + " ر.س";
 }
 
 function applyRoleExperience() {

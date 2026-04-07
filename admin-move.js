@@ -13,6 +13,17 @@
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { auth, db } from "./firebase-client.js";
 
+const PLAN_PRICES = {
+  "move-plus": 299,
+  "move-pro": 499
+};
+
+const SHARE = {
+  coach: 0.35,
+  nutrition: 0.2,
+  physio: 0.2
+};
+
 const elements = {};
 const state = {
   user: null,
@@ -59,6 +70,10 @@ function cacheElements() {
   elements.assignmentSaveButton = document.getElementById("assignmentSaveButton");
   elements.assignmentMessage = document.getElementById("assignmentMessage");
   elements.assignmentPreview = document.getElementById("assignmentPreview");
+  elements.financeTotalRevenue = document.getElementById("financeTotalRevenue");
+  elements.financeCoachRevenue = document.getElementById("financeCoachRevenue");
+  elements.financeNutritionRevenue = document.getElementById("financeNutritionRevenue");
+  elements.financePhysioRevenue = document.getElementById("financePhysioRevenue");
 }
 
 function bindEvents() {
@@ -158,6 +173,7 @@ async function loadDashboardData() {
     await Promise.all([loadConfig(), loadSubscriptions(), loadInjuries(), loadSupportThreads(), loadPractitioners()]);
 
     renderSummary();
+    renderFinanceOverview();
     renderRecentSubscriptions();
     renderRecentInjuries();
     renderAssignmentOptions();
@@ -310,6 +326,18 @@ function renderSummary() {
   if (elements.threadsCount) {
     elements.threadsCount.textContent = String(state.threads.length);
   }
+}
+
+function renderFinanceOverview() {
+  if (!elements.financeTotalRevenue) return;
+  const totalRevenue = state.subscriptions.reduce(function (sum, item) {
+    return sum + Number(PLAN_PRICES[item.planId] || 0);
+  }, 0);
+
+  elements.financeTotalRevenue.textContent = formatCurrency(totalRevenue);
+  elements.financeCoachRevenue.textContent = formatCurrency(Math.round(totalRevenue * SHARE.coach));
+  elements.financeNutritionRevenue.textContent = formatCurrency(Math.round(totalRevenue * SHARE.nutrition));
+  elements.financePhysioRevenue.textContent = formatCurrency(Math.round(totalRevenue * SHARE.physio));
 }
 
 function renderRecentSubscriptions() {
@@ -532,6 +560,10 @@ function formatDate(dateValue) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(dateValue);
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("ar-SA").format(Number(value || 0)) + " ر.س";
 }
 
 function escapeHtml(value) {

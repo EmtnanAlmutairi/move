@@ -139,6 +139,9 @@ textarea:focus {
   gap: 8px;
   margin-bottom: 12px;
 }
+.finance-grid {
+  margin-bottom: 8px;
+}
 .kpi-grid article {
   border-radius: 14px;
   padding: 10px;
