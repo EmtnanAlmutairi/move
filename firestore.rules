@@ -1,4 +1,4 @@
-rules_version = '2';
+﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
@@ -6,9 +6,23 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function isCoach() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/coaches/$(request.auth.uid));
+    }
+
+    function isStaff() {
+      return isAdmin() || isCoach();
+    }
+
     match /admins/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
+    }
+
+    match /coaches/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
 
     match /waitlist/{documentId} {
@@ -124,7 +138,7 @@ service cloud.firestore {
     }
 
     match /subscriptions/{documentId} {
-      allow read: if isAdmin();
+      allow read: if isStaff();
       allow update, delete: if false;
       allow create: if
         request.resource.data.keys().hasOnly([
@@ -133,6 +147,7 @@ service cloud.firestore {
           "phone",
           "goal",
           "planId",
+          "memberUid",
           "source",
           "createdAt"
         ]) &&
@@ -153,12 +168,17 @@ service cloud.firestore {
         request.resource.data.planId is string &&
         request.resource.data.planId.size() >= 4 &&
         request.resource.data.planId.size() <= 40 &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
         request.resource.data.source == "move-web-mvp" &&
         request.resource.data.createdAt == request.time;
     }
 
     match /injuryReports/{documentId} {
-      allow read: if isAdmin();
+      allow read: if
+        isStaff() ||
+        (request.auth != null && resource.data.memberUid == request.auth.uid);
       allow update, delete: if false;
       allow create: if
         request.resource.data.keys().hasOnly([
@@ -166,6 +186,7 @@ service cloud.firestore {
           "severity",
           "note",
           "status",
+          "memberUid",
           "source",
           "createdAt"
         ]) &&
@@ -179,15 +200,176 @@ service cloud.firestore {
         request.resource.data.note.size() >= 4 &&
         request.resource.data.note.size() <= 1000 &&
         request.resource.data.status == "new" &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
         request.resource.data.source == "move-web-mvp" &&
         request.resource.data.createdAt == request.time;
+    }
+
+    match /workoutVideos/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "title",
+          "coachName",
+          "day",
+          "durationMin",
+          "intensity",
+          "focus",
+          "videoUrl",
+          "instructions",
+          "sortOrder",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.coachName is string &&
+        request.resource.data.coachName.size() >= 2 &&
+        request.resource.data.coachName.size() <= 120 &&
+        request.resource.data.day is string &&
+        request.resource.data.day.size() >= 2 &&
+        request.resource.data.day.size() <= 30 &&
+        request.resource.data.durationMin is number &&
+        request.resource.data.durationMin >= 5 &&
+        request.resource.data.durationMin <= 180 &&
+        request.resource.data.intensity is string &&
+        request.resource.data.intensity.size() >= 2 &&
+        request.resource.data.intensity.size() <= 20 &&
+        request.resource.data.focus is string &&
+        request.resource.data.focus.size() >= 3 &&
+        request.resource.data.focus.size() <= 20 &&
+        request.resource.data.videoUrl is string &&
+        request.resource.data.videoUrl.size() <= 1000 &&
+        request.resource.data.instructions is string &&
+        request.resource.data.instructions.size() <= 2000 &&
+        request.resource.data.sortOrder is number &&
+        request.resource.data.sortOrder >= 1 &&
+        request.resource.data.sortOrder <= 999 &&
+        request.resource.data.createdByUid == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+    }
+
+    match /nutritionMeals/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "title",
+          "time",
+          "kcal",
+          "protein",
+          "carbs",
+          "fat",
+          "sortOrder",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.time is string &&
+        request.resource.data.time.size() >= 2 &&
+        request.resource.data.time.size() <= 30 &&
+        request.resource.data.kcal is number &&
+        request.resource.data.kcal >= 0 &&
+        request.resource.data.kcal <= 3000 &&
+        request.resource.data.protein is number &&
+        request.resource.data.protein >= 0 &&
+        request.resource.data.protein <= 300 &&
+        request.resource.data.carbs is number &&
+        request.resource.data.carbs >= 0 &&
+        request.resource.data.carbs <= 400 &&
+        request.resource.data.fat is number &&
+        request.resource.data.fat >= 0 &&
+        request.resource.data.fat <= 300 &&
+        request.resource.data.sortOrder is number &&
+        request.resource.data.sortOrder >= 1 &&
+        request.resource.data.sortOrder <= 999 &&
+        request.resource.data.createdByUid == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+    }
+
+    match /communityPosts/{documentId} {
+      allow read: if true;
+      allow create: if
+        request.auth != null &&
+        request.resource.data.keys().hasOnly([
+          "title",
+          "body",
+          "authorRole",
+          "createdByUid",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.body is string &&
+        request.resource.data.body.size() >= 4 &&
+        request.resource.data.body.size() <= 3000 &&
+        request.resource.data.authorRole is string &&
+        request.resource.data.authorRole.size() >= 2 &&
+        request.resource.data.authorRole.size() <= 80 &&
+        request.resource.data.createdByUid == request.auth.uid &&
+        request.resource.data.source is string &&
+        request.resource.data.source.size() >= 3 &&
+        request.resource.data.source.size() <= 40 &&
+        request.resource.data.createdAt == request.time;
+      allow update, delete: if isStaff();
+    }
+
+    match /supportMessages/{documentId} {
+      allow read: if
+        request.auth != null &&
+        (isStaff() || resource.data.threadId == request.auth.uid);
+
+      allow create: if
+        request.auth != null &&
+        request.resource.data.keys().hasOnly([
+          "threadId",
+          "senderRole",
+          "senderName",
+          "text",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.threadId is string &&
+        request.resource.data.threadId.size() >= 4 &&
+        request.resource.data.threadId.size() <= 128 &&
+        request.resource.data.senderRole is string &&
+        request.resource.data.senderRole.size() >= 4 &&
+        request.resource.data.senderRole.size() <= 20 &&
+        request.resource.data.senderName is string &&
+        request.resource.data.senderName.size() >= 2 &&
+        request.resource.data.senderName.size() <= 120 &&
+        request.resource.data.text is string &&
+        request.resource.data.text.size() >= 1 &&
+        request.resource.data.text.size() <= 2000 &&
+        request.resource.data.source is string &&
+        request.resource.data.source.size() >= 3 &&
+        request.resource.data.source.size() <= 40 &&
+        request.resource.data.createdAt == request.time &&
+        (
+          (isStaff() && request.resource.data.senderRole == "coach") ||
+          (request.resource.data.threadId == request.auth.uid && request.resource.data.senderRole == "member")
+        );
+
+      allow update, delete: if false;
     }
 
     match /appConfig/{documentId} {
       allow read: if true;
       allow delete: if false;
       allow create, update: if
-        isAdmin() &&
+        isStaff() &&
         request.resource.data.keys().hasOnly([
           "workoutPlanVersion",
           "nutritionPlanVersion",

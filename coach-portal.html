@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MOVE Coach Portal</title>
-  <meta name="description" content="MOVE Coach Portal: تسجيل دخول المدرب ومتابعة المتدربين والخطط." />
+  <meta name="description" content="MOVE Coach Portal: إدارة فيديوهات التدريب والتغذية والتواصل مع المتدربين." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,8 +20,8 @@
 
     <section class="panel" id="coachAuthCard">
       <h1>دخول المدرب</h1>
-      <p class="muted">سجل دخولك لمتابعة الجلسات والخطط وتحديثات المتدربين.</p>
-      <form id="coachLoginForm" class="form-grid">
+      <p class="muted">سجل دخولك لإدارة التدريب، التغذية، والمحادثات.</p>
+      <form id="coachLoginForm" class="form-grid auth-grid">
         <label>
           <span>الإيميل</span>
           <input type="email" name="email" autocomplete="email" required />
@@ -39,41 +39,79 @@
       <div class="dash-head">
         <div>
           <h2>لوحة المدرب</h2>
-          <p class="muted" id="coachWelcome">جاهز لإدارة يومك</p>
+          <p class="muted" id="coachWelcome">إدارة كاملة للمحتوى والتواصل</p>
         </div>
-        <button type="button" id="coachSignOutBtn" class="ghost-btn">تسجيل خروج</button>
+        <div class="dash-actions">
+          <button type="button" id="coachRefreshBtn" class="ghost-btn">تحديث</button>
+          <button type="button" id="coachSignOutBtn" class="ghost-btn">تسجيل خروج</button>
+        </div>
       </div>
 
       <div class="kpi-grid">
-        <article><strong id="coachTraineesCount">0</strong><span>متدربين نشطين</span></article>
-        <article><strong id="coachSessionsCount">0</strong><span>جلسات اليوم</span></article>
-        <article><strong id="coachInjuriesCount">0</strong><span>بلاغات إصابة</span></article>
+        <article><strong id="coachTraineesCount">0</strong><span>متدربين</span></article>
+        <article><strong id="coachWorkoutsCount">0</strong><span>فيديوهات تدريب</span></article>
+        <article><strong id="coachMealsCount">0</strong><span>وجبات</span></article>
+        <article><strong id="coachThreadsCount">0</strong><span>محادثات نشطة</span></article>
       </div>
 
-      <article class="card">
-        <div class="card-head">
-          <h3>جلسات اليوم</h3>
-          <span class="badge">الآن</span>
-        </div>
-        <div id="coachSessions"></div>
-      </article>
-
-      <article class="card">
-        <div class="card-head">
-          <h3>آخر بلاغات الإصابات</h3>
-          <button class="ghost-btn mini" type="button" id="coachRefreshBtn">تحديث</button>
-        </div>
-        <div id="coachInjuries"></div>
-      </article>
-
-      <article class="card">
-        <h3>ملاحظات سريعة للمتدربين</h3>
-        <form id="coachNotesForm" class="notes-form">
-          <input name="note" placeholder="اكتب ملاحظة توجيهية سريعة..." required />
-          <button type="submit" class="primary-btn">إضافة</button>
+      <section class="card">
+        <div class="card-head"><h3>إضافة فيديو تدريب</h3><span class="badge">Workout</span></div>
+        <form id="coachWorkoutForm" class="form-grid">
+          <label><span>العنوان</span><input name="title" required /></label>
+          <label><span>اسم المدرب</span><input name="coachName" required /></label>
+          <label><span>اليوم</span><input name="day" placeholder="الأحد" required /></label>
+          <label><span>المدة (دقيقة)</span><input type="number" name="durationMin" min="5" max="180" required /></label>
+          <label><span>الشدة</span><select name="intensity"><option>خفيفة</option><option selected>متوسطة</option><option>عالية</option></select></label>
+          <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option></select></label>
+          <label class="full"><span>رابط الفيديو</span><input name="videoUrl" placeholder="https://..." /></label>
+          <label class="full"><span>تعليمات</span><textarea name="instructions" rows="2"></textarea></label>
+          <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
+          <button type="submit" class="primary-btn">نشر فيديو التدريب</button>
         </form>
-        <div id="coachNotes"></div>
-      </article>
+        <div id="coachWorkoutsList" class="item-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3>إضافة وجبة غذائية</h3><span class="badge">Nutrition</span></div>
+        <form id="coachMealForm" class="form-grid">
+          <label><span>اسم الوجبة</span><input name="title" required /></label>
+          <label><span>الوقت</span><input name="time" placeholder="08:00 ص" required /></label>
+          <label><span>السعرات</span><input type="number" name="kcal" min="0" max="3000" required /></label>
+          <label><span>بروتين (جم)</span><input type="number" name="protein" min="0" max="300" required /></label>
+          <label><span>كارب (جم)</span><input type="number" name="carbs" min="0" max="400" required /></label>
+          <label><span>دهون (جم)</span><input type="number" name="fat" min="0" max="300" required /></label>
+          <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
+          <button type="submit" class="primary-btn">نشر الوجبة</button>
+        </form>
+        <div id="coachMealsList" class="item-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3>منشور المجتمع الصحي</h3><span class="badge">Community</span></div>
+        <form id="coachPostForm" class="form-grid">
+          <label><span>العنوان</span><input name="title" required /></label>
+          <label><span>الدور</span><input name="authorRole" value="فريق MOVE" required /></label>
+          <label class="full"><span>المحتوى</span><textarea name="body" rows="3" required></textarea></label>
+          <button type="submit" class="primary-btn">نشر في المجتمع</button>
+        </form>
+        <div id="coachPostsList" class="item-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3>محادثات المتدربين</h3><span class="badge">Support</span></div>
+        <div class="support-layout">
+          <div id="coachThreadsList" class="item-list"></div>
+          <div class="support-thread">
+            <h4 id="coachSelectedThreadTitle">اختر محادثة</h4>
+            <div id="coachThreadMessages" class="thread-messages"></div>
+            <form id="coachReplyForm" class="notes-form">
+              <input name="reply" placeholder="اكتب ردك للمتدرب..." required />
+              <button type="submit" class="primary-btn">إرسال</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       <p class="message" id="coachDashboardMessage"></p>
     </section>
   </main>

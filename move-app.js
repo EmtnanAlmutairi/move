@@ -3,13 +3,19 @@
   collection,
   doc,
   getDoc,
-  orderBy,
-  limit,
-  query,
   getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-import { db, initializeAnalytics } from "./firebase-client.js";
+import {
+  onAuthStateChanged,
+  signInAnonymously
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { auth, db, initializeAnalytics } from "./firebase-client.js";
 
 initializeAnalytics();
 
@@ -22,55 +28,38 @@ const fallbackConfig = {
   featuredWorkoutCoach: "كابتن خالد"
 };
 
+const fallbackWorkouts = [
+  { id: "w1", title: "تمرين الصدر والتراي", day: "الأحد", durationMin: 60, intensity: "عالية", focus: "strength", coachName: "كابتن خالد", videoUrl: "" },
+  { id: "w2", title: "كارديو ولياقة", day: "الاثنين", durationMin: 45, intensity: "متوسطة", focus: "fat-loss", coachName: "كابتن خالد", videoUrl: "" },
+  { id: "w3", title: "تثبيت الجذع والمرونة", day: "الثلاثاء", durationMin: 40, intensity: "متوسطة", focus: "fitness", coachName: "د. يثنى", videoUrl: "" }
+];
+
+const fallbackMeals = [
+  { id: "m1", title: "توست أفوكادو وبيض", kcal: 320, protein: 24, carbs: 28, fat: 14, time: "08:00 ص" },
+  { id: "m2", title: "سلطة سلمون مشوي", kcal: 450, protein: 38, carbs: 22, fat: 20, time: "01:00 م" },
+  { id: "m3", title: "زبادي يوناني وتوت", kcal: 180, protein: 14, carbs: 16, fat: 6, time: "04:00 م" }
+];
+
+const fallbackFeed = [
+  { id: "f1", title: "تحدي 8 آلاف خطوة", body: "شارك إنجازك اليومي مع المجتمع.", meta: "نشاط المجتمع" },
+  { id: "f2", title: "نصيحة تغذوية", body: "حافظ على البروتين في أول وجبة بعد التمرين.", meta: "فريق التغذية" }
+];
+
 const state = {
   config: fallbackConfig,
+  userUid: null,
   workoutFilter: "all",
-  selectedChatId: "c1",
-  workouts: [
-    { id: "w1", title: "تمرين الصدر والتراي", day: "الأحد", durationMin: 60, intensity: "عالية", done: true, focus: "strength" },
-    { id: "w2", title: "تمرين الظهر والباي", day: "الاثنين", durationMin: 65, intensity: "عالية", done: true, focus: "strength" },
-    { id: "w3", title: "كارديو ولياقة", day: "الثلاثاء", durationMin: 45, intensity: "متوسطة", done: false, focus: "fat-loss" },
-    { id: "w4", title: "تمارين الأرجل", day: "الأربعاء", durationMin: 70, intensity: "عالية", done: false, focus: "strength" },
-    { id: "w5", title: "تثبيت الجذع والمرونة", day: "الخميس", durationMin: 40, intensity: "متوسطة", done: false, focus: "fitness" }
-  ],
-  meals: [
-    { id: "m1", title: "توست أفوكادو وبيض", kcal: 320, protein: 24, carbs: 28, fat: 14, time: "08:00 ص" },
-    { id: "m2", title: "سلطة سلمون مشوي", kcal: 450, protein: 38, carbs: 22, fat: 20, time: "01:00 م" },
-    { id: "m3", title: "زبادي يوناني وتوت", kcal: 180, protein: 14, carbs: 16, fat: 6, time: "04:00 م" },
-    { id: "m4", title: "دجاج مع خضار مشوية", kcal: 410, protein: 42, carbs: 21, fat: 15, time: "08:30 م" }
-  ],
-  chats: [
-    { id: "c1", name: "فريق الدعم المتكامل", role: "فريق متكامل", msg: "شكل اليوم جميل، تقدم رائع", unread: 2 },
-    { id: "c2", name: "سارة منير", role: "تغذية", msg: "أرسلي صورة الوجبة بعد التعديل", unread: 0 },
-    { id: "c3", name: "د. يثنى", role: "علاج طبيعي", msg: "كيف استجابة الركبة بعد التمرين؟", unread: 0 },
-    { id: "c4", name: "كابتن خالد", role: "مدرب بدني", msg: "غداً نرفع الحمل بنسبة 5%", unread: 1 }
-  ],
-  chatThreads: {
-    c1: [
-      { by: "team", text: "صباح الخير، خلصنا مراجعة بياناتك لليوم." },
-      { by: "user", text: "ممتاز، أبغى أركز على التحمل هذا الأسبوع." }
-    ],
-    c2: [
-      { by: "team", text: "أرسلي وجبة العشاء قبل النوم بساعتين." }
-    ],
-    c3: [
-      { by: "team", text: "في ألم عند النزول؟ إذا نعم خفف القرفصاء." }
-    ],
-    c4: [
-      { by: "team", text: "اليوم عندك HIIT 45 دقيقة، جاهز؟" }
-    ]
-  },
-  communityFeed: [
-    { id: "f1", title: "تحدي 8 آلاف خطوة", body: "86 عضو وصلوا الهدف اليوم. شارك خطوتك الأخيرة قبل منتصف الليل.", meta: "نشاط المجتمع" },
-    { id: "f2", title: "إنجاز جديد", body: "محمد أنجز 6 أيام متتالية تدريب والتزام غذائي كامل.", meta: "فريق التدريب" },
-    { id: "f3", title: "نصيحة علاج طبيعي", body: "تمارين الإطالة الخلفية بعد التمرين تقلل شد أسفل الظهر بشكل واضح.", meta: "الاستشفاء" }
-  ],
+  workouts: fallbackWorkouts,
+  meals: fallbackMeals,
+  communityFeed: fallbackFeed,
+  latestInjury: null,
   devices: [
     { id: "d1", name: "Apple Health", status: "غير متصل" },
     { id: "d2", name: "Google Fit", status: "غير متصل" },
     { id: "d3", name: "Garmin Connect", status: "غير متصل" }
   ],
-  latestInjury: null
+  supportMessages: [],
+  supportUnsubscribe: null
 };
 
 window.addEventListener("DOMContentLoaded", init);
@@ -84,10 +73,47 @@ async function init() {
   bindCommunitySwitch();
   bindChatActions();
   bindTabJumpButtons();
+  bindWorkoutToggles();
   renderAll();
 
-  await Promise.all([loadConfig(), loadLatestInjuryFromFirestore()]);
+  await ensureMemberSession();
+
+  await Promise.all([
+    loadConfig(),
+    loadLatestInjuryFromFirestore(),
+    loadWorkouts(),
+    loadMeals(),
+    loadCommunityFeed()
+  ]);
+
+  startSupportMessagesListener();
   renderAll();
+}
+
+async function ensureMemberSession() {
+  if (auth.currentUser) {
+    state.userUid = auth.currentUser.uid;
+    return;
+  }
+
+  await signInAnonymously(auth).catch(function (error) {
+    console.error("Anonymous auth failed", error);
+  });
+
+  state.userUid = auth.currentUser ? auth.currentUser.uid : null;
+
+  if (!state.userUid) {
+    await new Promise(function (resolve) {
+      const unsubscribe = onAuthStateChanged(auth, function (user) {
+        if (user) {
+          state.userUid = user.uid;
+          unsubscribe();
+          resolve();
+        }
+      });
+      setTimeout(resolve, 1200);
+    });
+  }
 }
 
 function setTodayLabel() {
@@ -162,6 +188,7 @@ function bindOnboarding() {
       phone: normalizePhone(String(formData.get("phone") || "")),
       goal: String(formData.get("goal") || ""),
       planId: String(formData.get("planId") || ""),
+      memberUid: state.userUid || "anon",
       source: "move-web-mvp",
       createdAt: serverTimestamp()
     };
@@ -185,7 +212,8 @@ function bindOnboarding() {
         JSON.stringify({
           fullName: payload.fullName,
           goal: payload.goal,
-          planId: payload.planId
+          planId: payload.planId,
+          memberUid: payload.memberUid
         })
       );
       message.textContent = "تم تفعيل الاشتراك بنجاح.";
@@ -216,6 +244,7 @@ function bindInjuryForm() {
       severity: Number(formData.get("severity") || 1),
       note: String(formData.get("note") || "").trim(),
       status: "new",
+      memberUid: state.userUid || "anon",
       source: "move-web-mvp",
       createdAt: serverTimestamp()
     };
@@ -305,39 +334,89 @@ function bindCommunitySwitch() {
 }
 
 function bindChatActions() {
-  const list = document.getElementById("chatList");
   const composeForm = document.getElementById("chatComposeForm");
+  if (!composeForm) return;
 
-  if (list) {
-    list.addEventListener("click", function (event) {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      const item = target.closest("[data-chat-id]");
-      if (!item) return;
-      const id = item.getAttribute("data-chat-id");
-      if (!id) return;
-      state.selectedChatId = id;
+  composeForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const input = composeForm.querySelector("input[name='message']");
+    if (!(input instanceof HTMLInputElement)) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    const profile = getProfileFromStorage();
+
+    try {
+      await addDoc(collection(db, "supportMessages"), {
+        threadId: state.userUid || "anon",
+        senderRole: "member",
+        senderName: profile.fullName || "مشترك MOVE",
+        text: text,
+        source: "move-web-mvp",
+        createdAt: serverTimestamp()
+      });
+      input.value = "";
+    } catch (error) {
+      console.error("Failed to send support message", error);
+    }
+  });
+}
+
+function bindWorkoutToggles() {
+  document.addEventListener("click", function (event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const trigger = target.closest("[data-workout-toggle]");
+    if (!trigger) return;
+
+    const workoutId = trigger.getAttribute("data-workout-toggle");
+    if (!workoutId) return;
+
+    const doneMap = readWorkoutDoneMap();
+    doneMap[workoutId] = !doneMap[workoutId];
+    writeWorkoutDoneMap(doneMap);
+    renderWeeklyPlan();
+    renderWorkoutLibrary();
+  });
+}
+
+function startSupportMessagesListener() {
+  if (!state.userUid) return;
+
+  if (typeof state.supportUnsubscribe === "function") {
+    state.supportUnsubscribe();
+  }
+
+  const supportQuery = query(
+    collection(db, "supportMessages"),
+    where("threadId", "==", state.userUid),
+    limit(120)
+  );
+
+  state.supportUnsubscribe = onSnapshot(
+    supportQuery,
+    function (snapshot) {
+      const all = snapshot.docs.map(function (entry) {
+        return Object.assign({ id: entry.id }, entry.data());
+      });
+
+      state.supportMessages = all
+        .filter(function (message) {
+          return message.threadId === state.userUid;
+        })
+        .sort(function (a, b) {
+          return toMillis(a.createdAt) - toMillis(b.createdAt);
+        });
+
       renderChats();
       renderChatThread();
-    });
-  }
-
-  if (composeForm) {
-    composeForm.addEventListener("submit", function (event) {
-      event.preventDefault();
-      const input = composeForm.querySelector("input[name='message']");
-      if (!(input instanceof HTMLInputElement)) return;
-      const text = input.value.trim();
-      if (!text) return;
-
-      if (!state.chatThreads[state.selectedChatId]) {
-        state.chatThreads[state.selectedChatId] = [];
-      }
-      state.chatThreads[state.selectedChatId].push({ by: "user", text: text });
-      input.value = "";
-      renderChatThread();
-    });
-  }
+    },
+    function (error) {
+      console.error("Failed to listen to support messages", error);
+    }
+  );
 }
 
 async function loadConfig() {
@@ -353,11 +432,23 @@ async function loadConfig() {
 }
 
 async function loadLatestInjuryFromFirestore() {
+  if (!state.userUid) return;
+
   try {
-    const injuryQuery = query(collection(db, "injuryReports"), orderBy("createdAt", "desc"), limit(1));
+    const injuryQuery = query(
+      collection(db, "injuryReports"),
+      where("memberUid", "==", state.userUid),
+      limit(20)
+    );
     const snapshot = await getDocs(injuryQuery);
     if (!snapshot.empty) {
-      const data = snapshot.docs[0].data();
+      const data = snapshot.docs
+        .map(function (entry) {
+          return entry.data();
+        })
+        .sort(function (a, b) {
+          return toMillis(b.createdAt) - toMillis(a.createdAt);
+        })[0];
       state.latestInjury = {
         area: data.area || "غير محدد",
         severity: data.severity || 1,
@@ -366,6 +457,77 @@ async function loadLatestInjuryFromFirestore() {
     }
   } catch (error) {
     console.error("Failed to load latest injury", error);
+  }
+}
+
+async function loadWorkouts() {
+  try {
+    const workoutsQuery = query(collection(db, "workoutVideos"), orderBy("sortOrder", "asc"), limit(60));
+    const snapshot = await getDocs(workoutsQuery);
+
+    if (!snapshot.empty) {
+      state.workouts = snapshot.docs.map(function (entry) {
+        const data = entry.data();
+        return {
+          id: entry.id,
+          title: data.title || "تمرين",
+          day: data.day || "-",
+          durationMin: Number(data.durationMin || 30),
+          intensity: data.intensity || "متوسطة",
+          focus: data.focus || "fitness",
+          coachName: data.coachName || "Coach",
+          videoUrl: data.videoUrl || "",
+          instructions: data.instructions || ""
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Failed to load workouts", error);
+  }
+}
+
+async function loadMeals() {
+  try {
+    const mealsQuery = query(collection(db, "nutritionMeals"), orderBy("sortOrder", "asc"), limit(60));
+    const snapshot = await getDocs(mealsQuery);
+
+    if (!snapshot.empty) {
+      state.meals = snapshot.docs.map(function (entry) {
+        const data = entry.data();
+        return {
+          id: entry.id,
+          title: data.title || "وجبة",
+          kcal: Number(data.kcal || 0),
+          protein: Number(data.protein || 0),
+          carbs: Number(data.carbs || 0),
+          fat: Number(data.fat || 0),
+          time: data.time || "--:--"
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Failed to load meals", error);
+  }
+}
+
+async function loadCommunityFeed() {
+  try {
+    const feedQuery = query(collection(db, "communityPosts"), orderBy("createdAt", "desc"), limit(20));
+    const snapshot = await getDocs(feedQuery);
+
+    if (!snapshot.empty) {
+      state.communityFeed = snapshot.docs.map(function (entry) {
+        const data = entry.data();
+        return {
+          id: entry.id,
+          title: data.title || "منشور",
+          body: data.body || "",
+          meta: data.authorRole || "المجتمع"
+        };
+      });
+    }
+  } catch (error) {
+    console.error("Failed to load community feed", error);
   }
 }
 
@@ -389,25 +551,29 @@ function renderDashboard() {
   const featuredWorkout = document.getElementById("featuredWorkout");
   const goalProgressBar = document.getElementById("goalProgressBar");
 
-  if (readinessValue) readinessValue.textContent = "75%";
+  const progress = calculateProgressPercent();
+
+  if (readinessValue) readinessValue.textContent = progress + "%";
   if (planVersionBadge) planVersionBadge.textContent = "خطة " + (state.config.workoutPlanVersion || "v2.4");
   if (challengeBadge) challengeBadge.textContent = state.config.challengesEnabled ? "التحديات مفعلة" : "التحديات متوقفة";
-  if (goalProgressBar) goalProgressBar.style.width = "75%";
+  if (goalProgressBar) goalProgressBar.style.width = progress + "%";
 
-  if (featuredWorkout) {
+  const featured = state.workouts[0];
+
+  if (featuredWorkout && featured) {
     featuredWorkout.innerHTML =
       '<div class="item-row">' +
       '<div>' +
-      '<p class="item-title">' + escapeHtml(state.config.featuredWorkoutTitle || "HIIT لكامل الجسم") + "</p>" +
+      '<p class="item-title">' + escapeHtml(featured.title) + "</p>" +
       '<p class="item-sub">' +
-      escapeHtml((state.config.featuredWorkoutDurationMin || 45) + " دقيقة") +
+      escapeHtml(featured.durationMin + " دقيقة") +
       "</p>" +
       '<p class="item-meta">' +
-      "<span>المدرب: " + escapeHtml(state.config.featuredWorkoutCoach || "كابتن خالد") + "</span>" +
+      "<span>المدرب: " + escapeHtml(featured.coachName || state.config.featuredWorkoutCoach || "كابتن خالد") + "</span>" +
       "<span>تحديث: " + escapeHtml(state.config.workoutPlanVersion || "v2.4") + "</span>" +
       "</p>" +
       "</div>" +
-      '<span class="badge">فيديو</span>' +
+      (featured.videoUrl ? '<a class="badge video-link" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(featured.videoUrl) + '">فتح الفيديو</a>' : '<span class="badge">فيديو قريباً</span>') +
       "</div>";
   }
 }
@@ -439,15 +605,21 @@ function renderWeeklyPlan() {
   const weeklyProgress = document.getElementById("weeklyProgress");
   if (!weeklyList || !weeklyProgress) return;
 
-  const doneCount = state.workouts.filter((w) => w.done).length;
+  const doneMap = readWorkoutDoneMap();
+  const doneCount = state.workouts.filter(function (item) {
+    return Boolean(doneMap[item.id]);
+  }).length;
+
   weeklyProgress.textContent = doneCount + " من " + state.workouts.length;
 
   weeklyList.innerHTML = state.workouts
     .map(function (workout) {
+      const done = Boolean(doneMap[workout.id]);
+
       return (
         '<article class="plan-item">' +
         '<div class="item-row">' +
-        '<span class="badge">' + (workout.done ? "مكتمل" : "قادم") + "</span>" +
+        '<button class="badge toggle-done" data-workout-toggle="' + workout.id + '">' + (done ? "مكتمل" : "تحديد كمكتمل") + "</button>" +
         '<div>' +
         '<p class="item-title">' + escapeHtml(workout.title) + "</p>" +
         '<p class="item-sub">' + escapeHtml(workout.day + " • " + workout.durationMin + " دقيقة • " + workout.intensity) + "</p>" +
@@ -463,12 +635,19 @@ function renderWorkoutLibrary() {
   const workoutLibrary = document.getElementById("workoutLibrary");
   if (!workoutLibrary) return;
 
+  const doneMap = readWorkoutDoneMap();
+
   const visibleWorkouts = state.workoutFilter === "all"
     ? state.workouts
     : state.workouts.filter((workout) => workout.focus === state.workoutFilter);
 
   workoutLibrary.innerHTML = visibleWorkouts
     .map(function (workout) {
+      const done = Boolean(doneMap[workout.id]);
+      const media = workout.videoUrl
+        ? '<a class="video-link" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(workout.videoUrl) + '">مشاهدة فيديو المدرب</a>'
+        : '<span class="muted">سيتم إضافة الفيديو من لوحة المدرب</span>';
+
       return (
         '<article class="workout-item">' +
         '<div class="item-row">' +
@@ -476,9 +655,12 @@ function renderWorkoutLibrary() {
         '<div>' +
         '<p class="item-title">' + escapeHtml(workout.title) + "</p>" +
         '<p class="item-sub">' + escapeHtml(workout.day + " • " + workout.durationMin + " دقيقة") + "</p>" +
-        '<p class="item-meta"><span>فيديو تدريبي</span><span>' + (workout.done ? "أنهيته" : "ابدأ") + "</span></p>" +
+        '<p class="item-meta"><span>المدرب: ' + escapeHtml(workout.coachName || "Coach") + '</span><span>' + (done ? "مكتمل" : "قيد التنفيذ") + "</span></p>" +
+        '<p class="item-sub">' + escapeHtml(workout.instructions || "") + "</p>" +
+        media +
         "</div>" +
         "</div>" +
+        '<button class="ghost-btn mini" type="button" data-workout-toggle="' + workout.id + '">' + (done ? "إلغاء الاكتمال" : "تحديد كمكتمل") + "</button>" +
         "</article>"
       );
     })
@@ -573,7 +755,7 @@ function renderCommunityFeed() {
         '<h4 class="item-title">' + escapeHtml(item.title) + "</h4>" +
         "</div>" +
         '<p>' + escapeHtml(item.body) + "</p>" +
-        '<div class="item-meta"><span>+18 تفاعل</span><span>#MOVE_community</span></div>' +
+        '<div class="item-meta"><span>#MOVE_community</span></div>' +
         "</article>"
       );
     })
@@ -584,21 +766,18 @@ function renderChats() {
   const chatList = document.getElementById("chatList");
   if (!chatList) return;
 
-  chatList.innerHTML = state.chats
-    .map(function (chat) {
-      return (
-        '<article class="chat-item' + (chat.id === state.selectedChatId ? " active" : "") + '" data-chat-id="' + chat.id + '">' +
-        '<div class="item-row">' +
-        '<span class="badge">' + (chat.unread > 0 ? chat.unread + " جديد" : chat.role) + "</span>" +
-        '<div>' +
-        '<p class="item-title">' + escapeHtml(chat.name) + "</p>" +
-        '<p class="item-sub">' + escapeHtml(chat.msg) + "</p>" +
-        "</div>" +
-        "</div>" +
-        "</article>"
-      );
-    })
-    .join("");
+  const lastMessage = state.supportMessages.length ? state.supportMessages[state.supportMessages.length - 1] : null;
+
+  chatList.innerHTML =
+    '<article class="chat-item active">' +
+    '<div class="item-row">' +
+    '<span class="badge">دعم MOVE</span>' +
+    '<div>' +
+    '<p class="item-title">فريق الدعم المتكامل</p>' +
+    '<p class="item-sub">' + escapeHtml(lastMessage ? lastMessage.text : "ابدأ محادثتك مع الفريق") + "</p>" +
+    "</div>" +
+    "</div>" +
+    "</article>";
 }
 
 function renderChatThread() {
@@ -606,13 +785,16 @@ function renderChatThread() {
   const threadContainer = document.getElementById("chatThreadMessages");
   if (!title || !threadContainer) return;
 
-  const chat = state.chats.find((item) => item.id === state.selectedChatId) || state.chats[0];
-  const messages = state.chatThreads[chat.id] || [];
+  title.textContent = "فريق الدعم المتكامل";
 
-  title.textContent = chat.name;
-  threadContainer.innerHTML = messages
+  if (!state.supportMessages.length) {
+    threadContainer.innerHTML = '<div class="chat-bubble team">أهلاً بك، اكتب رسالتك لنساعدك في التدريب والتغذية.</div>';
+    return;
+  }
+
+  threadContainer.innerHTML = state.supportMessages
     .map(function (message) {
-      return '<div class="chat-bubble ' + (message.by === "user" ? "user" : "team") + '">' + escapeHtml(message.text) + "</div>";
+      return '<div class="chat-bubble ' + (message.senderRole === "member" ? "user" : "team") + '">' + escapeHtml(message.text || "") + "</div>";
     })
     .join("");
 }
@@ -636,6 +818,48 @@ function renderDevices() {
       );
     })
     .join("");
+}
+
+function readWorkoutDoneMap() {
+  try {
+    const raw = localStorage.getItem("moveWorkoutDoneMap");
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function writeWorkoutDoneMap(doneMap) {
+  localStorage.setItem("moveWorkoutDoneMap", JSON.stringify(doneMap));
+}
+
+function calculateProgressPercent() {
+  const doneMap = readWorkoutDoneMap();
+  if (!state.workouts.length) return 0;
+  const doneCount = state.workouts.filter(function (item) {
+    return Boolean(doneMap[item.id]);
+  }).length;
+  return Math.min(100, Math.round((doneCount / state.workouts.length) * 100));
+}
+
+function getProfileFromStorage() {
+  try {
+    const raw = localStorage.getItem("moveSubscriptionProfile");
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function toMillis(timestampValue) {
+  if (!timestampValue) return 0;
+  if (typeof timestampValue.toMillis === "function") return timestampValue.toMillis();
+  if (typeof timestampValue.seconds === "number") return timestampValue.seconds * 1000;
+  return 0;
 }
 
 function normalizePhone(value) {
