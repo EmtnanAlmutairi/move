@@ -17,6 +17,7 @@ const elements = {};
 const state = {
   user: null,
   isAdmin: false,
+  assignmentSearch: "",
   subscriptions: [],
   injuries: [],
   threads: [],
@@ -51,11 +52,13 @@ function cacheElements() {
   elements.recentInjuriesEmpty = document.getElementById("recentInjuriesEmpty");
   elements.assignmentForm = document.getElementById("assignmentForm");
   elements.assignmentSubscriptionId = document.getElementById("assignmentSubscriptionId");
+  elements.assignmentSearchInput = document.getElementById("assignmentSearchInput");
   elements.assignmentCoachUid = document.getElementById("assignmentCoachUid");
   elements.assignmentNutritionUid = document.getElementById("assignmentNutritionUid");
   elements.assignmentPhysioUid = document.getElementById("assignmentPhysioUid");
   elements.assignmentSaveButton = document.getElementById("assignmentSaveButton");
   elements.assignmentMessage = document.getElementById("assignmentMessage");
+  elements.assignmentPreview = document.getElementById("assignmentPreview");
 }
 
 function bindEvents() {
@@ -68,6 +71,27 @@ function bindEvents() {
   if (elements.assignmentForm) {
     elements.assignmentForm.addEventListener("submit", onSaveAssignment);
     elements.assignmentSubscriptionId.addEventListener("change", syncAssignmentFormWithSelectedSubscription);
+    [elements.assignmentCoachUid, elements.assignmentNutritionUid, elements.assignmentPhysioUid].forEach(function (select) {
+      if (!select) return;
+      select.addEventListener("change", function () {
+        const currentId = elements.assignmentSubscriptionId.value;
+        const selected = state.subscriptions.find(function (item) {
+          return item.id === currentId;
+        });
+        renderAssignmentPreview(selected || null);
+      });
+    });
+    if (elements.assignmentSearchInput) {
+      elements.assignmentSearchInput.addEventListener("input", function () {
+        state.assignmentSearch = String(elements.assignmentSearchInput.value || "").trim().toLowerCase();
+        const currentId = elements.assignmentSubscriptionId.value;
+        renderAssignmentOptions();
+        if (currentId) {
+          elements.assignmentSubscriptionId.value = currentId;
+        }
+        syncAssignmentFormWithSelectedSubscription();
+      });
+    }
   }
 }
 
@@ -321,11 +345,21 @@ function renderRecentSubscriptions() {
 function renderAssignmentOptions() {
   if (!elements.assignmentSubscriptionId) return;
 
+  const filteredSubscriptions = state.subscriptions.filter(function (item) {
+    if (!state.assignmentSearch) return true;
+    const hay = (
+      String(item.fullName || "") + " " +
+      String(item.email || "") + " " +
+      String(item.phone || "")
+    ).toLowerCase();
+    return hay.includes(state.assignmentSearch);
+  });
+
   elements.assignmentSubscriptionId.innerHTML =
     '<option value="">اختر مشترك...</option>' +
-    state.subscriptions
+    filteredSubscriptions
       .map(function (item) {
-        return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml((item.fullName || "Unknown") + " - " + (item.email || "")) + "</option>";
+        return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml((item.fullName || "Unknown") + " - " + (item.phone || item.email || "")) + "</option>";
       })
       .join("");
 
@@ -357,6 +391,7 @@ function syncAssignmentFormWithSelectedSubscription() {
     elements.assignmentCoachUid.value = "";
     elements.assignmentNutritionUid.value = "";
     elements.assignmentPhysioUid.value = "";
+    renderAssignmentPreview(null);
     return;
   }
 
@@ -368,6 +403,7 @@ function syncAssignmentFormWithSelectedSubscription() {
   elements.assignmentCoachUid.value = sub.assignedCoachUid || "";
   elements.assignmentNutritionUid.value = sub.assignedNutritionUid || "";
   elements.assignmentPhysioUid.value = sub.assignedPhysioUid || "";
+  renderAssignmentPreview(sub);
 }
 
 async function onSaveAssignment(event) {
@@ -465,6 +501,26 @@ function severityLabel(value) {
   if (value === 2) return "Medium";
   if (value === 3) return "High";
   return String(value || "-");
+}
+
+function renderAssignmentPreview(subscription) {
+  if (!elements.assignmentPreview) return;
+  if (!subscription) {
+    elements.assignmentPreview.innerHTML = "";
+    return;
+  }
+
+  elements.assignmentPreview.innerHTML =
+    '<li>' +
+    '<p class="mini-title">' + escapeHtml(subscription.fullName || "مشترك") + "</p>" +
+    '<p class="mini-meta">' + escapeHtml("الجوال: " + (subscription.phone || "-")) + "</p>" +
+    '<p class="mini-meta">' + escapeHtml("الهدف: " + (subscription.goal || "-") + " • الخطة: " + (subscription.planId || "-")) + "</p>" +
+    '<p class="mini-meta">' + escapeHtml(
+      "الفريق الحالي - مدرب: " + practitionerName(elements.assignmentCoachUid.value || subscription.assignedCoachUid) +
+      " | تغذية: " + practitionerName(elements.assignmentNutritionUid.value || subscription.assignedNutritionUid) +
+      " | علاج: " + practitionerName(elements.assignmentPhysioUid.value || subscription.assignedPhysioUid)
+    ) + "</p>" +
+    "</li>";
 }
 
 function formatDate(dateValue) {

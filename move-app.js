@@ -878,7 +878,7 @@ function renderMeals() {
         '<div>' +
         '<p class="item-title">' + escapeHtml(meal.title) + "</p>" +
         '<p class="item-sub">' + escapeHtml(meal.kcal + " سعرة") + "</p>" +
-        '<p class="item-meta"><span>بروتين " + meal.protein + "ج</span><span>كارب " + meal.carbs + "ج</span><span>دهون " + meal.fat + "ج</span></p>" +
+        '<p class="item-meta"><span>بروتين ' + escapeHtml(meal.protein + "ج") + '</span><span>كارب ' + escapeHtml(meal.carbs + "ج") + '</span><span>دهون ' + escapeHtml(meal.fat + "ج") + "</span></p>" +
         "</div>" +
         "</div>" +
         "</article>"

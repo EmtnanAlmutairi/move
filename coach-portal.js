@@ -65,6 +65,9 @@ function cacheElements() {
   elements.staffRoleBadge = document.getElementById("staffRoleBadge");
   elements.myClientsList = document.getElementById("myClientsList");
   elements.activeMemberSelect = document.getElementById("activeMemberSelect");
+  elements.workoutSection = document.getElementById("coachWorkoutSection");
+  elements.mealSection = document.getElementById("coachMealSection");
+  elements.postSection = document.getElementById("coachPostSection");
 
   elements.workoutForm = document.getElementById("coachWorkoutForm");
   elements.workoutsList = document.getElementById("coachWorkoutsList");
@@ -190,6 +193,7 @@ async function onAuthChanged(user) {
   if (elements.staffRoleBadge) {
     elements.staffRoleBadge.textContent = roleLabel(state.staffRole);
   }
+  applyRoleExperience();
 
   await loadDashboardData();
   startSupportListener();
@@ -372,6 +376,10 @@ function teardownSupportListener() {
 async function onWorkoutSubmit(event) {
   event.preventDefault();
   if (!state.user || !state.isStaff) return;
+  if (!(state.staffRole === "coach" || state.staffRole === "admin")) {
+    elements.dashboardMessage.textContent = "هذه الصلاحية للمدرب البدني فقط.";
+    return;
+  }
 
   const form = event.currentTarget;
   const editId = form.editId.value.trim();
@@ -439,6 +447,10 @@ async function onWorkoutSubmit(event) {
 async function onMealSubmit(event) {
   event.preventDefault();
   if (!state.user || !state.isStaff) return;
+  if (!(state.staffRole === "nutrition" || state.staffRole === "admin")) {
+    elements.dashboardMessage.textContent = "هذه الصلاحية لأخصائي التغذية فقط.";
+    return;
+  }
 
   const activeMemberUid = getActiveMemberUid();
   if (!activeMemberUid) {
@@ -498,6 +510,10 @@ async function onMealSubmit(event) {
 async function onPostSubmit(event) {
   event.preventDefault();
   if (!state.user || !state.isStaff) return;
+  if (!(state.staffRole === "coach" || state.staffRole === "admin")) {
+    elements.dashboardMessage.textContent = "نشر المجتمع متاح للمدرب أو الإدارة.";
+    return;
+  }
 
   const form = event.currentTarget;
   const editId = form.editId.value.trim();
@@ -985,8 +1001,12 @@ async function onActiveMemberChanged() {
   clearMealForm();
   elements.dashboardMessage.textContent = "جاري تحميل خطة المتدرب...";
   await Promise.all([loadWorkouts(), loadMeals()]);
+  const threads = buildThreads();
+  state.selectedThreadId = threads.length ? threads[0].threadId : null;
   renderWorkouts();
   renderMeals();
+  renderSupportInbox();
+  renderSelectedThread();
   renderKpis();
   renderMyClients();
   elements.dashboardMessage.textContent = state.activeMemberUid ? "تم تحديث خطة المتدرب." : "اختر متدرباً لإدارة الخطة.";
@@ -1005,6 +1025,22 @@ function roleLabel(role) {
   if (role === "physio") return "أخصائي علاج طبيعي";
   if (role === "admin") return "إدارة";
   return role || "Staff";
+}
+
+function applyRoleExperience() {
+  const isCoachRole = state.staffRole === "coach" || state.staffRole === "admin";
+  const isNutritionRole = state.staffRole === "nutrition" || state.staffRole === "admin";
+  const canPublishCommunity = state.staffRole === "admin" || state.staffRole === "coach";
+
+  if (elements.workoutSection) {
+    elements.workoutSection.classList.toggle("hidden", !isCoachRole);
+  }
+  if (elements.mealSection) {
+    elements.mealSection.classList.toggle("hidden", !isNutritionRole);
+  }
+  if (elements.postSection) {
+    elements.postSection.classList.toggle("hidden", !canPublishCommunity);
+  }
 }
 
 function toMillis(timestampValue) {

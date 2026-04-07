@@ -152,6 +152,10 @@
         <h4>تعيين الفريق الصحي للمشترك</h4>
         <form id="assignmentForm" class="admin-form assign-grid">
           <label class="admin-field full">
+            <span>بحث عن مشترك</span>
+            <input id="assignmentSearchInput" type="search" placeholder="اسم، إيميل، أو جوال..." />
+          </label>
+          <label class="admin-field full">
             <span>المشترك</span>
             <select id="assignmentSubscriptionId" required></select>
           </label>
@@ -169,6 +173,7 @@
           </label>
           <button class="admin-btn admin-btn-primary full" type="submit" id="assignmentSaveButton">حفظ التعيين</button>
         </form>
+        <div id="assignmentPreview" class="mini-list" style="margin-top:10px;"></div>
         <p id="assignmentMessage" class="panel-message"></p>
       </article>
 
