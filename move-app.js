@@ -496,8 +496,13 @@ async function loadLatestInjuryFromFirestore() {
 }
 
 async function loadWorkouts() {
+  if (!state.userUid) return;
   try {
-    const workoutsQuery = query(collection(db, "workoutVideos"), orderBy("sortOrder", "asc"), limit(60));
+    const workoutsQuery = query(
+      collection(db, "workoutVideos"),
+      where("memberUid", "==", state.userUid),
+      limit(60)
+    );
     const snapshot = await getDocs(workoutsQuery);
 
     if (!snapshot.empty) {
@@ -511,10 +516,16 @@ async function loadWorkouts() {
           intensity: data.intensity || "متوسطة",
           focus: data.focus || "fitness",
           coachName: data.coachName || "Coach",
+          memberUid: data.memberUid || "",
+          sortOrder: Number(data.sortOrder || 0),
           videoUrl: data.videoUrl || "",
           instructions: data.instructions || ""
         };
+      }).sort(function (a, b) {
+        return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
       });
+    } else {
+      state.workouts = fallbackWorkouts.slice();
     }
   } catch (error) {
     console.error("Failed to load workouts", error);
@@ -523,8 +534,13 @@ async function loadWorkouts() {
 }
 
 async function loadMeals() {
+  if (!state.userUid) return;
   try {
-    const mealsQuery = query(collection(db, "nutritionMeals"), orderBy("sortOrder", "asc"), limit(60));
+    const mealsQuery = query(
+      collection(db, "nutritionMeals"),
+      where("memberUid", "==", state.userUid),
+      limit(60)
+    );
     const snapshot = await getDocs(mealsQuery);
 
     if (!snapshot.empty) {
@@ -537,9 +553,15 @@ async function loadMeals() {
           protein: Number(data.protein || 0),
           carbs: Number(data.carbs || 0),
           fat: Number(data.fat || 0),
+          memberUid: data.memberUid || "",
+          sortOrder: Number(data.sortOrder || 0),
           time: data.time || "--:--"
         };
+      }).sort(function (a, b) {
+        return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
       });
+    } else {
+      state.meals = fallbackMeals.slice();
     }
   } catch (error) {
     console.error("Failed to load meals", error);

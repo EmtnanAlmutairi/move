@@ -28,6 +28,29 @@ service cloud.firestore {
       return isAdmin() || isCoach() || isPractitioner();
     }
 
+    function hasMemberAssignment(memberUid) {
+      return exists(/databases/$(database)/documents/memberAssignments/$(memberUid));
+    }
+
+    function isAssignedMemberStaff(memberUid) {
+      return request.auth != null &&
+        hasMemberAssignment(memberUid) &&
+        (
+          get(/databases/$(database)/documents/memberAssignments/$(memberUid)).data.assignedCoachUid == request.auth.uid ||
+          get(/databases/$(database)/documents/memberAssignments/$(memberUid)).data.assignedNutritionUid == request.auth.uid ||
+          get(/databases/$(database)/documents/memberAssignments/$(memberUid)).data.assignedPhysioUid == request.auth.uid
+        );
+    }
+
+    function canAccessMember(memberUid) {
+      return request.auth != null &&
+        (
+          isAdmin() ||
+          request.auth.uid == memberUid ||
+          isAssignedMemberStaff(memberUid)
+        );
+    }
+
     match /admins/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
@@ -41,6 +64,33 @@ service cloud.firestore {
     match /practitioners/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow create, update, delete: if isAdmin();
+    }
+
+    match /memberAssignments/{memberUid} {
+      allow read: if canAccessMember(memberUid);
+      allow delete: if isAdmin();
+      allow create, update: if
+        isAdmin() &&
+        request.resource.data.keys().hasOnly([
+          "memberUid",
+          "assignedCoachUid",
+          "assignedNutritionUid",
+          "assignedPhysioUid",
+          "updatedAt",
+          "updatedByUid"
+        ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid == memberUid &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        request.resource.data.assignedCoachUid is string &&
+        request.resource.data.assignedCoachUid.size() <= 128 &&
+        request.resource.data.assignedNutritionUid is string &&
+        request.resource.data.assignedNutritionUid.size() <= 128 &&
+        request.resource.data.assignedPhysioUid is string &&
+        request.resource.data.assignedPhysioUid.size() <= 128 &&
+        request.resource.data.updatedByUid == request.auth.uid &&
+        request.resource.data.updatedAt == request.time;
     }
 
     match /waitlist/{documentId} {
@@ -156,7 +206,10 @@ service cloud.firestore {
     }
 
     match /subscriptions/{documentId} {
-      allow read: if isAdmin() || isAssignedSubscriptionStaff(resource.data);
+      allow read: if
+        isAdmin() ||
+        isAssignedSubscriptionStaff(resource.data) ||
+        (request.auth != null && resource.data.memberUid == request.auth.uid);
       allow update: if
         isAdmin() &&
         request.resource.data.keys().hasOnly([
@@ -278,10 +331,14 @@ service cloud.firestore {
     }
 
     match /workoutVideos/{documentId} {
-      allow read: if true;
+      allow read: if
+        request.auth != null &&
+        resource.data.memberUid is string &&
+        canAccessMember(resource.data.memberUid);
       allow create: if
         isStaff() &&
         request.resource.data.keys().hasOnly([
+          "memberUid",
           "title",
           "coachName",
           "day",
@@ -295,6 +352,10 @@ service cloud.firestore {
           "createdAt",
           "updatedAt"
         ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        canAccessMember(request.resource.data.memberUid) &&
         request.resource.data.title is string &&
         request.resource.data.title.size() >= 2 &&
         request.resource.data.title.size() <= 140 &&
@@ -326,6 +387,7 @@ service cloud.firestore {
       allow update: if
         isStaff() &&
         request.resource.data.keys().hasOnly([
+          "memberUid",
           "title",
           "coachName",
           "day",
@@ -339,6 +401,11 @@ service cloud.firestore {
           "createdAt",
           "updatedAt"
         ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        request.resource.data.memberUid == resource.data.memberUid &&
+        canAccessMember(request.resource.data.memberUid) &&
         request.resource.data.title is string &&
         request.resource.data.title.size() >= 2 &&
         request.resource.data.title.size() <= 140 &&
@@ -367,14 +434,21 @@ service cloud.firestore {
         request.resource.data.createdByUid == resource.data.createdByUid &&
         request.resource.data.createdAt == resource.data.createdAt &&
         request.resource.data.updatedAt == request.time;
-      allow delete: if isStaff();
+      allow delete: if
+        isStaff() &&
+        resource.data.memberUid is string &&
+        canAccessMember(resource.data.memberUid);
     }
 
     match /nutritionMeals/{documentId} {
-      allow read: if true;
+      allow read: if
+        request.auth != null &&
+        resource.data.memberUid is string &&
+        canAccessMember(resource.data.memberUid);
       allow create: if
         isStaff() &&
         request.resource.data.keys().hasOnly([
+          "memberUid",
           "title",
           "time",
           "kcal",
@@ -386,6 +460,10 @@ service cloud.firestore {
           "createdAt",
           "updatedAt"
         ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        canAccessMember(request.resource.data.memberUid) &&
         request.resource.data.title is string &&
         request.resource.data.title.size() >= 2 &&
         request.resource.data.title.size() <= 140 &&
@@ -413,6 +491,7 @@ service cloud.firestore {
       allow update: if
         isStaff() &&
         request.resource.data.keys().hasOnly([
+          "memberUid",
           "title",
           "time",
           "kcal",
@@ -424,6 +503,11 @@ service cloud.firestore {
           "createdAt",
           "updatedAt"
         ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        request.resource.data.memberUid == resource.data.memberUid &&
+        canAccessMember(request.resource.data.memberUid) &&
         request.resource.data.title is string &&
         request.resource.data.title.size() >= 2 &&
         request.resource.data.title.size() <= 140 &&
@@ -448,7 +532,10 @@ service cloud.firestore {
         request.resource.data.createdByUid == resource.data.createdByUid &&
         request.resource.data.createdAt == resource.data.createdAt &&
         request.resource.data.updatedAt == request.time;
-      allow delete: if isStaff();
+      allow delete: if
+        isStaff() &&
+        resource.data.memberUid is string &&
+        canAccessMember(resource.data.memberUid);
     }
 
     match /communityPosts/{documentId} {

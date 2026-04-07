@@ -380,6 +380,15 @@ async function onSaveAssignment(event) {
     return;
   }
 
+  const selectedSubscription = state.subscriptions.find(function (item) {
+    return item.id === subscriptionId;
+  });
+  const memberUid = String((selectedSubscription && selectedSubscription.memberUid) || "");
+  if (!memberUid) {
+    elements.assignmentMessage.textContent = "لا يمكن الحفظ: UID المتدرب غير موجود.";
+    return;
+  }
+
   const payload = {
     assignedCoachUid: elements.assignmentCoachUid.value || "",
     assignedNutritionUid: elements.assignmentNutritionUid.value || "",
@@ -392,7 +401,21 @@ async function onSaveAssignment(event) {
   elements.assignmentSaveButton.textContent = "جاري الحفظ...";
 
   try {
-    await updateDoc(doc(db, "subscriptions", subscriptionId), payload);
+    await Promise.all([
+      updateDoc(doc(db, "subscriptions", subscriptionId), payload),
+      setDoc(
+        doc(db, "memberAssignments", memberUid),
+        {
+          memberUid: memberUid,
+          assignedCoachUid: payload.assignedCoachUid,
+          assignedNutritionUid: payload.assignedNutritionUid,
+          assignedPhysioUid: payload.assignedPhysioUid,
+          updatedAt: payload.updatedAt,
+          updatedByUid: payload.updatedByUid
+        },
+        { merge: true }
+      )
+    ]);
     elements.assignmentMessage.textContent = "تم حفظ التعيين بنجاح.";
     await loadSubscriptions();
     renderSummary();

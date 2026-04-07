@@ -27,6 +27,7 @@ const state = {
   user: null,
   isStaff: false,
   staffRole: "coach",
+  activeMemberUid: "",
   subscriptions: [],
   visibleSubscriptions: [],
   myClientMemberUids: [],
@@ -63,6 +64,7 @@ function cacheElements() {
   elements.threadsCount = document.getElementById("coachThreadsCount");
   elements.staffRoleBadge = document.getElementById("staffRoleBadge");
   elements.myClientsList = document.getElementById("myClientsList");
+  elements.activeMemberSelect = document.getElementById("activeMemberSelect");
 
   elements.workoutForm = document.getElementById("coachWorkoutForm");
   elements.workoutsList = document.getElementById("coachWorkoutsList");
@@ -114,6 +116,9 @@ function bindEvents() {
       state.threadSearch = String(elements.threadSearch.value || "").trim().toLowerCase();
       renderSupportInbox();
     });
+  }
+  if (elements.activeMemberSelect) {
+    elements.activeMemberSelect.addEventListener("change", onActiveMemberChanged);
   }
 
   elements.threadsList.addEventListener("click", function (event) {
@@ -219,8 +224,8 @@ async function loadDashboardData() {
 
   elements.dashboardMessage.textContent = "جاري تحديث البيانات...";
 
+  await loadSubscriptions();
   await Promise.all([
-    loadSubscriptions(),
     loadWorkouts(),
     loadMeals(),
     loadPosts()
@@ -249,18 +254,38 @@ async function loadSubscriptions() {
     state.myClientMemberUids = state.visibleSubscriptions
       .map(function (item) { return String(item.memberUid || ""); })
       .filter(function (uid) { return uid.length > 0; });
+
+    const activeStillExists = state.myClientMemberUids.includes(state.activeMemberUid);
+    state.activeMemberUid = activeStillExists
+      ? state.activeMemberUid
+      : (state.myClientMemberUids[0] || "");
   } catch (error) {
     console.error("Failed to load subscriptions", error);
     state.subscriptions = [];
     state.visibleSubscriptions = [];
     state.myClientMemberUids = [];
+    state.activeMemberUid = "";
   }
 }
 
 async function loadWorkouts() {
+  if (!state.activeMemberUid) {
+    state.workouts = [];
+    return;
+  }
   try {
-    const snapshot = await getDocs(query(collection(db, "workoutVideos"), orderBy("sortOrder", "asc"), limit(120)));
-    state.workouts = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
+    const snapshot = await getDocs(
+      query(
+        collection(db, "workoutVideos"),
+        where("memberUid", "==", state.activeMemberUid),
+        limit(120)
+      )
+    );
+    state.workouts = snapshot.docs
+      .map((entry) => Object.assign({ id: entry.id }, entry.data()))
+      .sort(function (a, b) {
+        return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+      });
   } catch (error) {
     console.error("Failed to load workouts", error);
     state.workouts = [];
@@ -268,9 +293,23 @@ async function loadWorkouts() {
 }
 
 async function loadMeals() {
+  if (!state.activeMemberUid) {
+    state.meals = [];
+    return;
+  }
   try {
-    const snapshot = await getDocs(query(collection(db, "nutritionMeals"), orderBy("sortOrder", "asc"), limit(120)));
-    state.meals = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
+    const snapshot = await getDocs(
+      query(
+        collection(db, "nutritionMeals"),
+        where("memberUid", "==", state.activeMemberUid),
+        limit(120)
+      )
+    );
+    state.meals = snapshot.docs
+      .map((entry) => Object.assign({ id: entry.id }, entry.data()))
+      .sort(function (a, b) {
+        return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+      });
   } catch (error) {
     console.error("Failed to load meals", error);
     state.meals = [];
@@ -337,7 +376,14 @@ async function onWorkoutSubmit(event) {
   const editId = form.editId.value.trim();
   const videoUrl = form.videoUrl.value.trim();
 
+  const activeMemberUid = getActiveMemberUid();
+  if (!activeMemberUid) {
+    elements.dashboardMessage.textContent = "اختر متدرباً أولاً قبل إضافة الفيديو.";
+    return;
+  }
+
   const payload = {
+    memberUid: activeMemberUid,
     title: form.title.value.trim(),
     coachName: form.coachName.value.trim(),
     day: form.day.value.trim(),
@@ -393,9 +439,16 @@ async function onMealSubmit(event) {
   event.preventDefault();
   if (!state.user || !state.isStaff) return;
 
+  const activeMemberUid = getActiveMemberUid();
+  if (!activeMemberUid) {
+    elements.dashboardMessage.textContent = "اختر متدرباً أولاً قبل إضافة الوجبة.";
+    return;
+  }
+
   const form = event.currentTarget;
   const editId = form.editId.value.trim();
   const payload = {
+    memberUid: activeMemberUid,
     title: form.title.value.trim(),
     time: form.time.value.trim(),
     kcal: Number(form.kcal.value),
@@ -678,6 +731,7 @@ function clearPostForm() {
 
 function render() {
   renderKpis();
+  renderActiveMemberSelect();
   renderMyClients();
   renderWorkouts();
   renderMeals();
@@ -705,10 +759,11 @@ function renderMyClients() {
   elements.myClientsList.innerHTML = state.visibleSubscriptions
     .slice(0, 10)
     .map(function (item) {
+      const isActive = String(item.memberUid || "") === String(state.activeMemberUid || "");
       return (
-        '<article class="item">' +
+        '<article class="item' + (isActive ? " active" : "") + '">' +
         '<strong>' + escapeHtml(item.fullName || "مشترك") + '</strong>' +
-        '<p>' + escapeHtml((item.goal || "-") + " • " + (item.planId || "-")) + '</p>' +
+        '<p>' + escapeHtml((item.goal || "-") + " • " + (item.planId || "-")) + (isActive ? " • (نشط)" : "") + '</p>' +
         '<p>' + escapeHtml(item.email || "") + '</p>' +
         '</article>'
       );
@@ -717,6 +772,10 @@ function renderMyClients() {
 }
 
 function renderWorkouts() {
+  if (!state.activeMemberUid) {
+    elements.workoutsList.innerHTML = '<article class="item"><strong>اختر متدرباً أولاً</strong><p>بعد اختيار المتدرب تظهر خطته الرياضية.</p></article>';
+    return;
+  }
   if (!state.workouts.length) {
     elements.workoutsList.innerHTML = '<article class="item"><strong>لا توجد فيديوهات بعد</strong><p>ابدأ بإضافة أول فيديو.</p></article>';
     return;
@@ -727,6 +786,7 @@ function renderWorkouts() {
       return (
         '<article class="item">' +
         '<strong>' + escapeHtml(item.title || "تمرين") + ' - ' + escapeHtml(item.day || "-") + '</strong>' +
+        '<p>' + escapeHtml("المتدرب: " + memberNameByUid(item.memberUid || state.activeMemberUid)) + '</p>' +
         '<p>' + escapeHtml((item.durationMin || 0) + " دقيقة • " + (item.intensity || "")) + '</p>' +
         '<p>' + (item.videoUrl ? '<a target="_blank" rel="noopener noreferrer" href="' + escapeHtml(item.videoUrl) + '">رابط الفيديو</a>' : "لا يوجد رابط فيديو") + '</p>' +
         '<div class="item-actions">' +
@@ -740,6 +800,10 @@ function renderWorkouts() {
 }
 
 function renderMeals() {
+  if (!state.activeMemberUid) {
+    elements.mealsList.innerHTML = '<article class="item"><strong>اختر متدرباً أولاً</strong><p>بعد اختيار المتدرب تظهر خطته الغذائية.</p></article>';
+    return;
+  }
   if (!state.meals.length) {
     elements.mealsList.innerHTML = '<article class="item"><strong>لا توجد وجبات بعد</strong><p>أضف خطة غذائية الآن.</p></article>';
     return;
@@ -750,6 +814,7 @@ function renderMeals() {
       return (
         '<article class="item">' +
         '<strong>' + escapeHtml(item.title || "وجبة") + ' - ' + escapeHtml(item.time || "") + '</strong>' +
+        '<p>' + escapeHtml("المتدرب: " + memberNameByUid(item.memberUid || state.activeMemberUid)) + '</p>' +
         '<p>' + escapeHtml((item.kcal || 0) + " سعرة • بروتين " + (item.protein || 0) + "ج") + '</p>' +
         '<div class="item-actions">' +
         '<button class="ghost-btn small" type="button" data-edit-meal="' + item.id + '">تعديل</button>' +
@@ -877,6 +942,43 @@ function memberNameByUid(memberUid) {
     return String(entry.memberUid || "") === String(memberUid || "");
   });
   return item ? item.fullName || "مشترك" : "مشترك";
+}
+
+function renderActiveMemberSelect() {
+  if (!elements.activeMemberSelect) return;
+
+  const options = ['<option value="">اختر متدرب...</option>']
+    .concat(
+      state.visibleSubscriptions.map(function (item) {
+        const label = (item.fullName || "مشترك") + " - " + (item.phone || item.email || item.memberUid || "");
+        return '<option value="' + escapeHtml(item.memberUid || "") + '">' + escapeHtml(label) + "</option>";
+      })
+    )
+    .join("");
+
+  elements.activeMemberSelect.innerHTML = options;
+  elements.activeMemberSelect.value = state.activeMemberUid || "";
+}
+
+async function onActiveMemberChanged() {
+  if (!elements.activeMemberSelect) return;
+  state.activeMemberUid = String(elements.activeMemberSelect.value || "");
+  clearWorkoutForm();
+  clearMealForm();
+  elements.dashboardMessage.textContent = "جاري تحميل خطة المتدرب...";
+  await Promise.all([loadWorkouts(), loadMeals()]);
+  renderWorkouts();
+  renderMeals();
+  renderKpis();
+  renderMyClients();
+  elements.dashboardMessage.textContent = state.activeMemberUid ? "تم تحديث خطة المتدرب." : "اختر متدرباً لإدارة الخطة.";
+}
+
+function getActiveMemberUid() {
+  if (elements.activeMemberSelect) {
+    state.activeMemberUid = String(elements.activeMemberSelect.value || state.activeMemberUid || "");
+  }
+  return state.activeMemberUid;
 }
 
 function roleLabel(role) {
