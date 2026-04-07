@@ -883,7 +883,7 @@ function renderSupportInbox() {
     .map(function (thread) {
       return (
         '<article class="item thread-item' + (thread.threadId === state.selectedThreadId ? " active" : "") + '" data-thread-id="' + escapeHtml(thread.threadId) + '">' +
-        '<strong>' + escapeHtml(thread.memberName || "مشترك") + '</strong>' +
+        '<strong>' + escapeHtml(thread.memberName || "مشترك") + ' <span class="badge">' + escapeHtml(roleLabel(thread.lastTargetRole || "coach")) + '</span></strong>' +
         '<p>' + escapeHtml(thread.lastText || "") + '</p>' +
         '</article>'
       );
@@ -932,6 +932,7 @@ function buildThreads() {
           ? message.senderName
           : (current ? current.memberName : memberNameByUid(id)),
         lastText: message.text || "",
+        lastTargetRole: message.senderRole === "member" ? message.targetRole : message.senderRole,
         time: toMillis(message.createdAt)
       });
     }

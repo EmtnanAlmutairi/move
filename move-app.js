@@ -48,6 +48,7 @@ const fallbackFeed = [
 const state = {
   config: fallbackConfig,
   userUid: null,
+  existingSubscription: null,
   memberTeam: {
     coachName: "سيتم التعيين قريباً",
     nutritionName: "سيتم التعيين قريباً",
@@ -92,6 +93,7 @@ async function init() {
 
   await Promise.all([
     loadConfig(),
+    loadExistingSubscription(),
     loadMemberTeam(),
     loadLatestInjuryFromFirestore(),
     loadWorkouts(),
@@ -197,10 +199,12 @@ function bindOnboarding() {
   }
 
   openButton.addEventListener("click", function () {
+    hydrateOnboardingForm(form);
     modal.showModal();
   });
 
   if (!localStorage.getItem("moveSubscriptionProfile")) {
+    hydrateOnboardingForm(form);
     modal.showModal();
   }
 
@@ -232,7 +236,53 @@ function bindOnboarding() {
     message.textContent = "جاري التفعيل...";
 
     try {
+      if (state.existingSubscription) {
+        const before = state.existingSubscription;
+        await addDoc(collection(db, "supportMessages"), {
+          threadId: state.userUid || "anon",
+          senderRole: "member",
+          targetRole: "coach",
+          senderName: payload.fullName || "مشترك MOVE",
+          text:
+            "طلب تعديل بيانات الاشتراك: " +
+            "الهدف (" + (before.goal || "-") + " -> " + payload.goal + ")، " +
+            "الخطة (" + (before.planId || "-") + " -> " + payload.planId + ")، " +
+            "الجوال (" + (before.phone || "-") + " -> " + payload.phone + ").",
+          source: "move-web-mvp",
+          createdAt: serverTimestamp()
+        });
+        state.existingSubscription = Object.assign({}, state.existingSubscription, {
+          fullName: payload.fullName,
+          email: payload.email,
+          phone: payload.phone,
+          goal: payload.goal,
+          planId: payload.planId
+        });
+        localStorage.setItem(
+          "moveSubscriptionProfile",
+          JSON.stringify({
+            fullName: payload.fullName,
+            goal: payload.goal,
+            planId: payload.planId,
+            memberUid: payload.memberUid
+          })
+        );
+        message.textContent = "تم إرسال طلب التعديل للفريق المختص.";
+        setTimeout(function () {
+          modal.close();
+        }, 700);
+        return;
+      }
+
       await addDoc(collection(db, "subscriptions"), payload);
+      state.existingSubscription = {
+        fullName: payload.fullName,
+        email: payload.email,
+        phone: payload.phone,
+        goal: payload.goal,
+        planId: payload.planId,
+        memberUid: payload.memberUid
+      };
       localStorage.setItem(
         "moveSubscriptionProfile",
         JSON.stringify({
@@ -252,6 +302,55 @@ function bindOnboarding() {
       message.textContent = "تعذر التفعيل حالياً. حاول مرة أخرى.";
     }
   });
+}
+
+function hydrateOnboardingForm(form) {
+  if (!form) return;
+  const profile = getProfileFromStorage();
+  const source = state.existingSubscription || profile || {};
+  if (form.fullName) form.fullName.value = source.fullName || "";
+  if (form.email) form.email.value = source.email || "";
+  if (form.phone) form.phone.value = source.phone || "";
+  if (form.goal) form.goal.value = source.goal || "muscle-gain";
+  if (form.planId) form.planId.value = source.planId || "move-plus";
+}
+
+async function loadExistingSubscription() {
+  if (!state.userUid) return;
+
+  try {
+    const subsQuery = query(
+      collection(db, "subscriptions"),
+      where("memberUid", "==", state.userUid),
+      limit(1)
+    );
+    const snapshot = await getDocs(subsQuery);
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      state.existingSubscription = {
+        id: snapshot.docs[0].id,
+        fullName: data.fullName || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        goal: data.goal || "",
+        planId: data.planId || "",
+        memberUid: data.memberUid || state.userUid
+      };
+      localStorage.setItem(
+        "moveSubscriptionProfile",
+        JSON.stringify({
+          fullName: state.existingSubscription.fullName,
+          email: state.existingSubscription.email,
+          phone: state.existingSubscription.phone,
+          goal: state.existingSubscription.goal,
+          planId: state.existingSubscription.planId,
+          memberUid: state.userUid
+        })
+      );
+    }
+  } catch (error) {
+    console.error("Failed to load existing subscription", error);
+  }
 }
 
 function bindInjuryForm() {
@@ -517,10 +616,18 @@ async function loadMemberTeam() {
     const assignmentSnap = await getDoc(assignmentRef);
     if (assignmentSnap.exists()) {
       const data = assignmentSnap.data();
+      const coachName = String(data.assignedCoachName || "");
+      const nutritionName = String(data.assignedNutritionName || "");
+      const physioName = String(data.assignedPhysioName || "");
+      const resolved = await Promise.all([
+        coachName ? Promise.resolve(coachName) : resolvePractitionerName(data.assignedCoachUid),
+        nutritionName ? Promise.resolve(nutritionName) : resolvePractitionerName(data.assignedNutritionUid),
+        physioName ? Promise.resolve(physioName) : resolvePractitionerName(data.assignedPhysioUid)
+      ]);
       state.memberTeam = {
-        coachName: String(data.assignedCoachName || "غير معيّن"),
-        nutritionName: String(data.assignedNutritionName || "غير معيّن"),
-        physioName: String(data.assignedPhysioName || "غير معيّن")
+        coachName: resolved[0] || "غير معيّن",
+        nutritionName: resolved[1] || "غير معيّن",
+        physioName: resolved[2] || "غير معيّن"
       };
       return;
     }
@@ -546,6 +653,26 @@ async function loadMemberTeam() {
   } catch (error) {
     console.error("Failed to load fallback subscription team", error);
   }
+}
+
+async function resolvePractitionerName(uid) {
+  const normalizedUid = String(uid || "");
+  if (!normalizedUid) return "";
+  try {
+    const practitioner = await getDoc(doc(db, "practitioners", normalizedUid));
+    if (practitioner.exists()) {
+      const data = practitioner.data();
+      return String(data.displayName || data.fullName || data.email || normalizedUid);
+    }
+    const coach = await getDoc(doc(db, "coaches", normalizedUid));
+    if (coach.exists()) {
+      const data = coach.data();
+      return String(data.displayName || data.fullName || data.email || normalizedUid);
+    }
+  } catch (error) {
+    console.error("Failed to resolve practitioner name", error);
+  }
+  return normalizedUid;
 }
 
 async function loadLatestInjuryFromFirestore() {

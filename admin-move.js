@@ -353,6 +353,8 @@ function renderAssignmentOptions() {
       String(item.phone || "")
     ).toLowerCase();
     return hay.includes(state.assignmentSearch);
+  }).sort(function (a, b) {
+    return String(a.fullName || "").localeCompare(String(b.fullName || ""), "ar");
   });
 
   elements.assignmentSubscriptionId.innerHTML =
