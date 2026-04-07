@@ -7,7 +7,8 @@
   orderBy,
   query,
   serverTimestamp,
-  setDoc
+  setDoc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { auth, db } from "./firebase-client.js";
@@ -18,7 +19,8 @@ const state = {
   isAdmin: false,
   subscriptions: [],
   injuries: [],
-  threads: []
+  threads: [],
+  practitioners: []
 };
 
 window.addEventListener("DOMContentLoaded", function () {
@@ -47,6 +49,13 @@ function cacheElements() {
   elements.recentSubscriptionsEmpty = document.getElementById("recentSubscriptionsEmpty");
   elements.recentInjuriesList = document.getElementById("recentInjuriesList");
   elements.recentInjuriesEmpty = document.getElementById("recentInjuriesEmpty");
+  elements.assignmentForm = document.getElementById("assignmentForm");
+  elements.assignmentSubscriptionId = document.getElementById("assignmentSubscriptionId");
+  elements.assignmentCoachUid = document.getElementById("assignmentCoachUid");
+  elements.assignmentNutritionUid = document.getElementById("assignmentNutritionUid");
+  elements.assignmentPhysioUid = document.getElementById("assignmentPhysioUid");
+  elements.assignmentSaveButton = document.getElementById("assignmentSaveButton");
+  elements.assignmentMessage = document.getElementById("assignmentMessage");
 }
 
 function bindEvents() {
@@ -56,6 +65,10 @@ function bindEvents() {
     signOut(auth);
   });
   elements.configForm.addEventListener("submit", onSaveConfig);
+  if (elements.assignmentForm) {
+    elements.assignmentForm.addEventListener("submit", onSaveAssignment);
+    elements.assignmentSubscriptionId.addEventListener("change", syncAssignmentFormWithSelectedSubscription);
+  }
 }
 
 async function onLoginSubmit(event) {
@@ -118,11 +131,13 @@ async function loadDashboardData() {
   elements.dashboardMessage.textContent = "Refreshing dashboard...";
 
   try {
-    await Promise.all([loadConfig(), loadSubscriptions(), loadInjuries(), loadSupportThreads()]);
+    await Promise.all([loadConfig(), loadSubscriptions(), loadInjuries(), loadSupportThreads(), loadPractitioners()]);
 
     renderSummary();
     renderRecentSubscriptions();
     renderRecentInjuries();
+    renderAssignmentOptions();
+    syncAssignmentFormWithSelectedSubscription();
 
     if (elements.adminIdentityEmail) {
       elements.adminIdentityEmail.textContent = state.user.email || state.user.uid;
@@ -161,11 +176,38 @@ async function loadConfig() {
 }
 
 async function loadSubscriptions() {
-  const subsQuery = query(collection(db, "subscriptions"), orderBy("createdAt", "desc"), limit(8));
+  const subsQuery = query(collection(db, "subscriptions"), orderBy("createdAt", "desc"), limit(80));
   const snapshot = await getDocs(subsQuery);
   state.subscriptions = snapshot.docs.map(function (entry) {
     return Object.assign({ id: entry.id }, entry.data());
   });
+}
+
+async function loadPractitioners() {
+  const items = [];
+  const practitionersSnapshot = await getDocs(query(collection(db, "practitioners"), limit(200)));
+  practitionersSnapshot.docs.forEach(function (entry) {
+    const data = entry.data();
+    items.push({
+      uid: entry.id,
+      role: String(data.role || "coach"),
+      displayName: String(data.displayName || data.fullName || data.email || entry.id)
+    });
+  });
+
+  if (!items.length) {
+    const coachesSnapshot = await getDocs(query(collection(db, "coaches"), limit(120)));
+    coachesSnapshot.docs.forEach(function (entry) {
+      const data = entry.data();
+      items.push({
+        uid: entry.id,
+        role: "coach",
+        displayName: String(data.displayName || data.fullName || data.email || entry.id)
+      });
+    });
+  }
+
+  state.practitioners = items;
 }
 
 async function loadInjuries() {
@@ -265,10 +307,106 @@ function renderRecentSubscriptions() {
         '<p class="mini-title">' + escapeHtml(subscription.fullName || "Unknown") + "</p>" +
         '<p class="mini-meta">' + escapeHtml(subscription.email || "-") + "</p>" +
         '<p class="mini-meta">' + escapeHtml((subscription.planId || "-") + " • " + (subscription.goal || "-")) + "</p>" +
+        '<p class="mini-meta">' + escapeHtml(
+          "مدرب: " + practitionerName(subscription.assignedCoachUid) +
+          " | تغذية: " + practitionerName(subscription.assignedNutritionUid) +
+          " | علاج: " + practitionerName(subscription.assignedPhysioUid)
+        ) + "</p>" +
         "</li>"
       );
     })
     .join("");
+}
+
+function renderAssignmentOptions() {
+  if (!elements.assignmentSubscriptionId) return;
+
+  elements.assignmentSubscriptionId.innerHTML =
+    '<option value="">اختر مشترك...</option>' +
+    state.subscriptions
+      .map(function (item) {
+        return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml((item.fullName || "Unknown") + " - " + (item.email || "")) + "</option>";
+      })
+      .join("");
+
+  fillPractitionerSelect(elements.assignmentCoachUid, ["coach"]);
+  fillPractitionerSelect(elements.assignmentNutritionUid, ["nutrition"]);
+  fillPractitionerSelect(elements.assignmentPhysioUid, ["physio"]);
+}
+
+function fillPractitionerSelect(selectElement, roles) {
+  if (!selectElement) return;
+  const roleSet = new Set(roles);
+  const filtered = state.practitioners.filter(function (item) {
+    return roleSet.has(item.role);
+  });
+
+  selectElement.innerHTML =
+    '<option value="">غير معيّن</option>' +
+    filtered
+      .map(function (item) {
+        return '<option value="' + escapeHtml(item.uid) + '">' + escapeHtml(item.displayName) + "</option>";
+      })
+      .join("");
+}
+
+function syncAssignmentFormWithSelectedSubscription() {
+  if (!elements.assignmentSubscriptionId) return;
+  const id = elements.assignmentSubscriptionId.value;
+  if (!id) {
+    elements.assignmentCoachUid.value = "";
+    elements.assignmentNutritionUid.value = "";
+    elements.assignmentPhysioUid.value = "";
+    return;
+  }
+
+  const sub = state.subscriptions.find(function (item) {
+    return item.id === id;
+  });
+  if (!sub) return;
+
+  elements.assignmentCoachUid.value = sub.assignedCoachUid || "";
+  elements.assignmentNutritionUid.value = sub.assignedNutritionUid || "";
+  elements.assignmentPhysioUid.value = sub.assignedPhysioUid || "";
+}
+
+async function onSaveAssignment(event) {
+  event.preventDefault();
+  if (!state.user || !state.isAdmin) return;
+
+  const subscriptionId = elements.assignmentSubscriptionId.value;
+  if (!subscriptionId) {
+    elements.assignmentMessage.textContent = "اختر مشترك أولاً.";
+    return;
+  }
+
+  const payload = {
+    assignedCoachUid: elements.assignmentCoachUid.value || "",
+    assignedNutritionUid: elements.assignmentNutritionUid.value || "",
+    assignedPhysioUid: elements.assignmentPhysioUid.value || "",
+    updatedAt: serverTimestamp(),
+    updatedByUid: state.user.uid
+  };
+
+  elements.assignmentSaveButton.disabled = true;
+  elements.assignmentSaveButton.textContent = "جاري الحفظ...";
+
+  try {
+    await updateDoc(doc(db, "subscriptions", subscriptionId), payload);
+    elements.assignmentMessage.textContent = "تم حفظ التعيين بنجاح.";
+    await loadSubscriptions();
+    renderSummary();
+    renderRecentSubscriptions();
+    renderAssignmentOptions();
+    elements.assignmentSubscriptionId.value = subscriptionId;
+    syncAssignmentFormWithSelectedSubscription();
+  } catch (error) {
+    console.error(error);
+    elements.assignmentMessage.textContent = "فشل حفظ التعيين.";
+  } finally {
+    elements.assignmentSaveButton.disabled = false;
+    elements.assignmentSaveButton.textContent = "حفظ التعيين";
+  }
 }
 
 function renderRecentInjuries() {
@@ -319,4 +457,12 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function practitionerName(uid) {
+  if (!uid) return "غير معيّن";
+  const item = state.practitioners.find(function (entry) {
+    return entry.uid === uid;
+  });
+  return item ? item.displayName : uid;
 }

@@ -11,8 +11,21 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/coaches/$(request.auth.uid));
     }
 
+    function isPractitioner() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/practitioners/$(request.auth.uid));
+    }
+
+    function isAssignedSubscriptionStaff(data) {
+      return request.auth != null && (
+        data.assignedCoachUid == request.auth.uid ||
+        data.assignedNutritionUid == request.auth.uid ||
+        data.assignedPhysioUid == request.auth.uid
+      );
+    }
+
     function isStaff() {
-      return isAdmin() || isCoach();
+      return isAdmin() || isCoach() || isPractitioner();
     }
 
     match /admins/{userId} {
@@ -21,6 +34,11 @@ service cloud.firestore {
     }
 
     match /coaches/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /practitioners/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow create, update, delete: if isAdmin();
     }
@@ -138,8 +156,55 @@ service cloud.firestore {
     }
 
     match /subscriptions/{documentId} {
-      allow read: if isStaff();
-      allow update, delete: if false;
+      allow read: if isAdmin() || isAssignedSubscriptionStaff(resource.data);
+      allow update: if
+        isAdmin() &&
+        request.resource.data.keys().hasOnly([
+          "fullName",
+          "email",
+          "phone",
+          "goal",
+          "planId",
+          "memberUid",
+          "assignedCoachUid",
+          "assignedNutritionUid",
+          "assignedPhysioUid",
+          "updatedAt",
+          "updatedByUid",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 120 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 8 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.phone.matches("^\\+?[0-9\\-()\\s]{8,24}$") &&
+        request.resource.data.goal is string &&
+        request.resource.data.goal.size() >= 3 &&
+        request.resource.data.goal.size() <= 40 &&
+        request.resource.data.planId is string &&
+        request.resource.data.planId.size() >= 4 &&
+        request.resource.data.planId.size() <= 40 &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        request.resource.data.assignedCoachUid is string &&
+        request.resource.data.assignedCoachUid.size() <= 128 &&
+        request.resource.data.assignedNutritionUid is string &&
+        request.resource.data.assignedNutritionUid.size() <= 128 &&
+        request.resource.data.assignedPhysioUid is string &&
+        request.resource.data.assignedPhysioUid.size() <= 128 &&
+        request.resource.data.updatedByUid == request.auth.uid &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.source == resource.data.source &&
+        request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
       allow create: if
         request.resource.data.keys().hasOnly([
           "fullName",
@@ -148,6 +213,11 @@ service cloud.firestore {
           "goal",
           "planId",
           "memberUid",
+          "assignedCoachUid",
+          "assignedNutritionUid",
+          "assignedPhysioUid",
+          "updatedAt",
+          "updatedByUid",
           "source",
           "createdAt"
         ]) &&

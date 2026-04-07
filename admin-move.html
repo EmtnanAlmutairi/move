@@ -45,6 +45,9 @@
     .mini-title { margin: 0; font-weight: 800; }
     .mini-meta { margin: 5px 0 0; color: #645c52; font-size: 13px; }
     .empty-state { margin: 0; color: #6a6056; font-size: 14px; }
+    .assign-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .assign-grid .full { grid-column: 1/-1; }
+    @media (max-width: 720px){ .assign-grid{ grid-template-columns: 1fr; } }
     @media (max-width: 980px){ .dashboard-grid{ grid-template-columns: 1fr; } }
     @media (max-width: 720px){ .config-grid{ grid-template-columns: 1fr; } }
   </style>
@@ -144,6 +147,30 @@
 
         <button class="admin-btn admin-btn-primary full" type="submit" id="saveButton">Save Config</button>
       </form>
+
+      <article class="mini-card" style="margin-top:16px;">
+        <h4>تعيين الفريق الصحي للمشترك</h4>
+        <form id="assignmentForm" class="admin-form assign-grid">
+          <label class="admin-field full">
+            <span>المشترك</span>
+            <select id="assignmentSubscriptionId" required></select>
+          </label>
+          <label class="admin-field">
+            <span>المدرب البدني</span>
+            <select id="assignmentCoachUid"></select>
+          </label>
+          <label class="admin-field">
+            <span>أخصائي التغذية</span>
+            <select id="assignmentNutritionUid"></select>
+          </label>
+          <label class="admin-field full">
+            <span>أخصائي العلاج الطبيعي</span>
+            <select id="assignmentPhysioUid"></select>
+          </label>
+          <button class="admin-btn admin-btn-primary full" type="submit" id="assignmentSaveButton">حفظ التعيين</button>
+        </form>
+        <p id="assignmentMessage" class="panel-message"></p>
+      </article>
 
       <section class="dashboard-grid">
         <div class="panel-stack">

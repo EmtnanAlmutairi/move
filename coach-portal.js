@@ -10,7 +10,8 @@
   orderBy,
   query,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  where
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import {
   onAuthStateChanged,
@@ -25,7 +26,10 @@ const elements = {};
 const state = {
   user: null,
   isStaff: false,
+  staffRole: "coach",
   subscriptions: [],
+  visibleSubscriptions: [],
+  myClientMemberUids: [],
   workouts: [],
   meals: [],
   posts: [],
@@ -57,6 +61,8 @@ function cacheElements() {
   elements.workoutsCount = document.getElementById("coachWorkoutsCount");
   elements.mealsCount = document.getElementById("coachMealsCount");
   elements.threadsCount = document.getElementById("coachThreadsCount");
+  elements.staffRoleBadge = document.getElementById("staffRoleBadge");
+  elements.myClientsList = document.getElementById("myClientsList");
 
   elements.workoutForm = document.getElementById("coachWorkoutForm");
   elements.workoutsList = document.getElementById("coachWorkoutsList");
@@ -154,6 +160,7 @@ function setLoginLoading(loading) {
 async function onAuthChanged(user) {
   state.user = user;
   state.isStaff = false;
+  state.staffRole = "coach";
 
   if (!user) {
     teardownSupportListener();
@@ -163,34 +170,47 @@ async function onAuthChanged(user) {
     return;
   }
 
-  const hasAccess = await verifyCoachAccess(user.uid);
-  if (!hasAccess) {
+  const staffProfile = await resolveStaffProfile(user.uid);
+  if (!staffProfile) {
     elements.authMessage.textContent = "لا تملك صلاحية المدرب. أضف UID في coaches أو admins.";
     await signOut(auth);
     return;
   }
 
   state.isStaff = true;
+  state.staffRole = staffProfile.role;
   elements.authCard.classList.add("hidden");
   elements.dashboard.classList.remove("hidden");
-  elements.welcome.textContent = "مرحباً " + (user.email || "Coach") + " ، جاهز للتحديثات.";
+  elements.welcome.textContent = "مرحباً " + (user.email || "Coach") + " ، أنت مسجل كـ " + roleLabel(state.staffRole) + ".";
+  if (elements.staffRoleBadge) {
+    elements.staffRoleBadge.textContent = roleLabel(state.staffRole);
+  }
 
   await loadDashboardData();
   startSupportListener();
 }
 
-async function verifyCoachAccess(uid) {
+async function resolveStaffProfile(uid) {
   try {
     const checks = await Promise.all([
+      getDoc(doc(db, "practitioners", uid)),
       getDoc(doc(db, "coaches", uid)),
       getDoc(doc(db, "admins", uid))
     ]);
-    return checks.some(function (entry) {
-      return entry.exists();
-    });
+    if (checks[2].exists()) {
+      return { role: "admin" };
+    }
+    if (checks[0].exists()) {
+      const role = String(checks[0].data().role || "coach");
+      return { role: role };
+    }
+    if (checks[1].exists()) {
+      return { role: "coach" };
+    }
+    return null;
   } catch (error) {
     console.error("Failed to verify access", error);
-    return false;
+    return null;
   }
 }
 
@@ -212,11 +232,28 @@ async function loadDashboardData() {
 
 async function loadSubscriptions() {
   try {
-    const snapshot = await getDocs(query(collection(db, "subscriptions"), orderBy("createdAt", "desc"), limit(100)));
+    let subsQuery;
+    if (state.staffRole === "admin") {
+      subsQuery = query(collection(db, "subscriptions"), orderBy("createdAt", "desc"), limit(250));
+    } else if (state.staffRole === "nutrition") {
+      subsQuery = query(collection(db, "subscriptions"), where("assignedNutritionUid", "==", state.user.uid), limit(250));
+    } else if (state.staffRole === "physio") {
+      subsQuery = query(collection(db, "subscriptions"), where("assignedPhysioUid", "==", state.user.uid), limit(250));
+    } else {
+      subsQuery = query(collection(db, "subscriptions"), where("assignedCoachUid", "==", state.user.uid), limit(250));
+    }
+
+    const snapshot = await getDocs(subsQuery);
     state.subscriptions = snapshot.docs.map((entry) => Object.assign({ id: entry.id }, entry.data()));
+    state.visibleSubscriptions = filterSubscriptionsForStaff(state.subscriptions);
+    state.myClientMemberUids = state.visibleSubscriptions
+      .map(function (item) { return String(item.memberUid || ""); })
+      .filter(function (uid) { return uid.length > 0; });
   } catch (error) {
     console.error("Failed to load subscriptions", error);
     state.subscriptions = [];
+    state.visibleSubscriptions = [];
+    state.myClientMemberUids = [];
   }
 }
 
@@ -261,6 +298,10 @@ function startSupportListener() {
       state.supportMessages = snapshot.docs
         .map(function (entry) {
           return Object.assign({ id: entry.id }, entry.data());
+        })
+        .filter(function (item) {
+          if (state.staffRole === "admin") return true;
+          return state.myClientMemberUids.includes(String(item.threadId || ""));
         })
         .sort(function (a, b) {
           return toMillis(a.createdAt) - toMillis(b.createdAt);
@@ -637,6 +678,7 @@ function clearPostForm() {
 
 function render() {
   renderKpis();
+  renderMyClients();
   renderWorkouts();
   renderMeals();
   renderPosts();
@@ -646,10 +688,32 @@ function render() {
 
 function renderKpis() {
   const threads = buildThreads();
-  elements.traineesCount.textContent = String(state.subscriptions.length);
+  elements.traineesCount.textContent = String(state.visibleSubscriptions.length);
   elements.workoutsCount.textContent = String(state.workouts.length);
   elements.mealsCount.textContent = String(state.meals.length);
   elements.threadsCount.textContent = String(threads.length);
+}
+
+function renderMyClients() {
+  if (!elements.myClientsList) return;
+
+  if (!state.visibleSubscriptions.length) {
+    elements.myClientsList.innerHTML = '<article class="item"><strong>لا يوجد عملاء معيّنين</strong><p>اطلب من الأدمن تعيين مشتركين لك.</p></article>';
+    return;
+  }
+
+  elements.myClientsList.innerHTML = state.visibleSubscriptions
+    .slice(0, 10)
+    .map(function (item) {
+      return (
+        '<article class="item">' +
+        '<strong>' + escapeHtml(item.fullName || "مشترك") + '</strong>' +
+        '<p>' + escapeHtml((item.goal || "-") + " • " + (item.planId || "-")) + '</p>' +
+        '<p>' + escapeHtml(item.email || "") + '</p>' +
+        '</article>'
+      );
+    })
+    .join("");
 }
 
 function renderWorkouts() {
@@ -781,7 +845,9 @@ function buildThreads() {
     if (!current || toMillis(message.createdAt) > current.time) {
       bucket.set(id, {
         threadId: id,
-        memberName: message.senderRole === "member" ? message.senderName : (current ? current.memberName : "مشترك"),
+        memberName: message.senderRole === "member"
+          ? message.senderName
+          : (current ? current.memberName : memberNameByUid(id)),
         lastText: message.text || "",
         time: toMillis(message.createdAt)
       });
@@ -791,6 +857,34 @@ function buildThreads() {
   return Array.from(bucket.values()).sort(function (a, b) {
     return b.time - a.time;
   });
+}
+
+function filterSubscriptionsForStaff(subscriptions) {
+  if (state.staffRole === "admin") {
+    return subscriptions.slice();
+  }
+
+  return subscriptions.filter(function (item) {
+    if (state.staffRole === "coach") return item.assignedCoachUid === state.user.uid;
+    if (state.staffRole === "nutrition") return item.assignedNutritionUid === state.user.uid;
+    if (state.staffRole === "physio") return item.assignedPhysioUid === state.user.uid;
+    return false;
+  });
+}
+
+function memberNameByUid(memberUid) {
+  const item = state.visibleSubscriptions.find(function (entry) {
+    return String(entry.memberUid || "") === String(memberUid || "");
+  });
+  return item ? item.fullName || "مشترك" : "مشترك";
+}
+
+function roleLabel(role) {
+  if (role === "coach") return "مدرب بدني";
+  if (role === "nutrition") return "أخصائي تغذية";
+  if (role === "physio") return "أخصائي علاج طبيعي";
+  if (role === "admin") return "إدارة";
+  return role || "Staff";
 }
 
 function toMillis(timestampValue) {
