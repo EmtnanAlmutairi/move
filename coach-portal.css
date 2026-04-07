@@ -193,6 +193,10 @@ section + section { margin-top: 10px; }
   padding: 10px;
   background: #fffdfa;
 }
+.item.active {
+  border-color: #ffcdbb;
+  background: #fff4ee;
+}
 .item p { margin: 4px 0 0; color: #6a5f55; font-size: 14px; }
 .item-actions {
   margin-top: 8px;

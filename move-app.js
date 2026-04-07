@@ -48,6 +48,12 @@ const fallbackFeed = [
 const state = {
   config: fallbackConfig,
   userUid: null,
+  memberTeam: {
+    coachName: "سيتم التعيين قريباً",
+    nutritionName: "سيتم التعيين قريباً",
+    physioName: "سيتم التعيين قريباً"
+  },
+  chatTargetRole: "coach",
   workoutFilter: "all",
   workoutSearch: "",
   workouts: fallbackWorkouts,
@@ -76,6 +82,7 @@ async function init() {
   bindWorkoutFilters();
   bindWorkoutSearch();
   bindCommunitySwitch();
+  bindChatRoleSwitch();
   bindChatActions();
   bindTabJumpButtons();
   bindWorkoutToggles();
@@ -85,6 +92,7 @@ async function init() {
 
   await Promise.all([
     loadConfig(),
+    loadMemberTeam(),
     loadLatestInjuryFromFirestore(),
     loadWorkouts(),
     loadMeals(),
@@ -360,9 +368,30 @@ function bindCommunitySwitch() {
   });
 }
 
+function bindChatRoleSwitch() {
+  const container = document.getElementById("chatRoleSwitch");
+  if (!container) return;
+
+  container.addEventListener("click", function (event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const button = target.closest("[data-chat-role]");
+    if (!button) return;
+
+    const role = String(button.getAttribute("data-chat-role") || "coach");
+    state.chatTargetRole = role;
+    renderChatRoleSwitch();
+    renderChats();
+    renderChatThread();
+  });
+
+  renderChatRoleSwitch();
+}
+
 function bindChatActions() {
   const composeForm = document.getElementById("chatComposeForm");
   const markReadBtn = document.getElementById("markChatReadBtn");
+  const chatList = document.getElementById("chatList");
   if (!composeForm) return;
 
   composeForm.addEventListener("submit", async function (event) {
@@ -379,6 +408,7 @@ function bindChatActions() {
       await addDoc(collection(db, "supportMessages"), {
         threadId: state.userUid || "anon",
         senderRole: "member",
+        targetRole: state.chatTargetRole,
         senderName: profile.fullName || "مشترك MOVE",
         text: text,
         source: "move-web-mvp",
@@ -393,6 +423,19 @@ function bindChatActions() {
   if (markReadBtn) {
     markReadBtn.addEventListener("click", function () {
       markSupportAsRead();
+    });
+  }
+
+  if (chatList) {
+    chatList.addEventListener("click", function (event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const item = target.closest("[data-chat-open-role]");
+      if (!item) return;
+      state.chatTargetRole = String(item.getAttribute("data-chat-open-role") || "coach");
+      renderChatRoleSwitch();
+      renderChats();
+      renderChatThread();
     });
   }
 }
@@ -463,6 +506,45 @@ async function loadConfig() {
     }
   } catch (error) {
     console.error("Failed to load app config", error);
+  }
+}
+
+async function loadMemberTeam() {
+  if (!state.userUid) return;
+
+  try {
+    const assignmentRef = doc(db, "memberAssignments", state.userUid);
+    const assignmentSnap = await getDoc(assignmentRef);
+    if (assignmentSnap.exists()) {
+      const data = assignmentSnap.data();
+      state.memberTeam = {
+        coachName: String(data.assignedCoachName || "غير معيّن"),
+        nutritionName: String(data.assignedNutritionName || "غير معيّن"),
+        physioName: String(data.assignedPhysioName || "غير معيّن")
+      };
+      return;
+    }
+  } catch (error) {
+    console.error("Failed to load member assignments", error);
+  }
+
+  try {
+    const subsQuery = query(
+      collection(db, "subscriptions"),
+      where("memberUid", "==", state.userUid),
+      limit(1)
+    );
+    const subsSnapshot = await getDocs(subsQuery);
+    if (!subsSnapshot.empty) {
+      const data = subsSnapshot.docs[0].data();
+      state.memberTeam = {
+        coachName: data.assignedCoachUid ? "مدرب معيّن" : "غير معيّن",
+        nutritionName: data.assignedNutritionUid ? "أخصائي تغذية معيّن" : "غير معيّن",
+        physioName: data.assignedPhysioUid ? "أخصائي علاج طبيعي معيّن" : "غير معيّن"
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load fallback subscription team", error);
   }
 }
 
@@ -593,12 +675,14 @@ async function loadCommunityFeed() {
 
 function renderAll() {
   renderDashboard();
+  renderMemberTeam();
   renderCommunityHighlights();
   renderWeeklyPlan();
   renderWorkoutLibrary();
   renderMeals();
   renderLatestInjury();
   renderCommunityFeed();
+  renderChatRoleSwitch();
   renderChats();
   renderChatThread();
   renderDevices();
@@ -636,6 +720,18 @@ function renderDashboard() {
       (featured.videoUrl ? '<a class="badge video-link" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(featured.videoUrl) + '">فتح الفيديو</a>' : '<span class="badge">فيديو قريباً</span>') +
       "</div>";
   }
+}
+
+function renderMemberTeam() {
+  const container = document.getElementById("memberTeamSummary");
+  if (!container) return;
+
+  container.innerHTML =
+    '<div class="team-grid">' +
+    '<article class="team-pill"><strong>المدرب</strong><span>' + escapeHtml(state.memberTeam.coachName || "غير معيّن") + "</span></article>" +
+    '<article class="team-pill"><strong>التغذية</strong><span>' + escapeHtml(state.memberTeam.nutritionName || "غير معيّن") + "</span></article>" +
+    '<article class="team-pill"><strong>العلاج الطبيعي</strong><span>' + escapeHtml(state.memberTeam.physioName || "غير معيّن") + "</span></article>" +
+    "</div>";
 }
 
 function renderCommunityHighlights() {
@@ -834,22 +930,78 @@ function renderCommunityFeed() {
     .join("");
 }
 
+function renderChatRoleSwitch() {
+  const buttons = Array.from(document.querySelectorAll("#chatRoleSwitch [data-chat-role]"));
+  buttons.forEach(function (button) {
+    const role = button.getAttribute("data-chat-role");
+    button.classList.toggle("active", role === state.chatTargetRole);
+  });
+}
+
+function roleDisplayName(role) {
+  if (role === "coach") return "المدرب";
+  if (role === "nutrition") return "أخصائي التغذية";
+  if (role === "physio") return "أخصائي العلاج الطبيعي";
+  return "فريق MOVE";
+}
+
+function roleLabel(role) {
+  if (role === "coach") return "تدريب";
+  if (role === "nutrition") return "تغذية";
+  if (role === "physio") return "علاج";
+  return "فريق";
+}
+
+function getMessagesForRole(role) {
+  return state.supportMessages.filter(function (message) {
+    const sender = String(message.senderRole || "");
+    const target = String(message.targetRole || "");
+
+    if (sender === role) return true;
+
+    if (sender === "member") {
+      if (role === "coach") {
+        return target === "" || target === "coach";
+      }
+      return target === role;
+    }
+
+    return target === role;
+  });
+}
+
+function getUnreadForRole(role) {
+  const lastSeen = getLastSeenSupportAt();
+  return getMessagesForRole(role).filter(function (message) {
+    return message.senderRole !== "member" && toMillis(message.createdAt) > lastSeen;
+  }).length;
+}
+
 function renderChats() {
   const chatList = document.getElementById("chatList");
   if (!chatList) return;
 
-  const lastMessage = state.supportMessages.length ? state.supportMessages[state.supportMessages.length - 1] : null;
+  const roles = ["coach", "nutrition", "physio"];
 
-  chatList.innerHTML =
-    '<article class="chat-item active">' +
-    '<div class="item-row">' +
-    '<span class="badge">' + (state.unreadCoachMessages > 0 ? state.unreadCoachMessages + " جديد" : "دعم MOVE") + "</span>" +
-    '<div>' +
-    '<p class="item-title">فريق الدعم المتكامل</p>' +
-    '<p class="item-sub">' + escapeHtml(lastMessage ? lastMessage.text : "ابدأ محادثتك مع الفريق") + "</p>" +
-    "</div>" +
-    "</div>" +
-    "</article>";
+  chatList.innerHTML = roles
+    .map(function (role) {
+      const roleMessages = getMessagesForRole(role);
+      const lastMessage = roleMessages.length ? roleMessages[roleMessages.length - 1] : null;
+      const unread = getUnreadForRole(role);
+
+      return (
+        '<article class="chat-item' + (state.chatTargetRole === role ? " active" : "") + '" data-chat-open-role="' + role + '">' +
+        '<div class="item-row">' +
+        '<span class="badge">' + (unread > 0 ? unread + " جديد" : roleLabel(role)) + "</span>" +
+        '<div>' +
+        '<p class="item-title">' + escapeHtml(roleDisplayName(role)) + "</p>" +
+        '<p class="item-sub">' + escapeHtml(lastMessage ? lastMessage.text : "ابدأ المحادثة مع المختص") + "</p>" +
+        "</div>" +
+        "</div>" +
+        "</article>"
+      );
+    })
+    .join("");
 }
 
 function renderChatThread() {
@@ -857,14 +1009,15 @@ function renderChatThread() {
   const threadContainer = document.getElementById("chatThreadMessages");
   if (!title || !threadContainer) return;
 
-  title.textContent = "فريق الدعم المتكامل";
+  title.textContent = "محادثة " + roleDisplayName(state.chatTargetRole);
+  const roleMessages = getMessagesForRole(state.chatTargetRole);
 
-  if (!state.supportMessages.length) {
+  if (!roleMessages.length) {
     threadContainer.innerHTML = '<div class="chat-bubble team">أهلاً بك، اكتب رسالتك لنساعدك في التدريب والتغذية.</div>';
     return;
   }
 
-  threadContainer.innerHTML = state.supportMessages
+  threadContainer.innerHTML = roleMessages
     .map(function (message) {
       return '<div class="chat-bubble ' + (message.senderRole === "member" ? "user" : "team") + '">' + escapeHtml(message.text || "") + "</div>";
     })
@@ -939,8 +1092,9 @@ function setLastSeenSupportAt(value) {
 }
 
 function markSupportAsRead() {
-  const lastMessage = state.supportMessages.length
-    ? state.supportMessages[state.supportMessages.length - 1]
+  const currentThread = getMessagesForRole(state.chatTargetRole);
+  const lastMessage = currentThread.length
+    ? currentThread[currentThread.length - 1]
     : null;
 
   if (lastMessage) {
@@ -958,7 +1112,7 @@ function updateUnreadNotifications() {
   const lastSeen = getLastSeenSupportAt();
 
   state.unreadCoachMessages = state.supportMessages.filter(function (message) {
-    return message.senderRole === "coach" && toMillis(message.createdAt) > lastSeen;
+    return message.senderRole !== "member" && toMillis(message.createdAt) > lastSeen;
   }).length;
 
   if (navCommunityBadge) {

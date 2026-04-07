@@ -339,8 +339,9 @@ function startSupportListener() {
           return Object.assign({ id: entry.id }, entry.data());
         })
         .filter(function (item) {
-          if (state.staffRole === "admin") return true;
-          return state.myClientMemberUids.includes(String(item.threadId || ""));
+          const memberMatch = state.myClientMemberUids.includes(String(item.threadId || ""));
+          if (state.staffRole === "admin") return memberMatch;
+          return memberMatch && messageVisibleToStaff(item);
         })
         .sort(function (a, b) {
           return toMillis(a.createdAt) - toMillis(b.createdAt);
@@ -559,7 +560,8 @@ async function onReplySubmit(event) {
   try {
     await addDoc(collection(db, "supportMessages"), {
       threadId: state.selectedThreadId,
-      senderRole: "coach",
+      senderRole: state.staffRole === "admin" ? "coach" : state.staffRole,
+      targetRole: "member",
       senderName: senderName,
       text: text,
       source: "coach-portal",
@@ -884,7 +886,7 @@ function renderSelectedThread() {
     return message.threadId === state.selectedThreadId;
   });
 
-  elements.selectedThreadTitle.textContent = "محادثة " + state.selectedThreadId;
+  elements.selectedThreadTitle.textContent = "محادثة " + memberNameByUid(state.selectedThreadId);
 
   if (!threadMessages.length) {
     elements.threadMessages.innerHTML = '<div class="bubble coach">لا توجد رسائل داخل هذه المحادثة.</div>';
@@ -942,6 +944,22 @@ function memberNameByUid(memberUid) {
     return String(entry.memberUid || "") === String(memberUid || "");
   });
   return item ? item.fullName || "مشترك" : "مشترك";
+}
+
+function messageVisibleToStaff(message) {
+  if (state.staffRole === "admin") return true;
+
+  const senderRole = String(message.senderRole || "");
+  const targetRole = String(message.targetRole || "");
+
+  if (senderRole === state.staffRole) return true;
+  if (targetRole === state.staffRole) return true;
+
+  if (state.staffRole === "coach" && senderRole === "member" && !targetRole) {
+    return true;
+  }
+
+  return false;
 }
 
 function renderActiveMemberSelect() {

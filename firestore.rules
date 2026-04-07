@@ -74,8 +74,11 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           "memberUid",
           "assignedCoachUid",
+          "assignedCoachName",
           "assignedNutritionUid",
+          "assignedNutritionName",
           "assignedPhysioUid",
+          "assignedPhysioName",
           "updatedAt",
           "updatedByUid"
         ]) &&
@@ -85,10 +88,16 @@ service cloud.firestore {
         request.resource.data.memberUid.size() <= 128 &&
         request.resource.data.assignedCoachUid is string &&
         request.resource.data.assignedCoachUid.size() <= 128 &&
+        request.resource.data.assignedCoachName is string &&
+        request.resource.data.assignedCoachName.size() <= 120 &&
         request.resource.data.assignedNutritionUid is string &&
         request.resource.data.assignedNutritionUid.size() <= 128 &&
+        request.resource.data.assignedNutritionName is string &&
+        request.resource.data.assignedNutritionName.size() <= 120 &&
         request.resource.data.assignedPhysioUid is string &&
         request.resource.data.assignedPhysioUid.size() <= 128 &&
+        request.resource.data.assignedPhysioName is string &&
+        request.resource.data.assignedPhysioName.size() <= 120 &&
         request.resource.data.updatedByUid == request.auth.uid &&
         request.resource.data.updatedAt == request.time;
     }
@@ -599,6 +608,7 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           "threadId",
           "senderRole",
+          "targetRole",
           "senderName",
           "text",
           "source",
@@ -610,6 +620,9 @@ service cloud.firestore {
         request.resource.data.senderRole is string &&
         request.resource.data.senderRole.size() >= 4 &&
         request.resource.data.senderRole.size() <= 20 &&
+        request.resource.data.targetRole is string &&
+        request.resource.data.targetRole.size() >= 0 &&
+        request.resource.data.targetRole.size() <= 20 &&
         request.resource.data.senderName is string &&
         request.resource.data.senderName.size() >= 2 &&
         request.resource.data.senderName.size() <= 120 &&
@@ -621,8 +634,24 @@ service cloud.firestore {
         request.resource.data.source.size() <= 40 &&
         request.resource.data.createdAt == request.time &&
         (
-          (isStaff() && request.resource.data.senderRole == "coach") ||
-          (request.resource.data.threadId == request.auth.uid && request.resource.data.senderRole == "member")
+          (
+            isStaff() &&
+            (
+              request.resource.data.senderRole == "coach" ||
+              request.resource.data.senderRole == "nutrition" ||
+              request.resource.data.senderRole == "physio"
+            ) &&
+            request.resource.data.targetRole == "member"
+          ) ||
+          (
+            request.resource.data.threadId == request.auth.uid &&
+            request.resource.data.senderRole == "member" &&
+            (
+              request.resource.data.targetRole == "coach" ||
+              request.resource.data.targetRole == "nutrition" ||
+              request.resource.data.targetRole == "physio"
+            )
+          )
         );
 
       allow update, delete: if false;

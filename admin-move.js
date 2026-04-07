@@ -408,8 +408,11 @@ async function onSaveAssignment(event) {
         {
           memberUid: memberUid,
           assignedCoachUid: payload.assignedCoachUid,
+          assignedCoachName: practitionerName(payload.assignedCoachUid),
           assignedNutritionUid: payload.assignedNutritionUid,
+          assignedNutritionName: practitionerName(payload.assignedNutritionUid),
           assignedPhysioUid: payload.assignedPhysioUid,
+          assignedPhysioName: practitionerName(payload.assignedPhysioUid),
           updatedAt: payload.updatedAt,
           updatedByUid: payload.updatedByUid
         },
