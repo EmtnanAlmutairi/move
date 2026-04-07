@@ -168,13 +168,13 @@
     </main>
 
     <nav class="bottom-nav">
-      <button class="tab-btn active" data-tab="home">الرئيسية</button>
-      <button class="tab-btn" data-tab="plan">الجدول</button>
-      <button class="tab-btn" data-tab="workout">التمارين</button>
-      <button class="tab-btn" data-tab="nutrition">التغذية</button>
-      <button class="tab-btn" data-tab="recovery">الاستشفاء</button>
-      <button class="tab-btn" data-tab="community">المجتمع <span class="nav-badge hidden" id="navCommunityBadge">0</span></button>
-      <button class="tab-btn" data-tab="devices">الأجهزة</button>
+      <button type="button" class="tab-btn active" data-tab="home">الرئيسية</button>
+      <button type="button" class="tab-btn" data-tab="plan">الجدول</button>
+      <button type="button" class="tab-btn" data-tab="workout">التمارين</button>
+      <button type="button" class="tab-btn" data-tab="nutrition">التغذية</button>
+      <button type="button" class="tab-btn" data-tab="recovery">الاستشفاء</button>
+      <button type="button" class="tab-btn" data-tab="community">المجتمع <span class="nav-badge hidden" id="navCommunityBadge">0</span></button>
+      <button type="button" class="tab-btn" data-tab="devices">الأجهزة</button>
     </nav>
   </div>
 
@@ -223,6 +223,36 @@
     </form>
   </dialog>
 
+  <script>
+    (function () {
+      function activateTab(target) {
+        var tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+        var screens = Array.from(document.querySelectorAll(".screen"));
+        tabButtons.forEach(function (btn) {
+          btn.classList.toggle("active", btn.getAttribute("data-tab") === target);
+        });
+        screens.forEach(function (screen) {
+          screen.classList.toggle("active", screen.getAttribute("data-screen") === target);
+        });
+      }
+
+      document.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!(target instanceof Element)) return;
+
+        var tabBtn = target.closest(".tab-btn[data-tab]");
+        if (tabBtn) {
+          activateTab(tabBtn.getAttribute("data-tab"));
+          return;
+        }
+
+        var jumpBtn = target.closest("[data-tab-jump]");
+        if (jumpBtn) {
+          activateTab(jumpBtn.getAttribute("data-tab-jump"));
+        }
+      });
+    })();
+  </script>
   <script type="module" src="move-app.js"></script>
 </body>
 </html>
