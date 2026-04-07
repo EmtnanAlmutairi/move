@@ -23,6 +23,7 @@
         <button id="openOnboardingBtn" class="ghost-btn">تعديل الهدف</button>
       </div>
     </header>
+    <p id="appNotice" class="app-notice hidden" aria-live="polite"></p>
 
     <main class="content" id="content">
       <section class="screen active" data-screen="home">
@@ -76,6 +77,10 @@
             <h3>مكتبة التمارين المصورة</h3>
             <span class="badge">تحديث من لوحة الأدمن</span>
           </div>
+          <label class="search-wrap">
+            <span>ابحث عن تمرين</span>
+            <input id="workoutSearchInput" type="search" placeholder="مثال: أرجل، كارديو، صدر..." />
+          </label>
           <div class="workout-filter" id="workoutFilters"></div>
           <div id="workoutLibrary"></div>
         </article>

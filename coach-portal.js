@@ -30,6 +30,7 @@ const state = {
   meals: [],
   posts: [],
   supportMessages: [],
+  threadSearch: "",
   selectedThreadId: null,
   supportUnsubscribe: null
 };
@@ -73,6 +74,7 @@ function cacheElements() {
   elements.savePostBtn = document.getElementById("savePostBtn");
 
   elements.threadsList = document.getElementById("coachThreadsList");
+  elements.threadSearch = document.getElementById("coachThreadSearch");
   elements.selectedThreadTitle = document.getElementById("coachSelectedThreadTitle");
   elements.threadMessages = document.getElementById("coachThreadMessages");
   elements.replyForm = document.getElementById("coachReplyForm");
@@ -101,6 +103,12 @@ function bindEvents() {
   elements.workoutsList.addEventListener("click", onWorkoutListAction);
   elements.mealsList.addEventListener("click", onMealListAction);
   elements.postsList.addEventListener("click", onPostListAction);
+  if (elements.threadSearch) {
+    elements.threadSearch.addEventListener("input", function () {
+      state.threadSearch = String(elements.threadSearch.value || "").trim().toLowerCase();
+      renderSupportInbox();
+    });
+  }
 
   elements.threadsList.addEventListener("click", function (event) {
     const target = event.target;
@@ -305,8 +313,13 @@ async function onWorkoutSubmit(event) {
     elements.dashboardMessage.textContent = "تأكد من تعبئة بيانات التدريب بشكل صحيح.";
     return;
   }
+  if (payload.videoUrl && !isLikelyHttpUrl(payload.videoUrl)) {
+    elements.dashboardMessage.textContent = "رابط الفيديو غير صحيح. استخدم رابط يبدأ بـ http/https.";
+    return;
+  }
 
   try {
+    setFormBusy(elements.saveWorkoutBtn, true, editId ? "جاري حفظ التعديل..." : "جاري النشر...");
     if (editId) {
       await updateDoc(doc(db, "workoutVideos", editId), payload);
       elements.dashboardMessage.textContent = "تم تحديث فيديو التدريب.";
@@ -325,6 +338,13 @@ async function onWorkoutSubmit(event) {
   } catch (error) {
     console.error("Failed to save workout", error);
     elements.dashboardMessage.textContent = "تعذر حفظ فيديو التدريب.";
+  } finally {
+    setFormBusy(
+      elements.saveWorkoutBtn,
+      false,
+      "",
+      elements.workoutForm.editId.value ? "حفظ تعديل الفيديو" : "نشر فيديو التدريب"
+    );
   }
 }
 
@@ -351,6 +371,7 @@ async function onMealSubmit(event) {
   }
 
   try {
+    setFormBusy(elements.saveMealBtn, true, editId ? "جاري حفظ التعديل..." : "جاري النشر...");
     if (editId) {
       await updateDoc(doc(db, "nutritionMeals", editId), payload);
       elements.dashboardMessage.textContent = "تم تحديث الوجبة.";
@@ -369,6 +390,13 @@ async function onMealSubmit(event) {
   } catch (error) {
     console.error("Failed to save meal", error);
     elements.dashboardMessage.textContent = "تعذر حفظ الوجبة.";
+  } finally {
+    setFormBusy(
+      elements.saveMealBtn,
+      false,
+      "",
+      elements.mealForm.editId.value ? "حفظ تعديل الوجبة" : "نشر الوجبة"
+    );
   }
 }
 
@@ -390,6 +418,7 @@ async function onPostSubmit(event) {
   }
 
   try {
+    setFormBusy(elements.savePostBtn, true, editId ? "جاري حفظ التعديل..." : "جاري النشر...");
     if (editId) {
       await updateDoc(doc(db, "communityPosts", editId), payload);
       elements.dashboardMessage.textContent = "تم تحديث المنشور.";
@@ -408,6 +437,13 @@ async function onPostSubmit(event) {
   } catch (error) {
     console.error("Failed to save post", error);
     elements.dashboardMessage.textContent = "تعذر حفظ المنشور.";
+  } finally {
+    setFormBusy(
+      elements.savePostBtn,
+      false,
+      "",
+      elements.postForm.editId.value ? "حفظ تعديل المنشور" : "نشر في المجتمع"
+    );
   }
 }
 
@@ -685,7 +721,11 @@ function renderPosts() {
 }
 
 function renderSupportInbox() {
-  const threads = buildThreads();
+  const threads = buildThreads().filter(function (thread) {
+    if (!state.threadSearch) return true;
+    const hay = ((thread.memberName || "") + " " + (thread.threadId || "") + " " + (thread.lastText || "")).toLowerCase();
+    return hay.includes(state.threadSearch);
+  });
 
   if (!threads.length) {
     elements.threadsList.innerHTML = '<article class="item"><strong>لا توجد محادثات</strong><p>ستظهر هنا رسائل المتدربين.</p></article>';
@@ -727,6 +767,7 @@ function renderSelectedThread() {
       return '<div class="bubble ' + (message.senderRole === "member" ? "member" : "coach") + '">' + escapeHtml(message.text || "") + '</div>';
     })
     .join("");
+  elements.threadMessages.scrollTop = elements.threadMessages.scrollHeight;
 }
 
 function buildThreads() {
@@ -766,4 +807,20 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function isLikelyHttpUrl(value) {
+  return /^https?:\/\/.+/i.test(String(value || "").trim());
+}
+
+function setFormBusy(button, busy, busyText, idleText) {
+  if (!button) return;
+  if (idleText) {
+    button.dataset.defaultText = idleText;
+  }
+  if (!button.dataset.defaultText) {
+    button.dataset.defaultText = button.textContent || "";
+  }
+  button.disabled = busy;
+  button.textContent = busy ? busyText : button.dataset.defaultText;
 }

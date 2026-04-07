@@ -42,6 +42,16 @@ body {
 .topbar-right { display: flex; align-items: center; gap: 6px; }
 .small-muted { color: var(--muted); font-size: 13px; }
 .inline-link { text-decoration: none; display: inline-flex; align-items: center; }
+.app-notice {
+  margin: 0 2px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #ffd7c8;
+  background: #fff4ef;
+  color: #7a3b2b;
+  font-size: 13px;
+  font-weight: 700;
+}
 
 .content { display: grid; gap: 12px; }
 .screen { display: none; }
@@ -179,6 +189,8 @@ body {
   padding-bottom: 4px;
   margin-bottom: 8px;
 }
+.search-wrap { display: grid; gap: 6px; margin-bottom: 8px; }
+.search-wrap span { font-size: 13px; color: #60574f; font-weight: 700; }
 .filter-chip {
   border: 1px solid #ecd8cc;
   background: #fff;

@@ -199,6 +199,8 @@ section + section { margin-top: 10px; }
   display: flex;
   gap: 6px;
 }
+.thread-search { display: grid; gap: 6px; margin-bottom: 10px; }
+.thread-search span { color: #62594f; font-size: 13px; font-weight: 700; }
 
 .support-layout {
   display: grid;

@@ -49,6 +49,7 @@ const state = {
   config: fallbackConfig,
   userUid: null,
   workoutFilter: "all",
+  workoutSearch: "",
   workouts: fallbackWorkouts,
   meals: fallbackMeals,
   communityFeed: fallbackFeed,
@@ -67,11 +68,13 @@ const state = {
 window.addEventListener("DOMContentLoaded", init);
 
 async function init() {
+  showAppNotice("جاري تحميل بياناتك الصحية...");
   setTodayLabel();
   bindTabs();
   bindOnboarding();
   bindInjuryForm();
   bindWorkoutFilters();
+  bindWorkoutSearch();
   bindCommunitySwitch();
   bindChatActions();
   bindTabJumpButtons();
@@ -90,6 +93,8 @@ async function init() {
 
   requestNotificationPermissionIfNeeded();
   startSupportMessagesListener();
+  restoreLastTab();
+  showAppNotice("");
   renderAll();
 }
 
@@ -139,6 +144,7 @@ function bindTabs() {
     button.addEventListener("click", function () {
       const target = button.getAttribute("data-tab");
       activateTab(target, tabButtons, screens);
+      localStorage.setItem("moveLastTab", String(target || "home"));
     });
   });
 }
@@ -156,11 +162,20 @@ function bindTabJumpButtons() {
 }
 
 function activateTab(target, tabButtons, screens) {
+  if (!target) return;
   tabButtons.forEach((btn) => btn.classList.toggle("active", btn.getAttribute("data-tab") === target));
   screens.forEach((screen) => {
     const isTarget = screen.getAttribute("data-screen") === target;
     screen.classList.toggle("active", isTarget);
   });
+}
+
+function restoreLastTab() {
+  const lastTab = localStorage.getItem("moveLastTab");
+  if (!lastTab) return;
+  const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+  const screens = Array.from(document.querySelectorAll(".screen"));
+  activateTab(lastTab, tabButtons, screens);
 }
 
 function bindOnboarding() {
@@ -295,6 +310,15 @@ function bindWorkoutFilters() {
     const nextFilter = target.getAttribute("data-filter-id") || "all";
     state.workoutFilter = nextFilter;
     renderWorkoutFilters();
+    renderWorkoutLibrary();
+  });
+}
+
+function bindWorkoutSearch() {
+  const input = document.getElementById("workoutSearchInput");
+  if (!(input instanceof HTMLInputElement)) return;
+  input.addEventListener("input", function () {
+    state.workoutSearch = input.value.trim().toLowerCase();
     renderWorkoutLibrary();
   });
 }
@@ -494,6 +518,7 @@ async function loadWorkouts() {
     }
   } catch (error) {
     console.error("Failed to load workouts", error);
+    showAppNotice("تعذر تحميل التمارين حالياً. نعرض النسخة المحفوظة.");
   }
 }
 
@@ -518,6 +543,7 @@ async function loadMeals() {
     }
   } catch (error) {
     console.error("Failed to load meals", error);
+    showAppNotice("تعذر تحميل جدول التغذية حالياً.");
   }
 }
 
@@ -539,6 +565,7 @@ async function loadCommunityFeed() {
     }
   } catch (error) {
     console.error("Failed to load community feed", error);
+    showAppNotice("تعذر تحميل المجتمع الصحي حالياً.");
   }
 }
 
@@ -648,9 +675,21 @@ function renderWorkoutLibrary() {
 
   const doneMap = readWorkoutDoneMap();
 
-  const visibleWorkouts = state.workoutFilter === "all"
+  const byFilter = state.workoutFilter === "all"
     ? state.workouts
     : state.workouts.filter((workout) => workout.focus === state.workoutFilter);
+
+  const visibleWorkouts = state.workoutSearch
+    ? byFilter.filter(function (workout) {
+        const hay = (workout.title + " " + workout.day + " " + workout.coachName).toLowerCase();
+        return hay.includes(state.workoutSearch);
+      })
+    : byFilter;
+
+  if (!visibleWorkouts.length) {
+    workoutLibrary.innerHTML = '<article class="workout-item"><p class="item-sub">لا توجد نتائج مطابقة.</p></article>';
+    return;
+  }
 
   workoutLibrary.innerHTML = visibleWorkouts
     .map(function (workout) {
@@ -808,6 +847,7 @@ function renderChatThread() {
       return '<div class="chat-bubble ' + (message.senderRole === "member" ? "user" : "team") + '">' + escapeHtml(message.text || "") + "</div>";
     })
     .join("");
+  threadContainer.scrollTop = threadContainer.scrollHeight;
 }
 
 function renderDevices() {
@@ -931,6 +971,18 @@ function requestNotificationPermissionIfNeeded() {
   Notification.requestPermission().catch(function () {
     return null;
   });
+}
+
+function showAppNotice(message) {
+  const notice = document.getElementById("appNotice");
+  if (!notice) return;
+  if (!message) {
+    notice.classList.add("hidden");
+    notice.textContent = "";
+    return;
+  }
+  notice.classList.remove("hidden");
+  notice.textContent = message;
 }
 
 function toMillis(timestampValue) {
