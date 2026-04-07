@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOVE Admin Config</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <style>
+    .config-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .config-grid .full { grid-column: 1/-1; }
+    @media (max-width: 720px){ .config-grid{ grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="admin-body">
+  <main class="admin-shell">
+    <header class="admin-hero">
+      <a href="move-app.html" class="admin-brand" aria-label="Back to app">
+        <img src="logo.png" alt="MOVE" class="admin-logo" width="1564" height="938" />
+      </a>
+      <div class="admin-hero-copy">
+        <span class="admin-kicker">MOVE Config Admin</span>
+        <h1>تحكم خطة التطبيق</h1>
+        <p>تحديث نسخة خطة التمرين والتغذية وتفعيل التحديات والتمرين المميز.</p>
+      </div>
+    </header>
+
+    <section class="admin-card auth-card" id="authCard">
+      <div class="card-head"><div><span class="card-kicker">Login</span><h2>Admin sign in</h2></div></div>
+      <form id="adminLoginForm" class="admin-form">
+        <label class="admin-field"><span>Email</span><input type="email" name="email" autocomplete="email" required /></label>
+        <label class="admin-field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required /></label>
+        <button type="submit" class="admin-btn admin-btn-primary" id="loginButton">Sign in</button>
+      </form>
+      <p class="panel-message" id="authMessage"></p>
+    </section>
+
+    <section class="admin-card dashboard-card panel-hidden" id="dashboardCard">
+      <div class="card-head card-head-wide">
+        <div><span class="card-kicker">Config</span><h2>MOVE App Config</h2></div>
+        <div class="dashboard-actions">
+          <button type="button" class="admin-btn admin-btn-secondary" id="refreshButton">Refresh</button>
+          <button type="button" class="admin-btn admin-btn-primary" id="signOutButton">Sign out</button>
+        </div>
+      </div>
+
+      <form id="configForm" class="admin-form config-grid">
+        <label class="admin-field">
+          <span>Workout Plan Version</span>
+          <input name="workoutPlanVersion" required />
+        </label>
+        <label class="admin-field">
+          <span>Nutrition Plan Version</span>
+          <input name="nutritionPlanVersion" required />
+        </label>
+        <label class="admin-field full">
+          <span>Featured Workout Title</span>
+          <input name="featuredWorkoutTitle" required />
+        </label>
+        <label class="admin-field">
+          <span>Featured Duration (min)</span>
+          <input name="featuredWorkoutDurationMin" type="number" min="5" max="180" required />
+        </label>
+        <label class="admin-field">
+          <span>Featured Coach</span>
+          <input name="featuredWorkoutCoach" required />
+        </label>
+        <label class="admin-field full">
+          <span>Challenges Enabled</span>
+          <select name="challengesEnabled">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </label>
+
+        <button class="admin-btn admin-btn-primary full" type="submit" id="saveButton">Save Config</button>
+      </form>
+
+      <p class="panel-message" id="dashboardMessage"></p>
+    </section>
+  </main>
+
+  <script type="module" src="admin-move.js"></script>
+</body>
+</html>

@@ -122,5 +122,100 @@ service cloud.firestore {
         request.resource.data.source == "landing-page-coach" &&
         request.resource.data.createdAt == request.time;
     }
+
+    match /subscriptions/{documentId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          "fullName",
+          "email",
+          "phone",
+          "goal",
+          "planId",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 120 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 8 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.phone.matches("^\\+?[0-9\\-()\\s]{8,24}$") &&
+        request.resource.data.goal is string &&
+        request.resource.data.goal.size() >= 3 &&
+        request.resource.data.goal.size() <= 40 &&
+        request.resource.data.planId is string &&
+        request.resource.data.planId.size() >= 4 &&
+        request.resource.data.planId.size() <= 40 &&
+        request.resource.data.source == "move-web-mvp" &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    match /injuryReports/{documentId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          "area",
+          "severity",
+          "note",
+          "status",
+          "source",
+          "createdAt"
+        ]) &&
+        request.resource.data.area is string &&
+        request.resource.data.area.size() >= 2 &&
+        request.resource.data.area.size() <= 80 &&
+        request.resource.data.severity is number &&
+        request.resource.data.severity >= 1 &&
+        request.resource.data.severity <= 3 &&
+        request.resource.data.note is string &&
+        request.resource.data.note.size() >= 4 &&
+        request.resource.data.note.size() <= 1000 &&
+        request.resource.data.status == "new" &&
+        request.resource.data.source == "move-web-mvp" &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    match /appConfig/{documentId} {
+      allow read: if true;
+      allow delete: if false;
+      allow create, update: if
+        isAdmin() &&
+        request.resource.data.keys().hasOnly([
+          "workoutPlanVersion",
+          "nutritionPlanVersion",
+          "featuredWorkoutTitle",
+          "featuredWorkoutDurationMin",
+          "featuredWorkoutCoach",
+          "challengesEnabled",
+          "updatedAt",
+          "updatedByUid"
+        ]) &&
+        request.resource.data.workoutPlanVersion is string &&
+        request.resource.data.workoutPlanVersion.size() >= 2 &&
+        request.resource.data.workoutPlanVersion.size() <= 20 &&
+        request.resource.data.nutritionPlanVersion is string &&
+        request.resource.data.nutritionPlanVersion.size() >= 2 &&
+        request.resource.data.nutritionPlanVersion.size() <= 20 &&
+        request.resource.data.featuredWorkoutTitle is string &&
+        request.resource.data.featuredWorkoutTitle.size() >= 3 &&
+        request.resource.data.featuredWorkoutTitle.size() <= 120 &&
+        request.resource.data.featuredWorkoutDurationMin is number &&
+        request.resource.data.featuredWorkoutDurationMin >= 5 &&
+        request.resource.data.featuredWorkoutDurationMin <= 180 &&
+        request.resource.data.featuredWorkoutCoach is string &&
+        request.resource.data.featuredWorkoutCoach.size() >= 2 &&
+        request.resource.data.featuredWorkoutCoach.size() <= 80 &&
+        request.resource.data.challengesEnabled is bool &&
+        request.resource.data.updatedByUid == request.auth.uid &&
+        request.resource.data.updatedAt == request.time;
+    }
   }
 }

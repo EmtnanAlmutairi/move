@@ -8,6 +8,14 @@
                                      {
                                          "source":  "/admin",
                                          "destination":  "/admin.html"
+                                     },
+                                     {
+                                         "source":  "/move",
+                                         "destination":  "/move-app.html"
+                                     },
+                                     {
+                                         "source":  "/admin-move",
+                                         "destination":  "/admin-move.html"
                                      }
                                  ],
                     "ignore":  [

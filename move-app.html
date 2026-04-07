@@ -1,0 +1,189 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOVE App MVP</title>
+  <meta name="description" content="MOVE web MVP: اشتراك، فريق صحي، مجتمع، تحديات، داشبورد، تغذية، تمارين، استشفاء." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="stylesheet" href="move-app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">MOVE</div>
+      <div class="topbar-right">
+        <span class="small-muted" id="todayLabel"></span>
+        <button id="openOnboardingBtn" class="ghost-btn">تعديل الهدف</button>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+      <section class="screen active" data-screen="home">
+        <div class="gradient-card">
+          <div class="kicker">الهدف اليومي</div>
+          <h2 id="readinessValue">75%</h2>
+          <p>اقتربت من هدفك اليومي. استمر على نفس الوتيرة.</p>
+          <div class="stats-grid">
+            <article><strong id="statSleep">7.4h</strong><span>النوم</span></article>
+            <article><strong id="statSteps">9044</strong><span>الخطوات</span></article>
+            <article><strong id="statHeart">68</strong><span>نبض</span></article>
+          </div>
+        </div>
+
+        <article class="card">
+          <div class="card-head">
+            <h3>تمرين اليوم</h3>
+            <span class="badge" id="planVersionBadge">خطة v2.4</span>
+          </div>
+          <div class="workout-item featured" id="featuredWorkout"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3>التحديات والمجتمع</h3>
+            <span class="badge" id="challengeBadge">مفعلة</span>
+          </div>
+          <p class="muted">شارك في تحديات أسبوعية مع فريقك الصحي والمجتمع.</p>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="plan">
+        <article class="card">
+          <div class="card-head">
+            <h3>الجدول الأسبوعي</h3>
+            <span class="badge" id="weeklyProgress">0 من 0</span>
+          </div>
+          <div id="weeklyList"></div>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="workout">
+        <article class="card">
+          <h3>تمارين مصورة من المدرب</h3>
+          <p class="muted">الخطة تتغير تلقائيا من إعدادات الأدمن.</p>
+          <div id="workoutLibrary"></div>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="nutrition">
+        <article class="gradient-card slim">
+          <div class="kicker">خطة التغذية</div>
+          <h2 id="nutritionVersion">v1.9</h2>
+          <p>سعرات ومغذيات مخصصة حسب هدفك.</p>
+        </article>
+        <article class="card">
+          <h3>وجبات اليوم</h3>
+          <div id="mealList"></div>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="recovery">
+        <article class="card danger-soft" id="latestInjuryCard">
+          <h3>حالة الاستشفاء</h3>
+          <p class="muted">لا توجد بلاغات حديثة.</p>
+        </article>
+
+        <article class="card">
+          <h3>الإبلاغ عن إصابة</h3>
+          <form id="injuryForm" class="form-grid">
+            <label>
+              <span>مكان الإصابة</span>
+              <input name="area" required placeholder="مثال: الركبة" />
+            </label>
+            <label>
+              <span>الدرجة</span>
+              <select name="severity" required>
+                <option value="1">خفيفة</option>
+                <option value="2">متوسطة</option>
+                <option value="3">عالية</option>
+              </select>
+            </label>
+            <label class="full">
+              <span>ملاحظات</span>
+              <textarea name="note" rows="3" required placeholder="اكتب التفاصيل..."></textarea>
+            </label>
+            <button type="submit" class="primary-btn full">إرسال البلاغ</button>
+          </form>
+          <p id="injuryMessage" class="form-message"></p>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="community">
+        <article class="card">
+          <h3>المحادثات</h3>
+          <div id="chatList"></div>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="devices">
+        <article class="card">
+          <h3>ربط أجهزة التتبع</h3>
+          <p class="muted">HealthKit / Google Fit / Garmin</p>
+          <div id="deviceList"></div>
+        </article>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="tab-btn active" data-tab="home">الرئيسية</button>
+      <button class="tab-btn" data-tab="plan">الجدول</button>
+      <button class="tab-btn" data-tab="workout">التمارين</button>
+      <button class="tab-btn" data-tab="nutrition">التغذية</button>
+      <button class="tab-btn" data-tab="recovery">الاستشفاء</button>
+      <button class="tab-btn" data-tab="community">المجتمع</button>
+      <button class="tab-btn" data-tab="devices">الأجهزة</button>
+    </nav>
+  </div>
+
+  <dialog id="onboardingModal" class="modal">
+    <form method="dialog" class="modal-card" id="onboardingForm">
+      <h3>ابدأ اشتراكك</h3>
+      <p class="muted">اختر الهدف والخطة ثم فعّل الاشتراك.</p>
+
+      <label>
+        <span>الاسم</span>
+        <input name="fullName" required />
+      </label>
+
+      <label>
+        <span>الإيميل</span>
+        <input name="email" type="email" required />
+      </label>
+
+      <label>
+        <span>رقم الجوال</span>
+        <input name="phone" type="tel" minlength="8" maxlength="24" pattern="^[0-9+()\-\s]{8,24}$" required />
+      </label>
+
+      <label>
+        <span>الهدف الرئيسي</span>
+        <select name="goal" required>
+          <option value="muscle-gain">بناء العضلات</option>
+          <option value="weight-loss">خسارة الوزن</option>
+          <option value="fitness">الحفاظ على اللياقة</option>
+        </select>
+      </label>
+
+      <label>
+        <span>الخطة</span>
+        <select name="planId" required>
+          <option value="move-plus">MOVE Plus - 299 ر.س</option>
+          <option value="move-pro">MOVE Pro Team - 499 ر.س</option>
+        </select>
+      </label>
+
+      <div class="modal-actions">
+        <button value="cancel" class="ghost-btn">إغلاق</button>
+        <button type="submit" class="primary-btn">تفعيل الاشتراك</button>
+      </div>
+      <p id="onboardingMessage" class="form-message"></p>
+    </form>
+  </dialog>
+
+  <script type="module" src="move-app.js"></script>
+</body>
+</html>
