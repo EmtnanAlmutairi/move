@@ -84,6 +84,7 @@
             <h3>الجدول الأسبوعي</h3>
             <span class="badge" id="weeklyProgress">0 من 0</span>
           </div>
+          <p class="muted">يمكنك تعديل يوم كل تمرين بما يناسب جدولك، وسيتم حفظه لحسابك.</p>
           <div id="weeklyList"></div>
         </article>
       </section>
@@ -192,6 +193,55 @@
           <div id="deviceList"></div>
         </article>
       </section>
+
+      <section class="screen" data-screen="profile">
+        <article class="card">
+          <div class="card-head">
+            <h3>الملف الشخصي</h3>
+            <span class="badge">Profile</span>
+          </div>
+          <form id="profileForm" class="form-grid">
+            <label>
+              <span>الاسم</span>
+              <input name="fullName" required />
+            </label>
+            <label>
+              <span>الإيميل</span>
+              <input name="email" type="email" required />
+            </label>
+            <label>
+              <span>رقم الجوال</span>
+              <input name="phone" type="tel" minlength="8" maxlength="24" required />
+            </label>
+            <label>
+              <span>الهدف الرئيسي</span>
+              <select name="goal" required>
+                <option value="muscle-gain">بناء العضلات</option>
+                <option value="weight-loss">خسارة الوزن</option>
+                <option value="fitness">الحفاظ على اللياقة</option>
+              </select>
+            </label>
+            <label class="full">
+              <span>تذكير التدريب اليومي</span>
+              <input name="reminderTime" type="time" />
+            </label>
+            <label class="full">
+              <span>أيام التدريب المفضلة</span>
+              <div class="pref-days" id="preferredDaysPicker">
+                <label><input type="checkbox" value="الأحد" />الأحد</label>
+                <label><input type="checkbox" value="الاثنين" />الاثنين</label>
+                <label><input type="checkbox" value="الثلاثاء" />الثلاثاء</label>
+                <label><input type="checkbox" value="الأربعاء" />الأربعاء</label>
+                <label><input type="checkbox" value="الخميس" />الخميس</label>
+                <label><input type="checkbox" value="الجمعة" />الجمعة</label>
+                <label><input type="checkbox" value="السبت" />السبت</label>
+              </div>
+            </label>
+            <button type="submit" class="primary-btn full">حفظ الملف</button>
+          </form>
+          <p id="profileMessage" class="form-message"></p>
+        </article>
+      </section>
     </main>
 
     <nav class="bottom-nav">
@@ -202,6 +252,7 @@
       <button type="button" class="tab-btn" data-tab="recovery">الاستشفاء</button>
       <button type="button" class="tab-btn" data-tab="community">المجتمع <span class="nav-badge hidden" id="navCommunityBadge">0</span></button>
       <button type="button" class="tab-btn" data-tab="devices">الأجهزة</button>
+      <button type="button" class="tab-btn" data-tab="profile">الملف</button>
     </nav>
   </div>
 

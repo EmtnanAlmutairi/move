@@ -8,6 +8,7 @@
   onSnapshot,
   orderBy,
   query,
+  setDoc,
   where,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -45,10 +46,21 @@ const fallbackFeed = [
   { id: "f2", title: "نصيحة تغذوية", body: "حافظ على البروتين في أول وجبة بعد التمرين.", meta: "فريق التغذية" }
 ];
 
+const WEEK_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+
 const state = {
   config: fallbackConfig,
   userUid: null,
   existingSubscription: null,
+  profile: {
+    fullName: "",
+    email: "",
+    phone: "",
+    goal: "fitness",
+    reminderTime: "",
+    preferredDays: []
+  },
+  scheduleOverrides: {},
   memberTeam: {
     coachName: "سيتم التعيين قريباً",
     nutritionName: "سيتم التعيين قريباً",
@@ -85,6 +97,7 @@ async function init() {
   bindCommunitySwitch();
   bindChatRoleSwitch();
   bindChatActions();
+  bindProfileActions();
   bindTabJumpButtons();
   bindWorkoutToggles();
   renderAll();
@@ -94,6 +107,8 @@ async function init() {
   await Promise.all([
     loadConfig(),
     loadExistingSubscription(),
+    loadMemberProfile(),
+    loadMemberSchedule(),
     loadMemberTeam(),
     loadLatestInjuryFromFirestore(),
     loadWorkouts(),
@@ -353,6 +368,126 @@ async function loadExistingSubscription() {
   }
 }
 
+async function loadMemberProfile() {
+  if (!state.userUid) return;
+  try {
+    const snap = await getDoc(doc(db, "memberProfiles", state.userUid));
+    if (snap.exists()) {
+      const data = snap.data();
+      state.profile = {
+        fullName: String(data.fullName || ""),
+        email: String(data.email || ""),
+        phone: String(data.phone || ""),
+        goal: String(data.goal || "fitness"),
+        reminderTime: String(data.reminderTime || ""),
+        preferredDays: Array.isArray(data.preferredDays) ? data.preferredDays.slice(0, 7) : []
+      };
+    } else {
+      const source = state.existingSubscription || getProfileFromStorage();
+      state.profile = {
+        fullName: String(source.fullName || ""),
+        email: String(source.email || ""),
+        phone: String(source.phone || ""),
+        goal: String(source.goal || "fitness"),
+        reminderTime: "",
+        preferredDays: []
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load member profile", error);
+  }
+}
+
+async function loadMemberSchedule() {
+  if (!state.userUid) return;
+  try {
+    const snap = await getDoc(doc(db, "memberSchedules", state.userUid));
+    if (!snap.exists()) return;
+    const data = snap.data();
+    const overrides = data && typeof data.overrides === "object" ? data.overrides : {};
+    state.scheduleOverrides = Object.keys(overrides).reduce(function (acc, key) {
+      const day = String(overrides[key] || "");
+      if (WEEK_DAYS.includes(day)) {
+        acc[key] = day;
+      }
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error("Failed to load member schedule", error);
+  }
+}
+
+async function onProfileSubmit(event) {
+  event.preventDefault();
+  if (!state.userUid) return;
+
+  const form = event.currentTarget;
+  const message = document.getElementById("profileMessage");
+  const picker = document.getElementById("preferredDaysPicker");
+  if (!picker) return;
+
+  const preferredDays = Array.from(picker.querySelectorAll("input[type='checkbox']"))
+    .filter(function (input) {
+      return input instanceof HTMLInputElement && input.checked;
+    })
+    .map(function (input) {
+      return input.value;
+    })
+    .filter(function (day) {
+      return WEEK_DAYS.includes(day);
+    });
+
+  const nextProfile = {
+    fullName: String(form.fullName.value || "").trim(),
+    email: String(form.email.value || "").trim().toLowerCase(),
+    phone: normalizePhone(String(form.phone.value || "")),
+    goal: String(form.goal.value || "fitness"),
+    reminderTime: String(form.reminderTime.value || ""),
+    preferredDays: preferredDays
+  };
+
+  if (!nextProfile.fullName || !nextProfile.email || !nextProfile.phone) {
+    if (message) message.textContent = "يرجى تعبئة جميع بيانات الملف.";
+    return;
+  }
+  if (!isLikelyValidPhone(nextProfile.phone)) {
+    if (message) message.textContent = "رقم الجوال غير صحيح.";
+    return;
+  }
+
+  if (message) message.textContent = "جاري حفظ الملف...";
+  try {
+    await setDoc(doc(db, "memberProfiles", state.userUid), Object.assign({}, nextProfile, {
+      memberUid: state.userUid,
+      updatedAt: serverTimestamp()
+    }), { merge: true });
+
+    state.profile = nextProfile;
+    localStorage.setItem("moveSubscriptionProfile", JSON.stringify(Object.assign({}, getProfileFromStorage(), nextProfile, {
+      memberUid: state.userUid
+    })));
+    renderDashboard();
+    renderMemberExperience();
+    if (message) message.textContent = "تم حفظ الملف بنجاح.";
+  } catch (error) {
+    console.error("Failed to save profile", error);
+    if (message) message.textContent = "تعذر حفظ الملف حالياً.";
+  }
+}
+
+async function persistMemberSchedule() {
+  if (!state.userUid) return;
+  try {
+    await setDoc(doc(db, "memberSchedules", state.userUid), {
+      memberUid: state.userUid,
+      overrides: state.scheduleOverrides,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    console.error("Failed to persist schedule", error);
+  }
+}
+
 function bindInjuryForm() {
   const form = document.getElementById("injuryForm");
   const message = document.getElementById("injuryMessage");
@@ -556,6 +691,30 @@ function bindWorkoutToggles() {
     renderWeeklyPlan();
     renderWorkoutLibrary();
   });
+}
+
+function bindProfileActions() {
+  const profileForm = document.getElementById("profileForm");
+  const weeklyList = document.getElementById("weeklyList");
+
+  if (profileForm) {
+    profileForm.addEventListener("submit", onProfileSubmit);
+  }
+
+  if (weeklyList) {
+    weeklyList.addEventListener("change", function (event) {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const workoutId = target.getAttribute("data-schedule-workout");
+      if (!workoutId) return;
+      const nextDay = String(target.value || "");
+      if (!WEEK_DAYS.includes(nextDay)) return;
+      state.scheduleOverrides[workoutId] = nextDay;
+      renderWeeklyPlan();
+      renderWorkoutLibrary();
+      persistMemberSchedule();
+    });
+  }
 }
 
 function startSupportMessagesListener() {
@@ -804,6 +963,7 @@ function renderAll() {
   renderDashboard();
   renderMemberTeam();
   renderMemberExperience();
+  renderProfile();
   renderCommunityHighlights();
   renderWeeklyPlan();
   renderWorkoutLibrary();
@@ -828,7 +988,7 @@ function renderDashboard() {
 
   if (readinessValue) readinessValue.textContent = progress + "%";
   if (memberGreeting) {
-    const fullName = (state.existingSubscription && state.existingSubscription.fullName) || getProfileFromStorage().fullName || "";
+    const fullName = state.profile.fullName || (state.existingSubscription && state.existingSubscription.fullName) || getProfileFromStorage().fullName || "";
     memberGreeting.textContent = fullName ? ("أهلاً " + fullName) : "رحلة صحية مخصصة";
   }
   if (planVersionBadge) planVersionBadge.textContent = "خطة " + (state.config.workoutPlanVersion || "v2.4");
@@ -860,7 +1020,7 @@ function renderMemberExperience() {
   const box = document.getElementById("memberExperienceSummary");
   if (!badge || !box) return;
 
-  const profile = state.existingSubscription || getProfileFromStorage();
+  const profile = state.profile.fullName ? state.profile : (state.existingSubscription || getProfileFromStorage());
   const goalText = profile.goal ? goalLabel(profile.goal) : "غير محدد";
   const planText = profile.planId ? planLabel(profile.planId) : "غير مفعل";
 
@@ -872,6 +1032,30 @@ function renderMemberExperience() {
     '<article class="exp-chip"><strong>' + escapeHtml(String(state.workouts.length)) + '</strong><span>تمارينك هذا الأسبوع</span></article>' +
     '<article class="exp-chip"><strong>' + escapeHtml(String(state.meals.length)) + '</strong><span>وجباتك اليومية</span></article>' +
     "</div>";
+}
+
+function renderProfile() {
+  const form = document.getElementById("profileForm");
+  const picker = document.getElementById("preferredDaysPicker");
+  if (!form || !picker) return;
+
+  form.fullName.value = state.profile.fullName || "";
+  form.email.value = state.profile.email || "";
+  form.phone.value = state.profile.phone || "";
+  form.goal.value = state.profile.goal || "fitness";
+  form.reminderTime.value = state.profile.reminderTime || "";
+
+  Array.from(picker.querySelectorAll("input[type='checkbox']")).forEach(function (input) {
+    if (!(input instanceof HTMLInputElement)) return;
+    input.checked = state.profile.preferredDays.includes(input.value);
+  });
+}
+
+function getEffectiveWorkoutDay(workout) {
+  const overrideDay = state.scheduleOverrides[workout.id];
+  if (overrideDay && WEEK_DAYS.includes(overrideDay)) return overrideDay;
+  if (WEEK_DAYS.includes(workout.day)) return workout.day;
+  return "الأحد";
 }
 
 function renderMemberTeam() {
@@ -923,14 +1107,19 @@ function renderWeeklyPlan() {
   weeklyList.innerHTML = state.workouts
     .map(function (workout) {
       const done = Boolean(doneMap[workout.id]);
+      const effectiveDay = getEffectiveWorkoutDay(workout);
+      const dayOptions = WEEK_DAYS.map(function (day) {
+        return '<option value="' + day + '"' + (day === effectiveDay ? " selected" : "") + ">" + day + "</option>";
+      }).join("");
 
       return (
         '<article class="plan-item">' +
-        '<div class="item-row">' +
+        '<div class="plan-row">' +
         '<button class="badge toggle-done" data-workout-toggle="' + workout.id + '">' + (done ? "مكتمل" : "تحديد كمكتمل") + "</button>" +
         '<div>' +
         '<p class="item-title">' + escapeHtml(workout.title) + "</p>" +
-        '<p class="item-sub">' + escapeHtml(workout.day + " • " + workout.durationMin + " دقيقة • " + workout.intensity) + "</p>" +
+        '<p class="item-sub">' + escapeHtml(effectiveDay + " • " + workout.durationMin + " دقيقة • " + workout.intensity) + "</p>" +
+        '<select data-schedule-workout="' + workout.id + '">' + dayOptions + "</select>" +
         "</div>" +
         "</div>" +
         "</article>"
@@ -951,7 +1140,7 @@ function renderWorkoutLibrary() {
 
   const visibleWorkouts = state.workoutSearch
     ? byFilter.filter(function (workout) {
-        const hay = (workout.title + " " + workout.day + " " + workout.coachName).toLowerCase();
+        const hay = (workout.title + " " + getEffectiveWorkoutDay(workout) + " " + workout.coachName).toLowerCase();
         return hay.includes(state.workoutSearch);
       })
     : byFilter;
@@ -974,7 +1163,7 @@ function renderWorkoutLibrary() {
         '<span class="badge">' + escapeHtml(workout.intensity) + "</span>" +
         '<div>' +
         '<p class="item-title">' + escapeHtml(workout.title) + "</p>" +
-        '<p class="item-sub">' + escapeHtml(workout.day + " • " + workout.durationMin + " دقيقة") + "</p>" +
+        '<p class="item-sub">' + escapeHtml(getEffectiveWorkoutDay(workout) + " • " + workout.durationMin + " دقيقة") + "</p>" +
         '<p class="item-meta"><span>المدرب: ' + escapeHtml(workout.coachName || "Coach") + '</span><span>' + (done ? "مكتمل" : "قيد التنفيذ") + "</span></p>" +
         '<p class="item-sub">' + escapeHtml(workout.instructions || "") + "</p>" +
         media +

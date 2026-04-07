@@ -357,6 +357,34 @@ body {
 
 .feed-item p { margin: 6px 0 0; color: #3f372f; line-height: 1.7; }
 .feed-item .item-meta { margin-top: 10px; }
+.plan-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.plan-row select {
+  min-width: 130px;
+}
+.pref-days {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.pref-days label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ecd8cc;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fffaf7;
+  font-size: 12px;
+}
+.pref-days input {
+  width: auto;
+  margin: 0;
+}
 
 .form-grid {
   display: grid;
@@ -418,7 +446,7 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: 20px;
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 4px;
   padding: 6px;
   backdrop-filter: blur(10px);
@@ -473,4 +501,5 @@ textarea:focus {
   .topbar-right .ghost-btn { min-height: 38px; padding: 0 10px; font-size: 12px; }
   .team-grid { grid-template-columns: 1fr; }
   .exp-grid { grid-template-columns: 1fr; }
+  .pref-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -102,6 +102,62 @@ service cloud.firestore {
         request.resource.data.updatedAt == request.time;
     }
 
+    match /memberProfiles/{memberUid} {
+      allow read: if canAccessMember(memberUid);
+      allow delete: if false;
+      allow create, update: if
+        request.auth != null &&
+        request.auth.uid == memberUid &&
+        request.resource.data.keys().hasOnly([
+          "memberUid",
+          "fullName",
+          "email",
+          "phone",
+          "goal",
+          "reminderTime",
+          "preferredDays",
+          "updatedAt"
+        ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid == memberUid &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 120 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 5 &&
+        request.resource.data.email.size() < 320 &&
+        request.resource.data.email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$") &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 8 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.phone.matches("^\\+?[0-9\\-()\\s]{8,24}$") &&
+        request.resource.data.goal is string &&
+        request.resource.data.goal.size() >= 3 &&
+        request.resource.data.goal.size() <= 40 &&
+        request.resource.data.reminderTime is string &&
+        request.resource.data.reminderTime.size() <= 8 &&
+        request.resource.data.preferredDays is list &&
+        request.resource.data.preferredDays.size() <= 7 &&
+        request.resource.data.updatedAt == request.time;
+    }
+
+    match /memberSchedules/{memberUid} {
+      allow read: if canAccessMember(memberUid);
+      allow delete: if false;
+      allow create, update: if
+        request.auth != null &&
+        request.auth.uid == memberUid &&
+        request.resource.data.keys().hasOnly([
+          "memberUid",
+          "overrides",
+          "updatedAt"
+        ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid == memberUid &&
+        request.resource.data.overrides is map &&
+        request.resource.data.updatedAt == request.time;
+    }
+
     match /waitlist/{documentId} {
       allow read: if isAdmin();
       allow update, delete: if false;
