@@ -44,6 +44,7 @@ const state = {
   visibleSubscriptions: [],
   myClientMemberUids: [],
   memberProfilesByUid: {},
+  payouts: [],
   workouts: [],
   meals: [],
   posts: [],
@@ -84,6 +85,8 @@ function cacheElements() {
   elements.financeShare = document.getElementById("financeShare");
   elements.financePayout = document.getElementById("financePayout");
   elements.financePlanBreakdown = document.getElementById("financePlanBreakdown");
+  elements.financePayoutMonth = document.getElementById("financePayoutMonth");
+  elements.financePayoutStatus = document.getElementById("financePayoutStatus");
   elements.workoutSection = document.getElementById("coachWorkoutSection");
   elements.mealSection = document.getElementById("coachMealSection");
   elements.postSection = document.getElementById("coachPostSection");
@@ -252,11 +255,28 @@ async function loadDashboardData() {
   await Promise.all([
     loadWorkouts(),
     loadMeals(),
-    loadPosts()
+    loadPosts(),
+    loadPayouts()
   ]);
 
   render();
   elements.dashboardMessage.textContent = "تم تحديث البيانات.";
+}
+
+async function loadPayouts() {
+  if (!state.user || !state.user.uid) return;
+  const snapshot = await getDocs(
+    query(
+      collection(db, "payouts"),
+      where("specialistUid", "==", state.user.uid),
+      limit(80)
+    )
+  );
+  state.payouts = snapshot.docs.map(function (entry) {
+    return Object.assign({ id: entry.id }, entry.data());
+  }).sort(function (a, b) {
+    return String(b.month || "").localeCompare(String(a.month || ""));
+  });
 }
 
 async function loadMemberProfiles() {
@@ -834,6 +854,16 @@ function renderFinance() {
   elements.financeGross.textContent = formatCurrency(gross);
   elements.financeShare.textContent = Math.round(share * 100) + "%";
   elements.financePayout.textContent = formatCurrency(payout);
+  if (elements.financePayoutMonth && elements.financePayoutStatus) {
+    const latest = state.payouts.length ? state.payouts[0] : null;
+    if (latest) {
+      elements.financePayoutMonth.textContent = "مستحق " + String(latest.month || "-");
+      elements.financePayoutStatus.textContent = "الحالة: " + (latest.status === "paid" ? "Paid" : "Pending") + " • " + formatCurrency(latest.payoutAmount || 0);
+    } else {
+      elements.financePayoutMonth.textContent = "مستحقات شهرية";
+      elements.financePayoutStatus.textContent = "لا توجد بيانات مستحقات بعد.";
+    }
+  }
 
   if (!elements.financePlanBreakdown) return;
   if (!subscriptions.length) {

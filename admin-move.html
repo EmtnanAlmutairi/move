@@ -189,6 +189,21 @@
             </ul>
           </article>
           <article class="mini-card">
+            <h4>Monthly Payouts</h4>
+            <form id="payoutGenerateForm" class="admin-form assign-grid">
+              <label class="admin-field">
+                <span>الشهر</span>
+                <input id="payoutMonthInput" type="month" required />
+              </label>
+              <label class="admin-field">
+                <span>الإجراء</span>
+                <button class="admin-btn admin-btn-primary" id="payoutGenerateButton" type="submit">Generate Payouts</button>
+              </label>
+            </form>
+            <ul id="payoutsList" class="mini-list"></ul>
+            <p id="payoutsMessage" class="panel-message"></p>
+          </article>
+          <article class="mini-card">
             <h4>Recent Subscriptions</h4>
             <ul id="recentSubscriptionsList" class="mini-list"></ul>
             <p id="recentSubscriptionsEmpty" class="empty-state">No subscriptions yet.</p>

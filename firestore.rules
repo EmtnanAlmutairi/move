@@ -716,6 +716,98 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /payouts/{documentId} {
+      allow read: if
+        request.auth != null &&
+        (
+          isAdmin() ||
+          resource.data.specialistUid == request.auth.uid
+        );
+      allow delete: if false;
+      allow create: if
+        isAdmin() &&
+        request.resource.data.keys().hasOnly([
+          "month",
+          "role",
+          "specialistUid",
+          "grossRevenue",
+          "shareRate",
+          "payoutAmount",
+          "status",
+          "paidAt",
+          "updatedAt",
+          "updatedByUid"
+        ]) &&
+        request.resource.data.month is string &&
+        request.resource.data.month.matches("^\\d{4}-\\d{2}$") &&
+        request.resource.data.role is string &&
+        request.resource.data.role.size() >= 4 &&
+        request.resource.data.role.size() <= 20 &&
+        request.resource.data.specialistUid is string &&
+        request.resource.data.specialistUid.size() >= 4 &&
+        request.resource.data.specialistUid.size() <= 128 &&
+        request.resource.data.grossRevenue is number &&
+        request.resource.data.grossRevenue >= 0 &&
+        request.resource.data.shareRate is number &&
+        request.resource.data.shareRate >= 0 &&
+        request.resource.data.shareRate <= 1 &&
+        request.resource.data.payoutAmount is number &&
+        request.resource.data.payoutAmount >= 0 &&
+        request.resource.data.status is string &&
+        (
+          request.resource.data.status == "pending" ||
+          request.resource.data.status == "paid"
+        ) &&
+        (
+          request.resource.data.paidAt == null ||
+          request.resource.data.paidAt == request.time
+        ) &&
+        request.resource.data.updatedByUid == request.auth.uid &&
+        request.resource.data.updatedAt == request.time;
+
+      allow update: if
+        isAdmin() &&
+        request.resource.data.keys().hasOnly([
+          "month",
+          "role",
+          "specialistUid",
+          "grossRevenue",
+          "shareRate",
+          "payoutAmount",
+          "status",
+          "paidAt",
+          "updatedAt",
+          "updatedByUid"
+        ]) &&
+        request.resource.data.month is string &&
+        request.resource.data.month.matches("^\\d{4}-\\d{2}$") &&
+        request.resource.data.role is string &&
+        request.resource.data.role.size() >= 4 &&
+        request.resource.data.role.size() <= 20 &&
+        request.resource.data.specialistUid is string &&
+        request.resource.data.specialistUid.size() >= 4 &&
+        request.resource.data.specialistUid.size() <= 128 &&
+        request.resource.data.grossRevenue is number &&
+        request.resource.data.grossRevenue >= 0 &&
+        request.resource.data.shareRate is number &&
+        request.resource.data.shareRate >= 0 &&
+        request.resource.data.shareRate <= 1 &&
+        request.resource.data.payoutAmount is number &&
+        request.resource.data.payoutAmount >= 0 &&
+        request.resource.data.status is string &&
+        (
+          request.resource.data.status == "pending" ||
+          request.resource.data.status == "paid"
+        ) &&
+        (
+          request.resource.data.paidAt == null ||
+          request.resource.data.paidAt == request.time ||
+          request.resource.data.paidAt == resource.data.paidAt
+        ) &&
+        request.resource.data.updatedByUid == request.auth.uid &&
+        request.resource.data.updatedAt == request.time;
+    }
+
     match /appConfig/{documentId} {
       allow read: if true;
       allow delete: if false;

@@ -31,6 +31,7 @@ const state = {
   assignmentSearch: "",
   subscriptions: [],
   memberProfilesByUid: {},
+  payouts: [],
   injuries: [],
   threads: [],
   practitioners: []
@@ -75,6 +76,11 @@ function cacheElements() {
   elements.financeCoachRevenue = document.getElementById("financeCoachRevenue");
   elements.financeNutritionRevenue = document.getElementById("financeNutritionRevenue");
   elements.financePhysioRevenue = document.getElementById("financePhysioRevenue");
+  elements.payoutGenerateForm = document.getElementById("payoutGenerateForm");
+  elements.payoutMonthInput = document.getElementById("payoutMonthInput");
+  elements.payoutGenerateButton = document.getElementById("payoutGenerateButton");
+  elements.payoutsList = document.getElementById("payoutsList");
+  elements.payoutsMessage = document.getElementById("payoutsMessage");
 }
 
 function bindEvents() {
@@ -107,6 +113,15 @@ function bindEvents() {
         }
         syncAssignmentFormWithSelectedSubscription();
       });
+    }
+  }
+  if (elements.payoutGenerateForm) {
+    elements.payoutGenerateForm.addEventListener("submit", onGeneratePayouts);
+    if (elements.payoutsList) {
+      elements.payoutsList.addEventListener("click", onPayoutListAction);
+    }
+    if (elements.payoutMonthInput) {
+      elements.payoutMonthInput.addEventListener("change", renderPayouts);
     }
   }
 }
@@ -172,10 +187,11 @@ async function loadDashboardData() {
 
   try {
     await loadSubscriptions();
-    await Promise.all([loadConfig(), loadInjuries(), loadSupportThreads(), loadPractitioners(), loadMemberProfiles()]);
+    await Promise.all([loadConfig(), loadInjuries(), loadSupportThreads(), loadPractitioners(), loadMemberProfiles(), loadPayouts()]);
 
     renderSummary();
     renderFinanceOverview();
+    renderPayouts();
     renderRecentSubscriptions();
     renderRecentInjuries();
     renderAssignmentOptions();
@@ -359,6 +375,142 @@ function renderFinanceOverview() {
   elements.financeCoachRevenue.textContent = formatCurrency(Math.round(totalRevenue * SHARE.coach));
   elements.financeNutritionRevenue.textContent = formatCurrency(Math.round(totalRevenue * SHARE.nutrition));
   elements.financePhysioRevenue.textContent = formatCurrency(Math.round(totalRevenue * SHARE.physio));
+}
+
+async function loadPayouts() {
+  const snapshot = await getDocs(query(collection(db, "payouts"), limit(400)));
+  state.payouts = snapshot.docs.map(function (entry) {
+    return Object.assign({ id: entry.id }, entry.data());
+  });
+}
+
+function renderPayouts() {
+  if (!elements.payoutsList) return;
+
+  const month = elements.payoutMonthInput && elements.payoutMonthInput.value
+    ? elements.payoutMonthInput.value
+    : getCurrentMonthKey();
+  if (elements.payoutMonthInput && !elements.payoutMonthInput.value) {
+    elements.payoutMonthInput.value = month;
+  }
+
+  const list = state.payouts
+    .filter(function (item) { return String(item.month || "") === month; })
+    .sort(function (a, b) {
+      return String(a.role || "").localeCompare(String(b.role || ""));
+    });
+
+  if (!list.length) {
+    elements.payoutsList.innerHTML = '<li><p class="mini-title">لا توجد مستحقات لهذا الشهر</p><p class="mini-meta">اضغط Generate Payouts.</p></li>';
+    return;
+  }
+
+  elements.payoutsList.innerHTML = list
+    .map(function (item) {
+      const canMarkPaid = item.status !== "paid";
+      const statusText = item.status === "paid" ? "Paid" : "Pending";
+      return (
+        '<li>' +
+        '<p class="mini-title">' + escapeHtml(practitionerName(item.specialistUid) + " • " + roleLabel(item.role)) + "</p>" +
+        '<p class="mini-meta">' + escapeHtml("الشهر: " + item.month + " • الإجمالي: " + formatCurrency(item.grossRevenue || 0)) + "</p>" +
+        '<p class="mini-meta">' + escapeHtml("النسبة: " + Math.round(Number(item.shareRate || 0) * 100) + "% • المستحق: " + formatCurrency(item.payoutAmount || 0)) + "</p>" +
+        '<p class="mini-meta">' + escapeHtml("الحالة: " + statusText) + "</p>" +
+        (canMarkPaid ? '<button class="admin-btn admin-btn-secondary" type="button" data-mark-paid="' + escapeHtml(item.id) + '">Mark as Paid</button>' : "") +
+        '</li>'
+      );
+    })
+    .join("");
+}
+
+async function onGeneratePayouts(event) {
+  event.preventDefault();
+  if (!state.user || !state.isAdmin) return;
+
+  const month = String((elements.payoutMonthInput && elements.payoutMonthInput.value) || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    if (elements.payoutsMessage) elements.payoutsMessage.textContent = "اختر شهر صحيح.";
+    return;
+  }
+
+  if (elements.payoutGenerateButton) {
+    elements.payoutGenerateButton.disabled = true;
+    elements.payoutGenerateButton.textContent = "Generating...";
+  }
+
+  try {
+    const specialists = state.practitioners.filter(function (item) {
+      return item.role === "coach" || item.role === "nutrition" || item.role === "physio";
+    });
+
+    await Promise.all(
+      specialists.map(async function (specialist) {
+        const subs = state.subscriptions.filter(function (sub) {
+          if (specialist.role === "coach") return sub.assignedCoachUid === specialist.uid;
+          if (specialist.role === "nutrition") return sub.assignedNutritionUid === specialist.uid;
+          if (specialist.role === "physio") return sub.assignedPhysioUid === specialist.uid;
+          return false;
+        });
+        const gross = subs.reduce(function (sum, sub) {
+          return sum + Number(PLAN_PRICES[sub.planId] || 0);
+        }, 0);
+        const shareRate = Number(SHARE[specialist.role] || 0);
+        const payoutAmount = Math.round(gross * shareRate);
+        const payoutId = month + "_" + specialist.role + "_" + specialist.uid;
+        const currentDoc = await getDoc(doc(db, "payouts", payoutId));
+        const current = currentDoc.exists() ? currentDoc.data() : {};
+
+        await setDoc(doc(db, "payouts", payoutId), {
+          month: month,
+          role: specialist.role,
+          specialistUid: specialist.uid,
+          grossRevenue: gross,
+          shareRate: shareRate,
+          payoutAmount: payoutAmount,
+          status: current.status === "paid" ? "paid" : "pending",
+          paidAt: current.status === "paid" ? current.paidAt : null,
+          updatedAt: serverTimestamp(),
+          updatedByUid: state.user.uid
+        }, { merge: true });
+      })
+    );
+
+    await loadPayouts();
+    renderPayouts();
+    if (elements.payoutsMessage) elements.payoutsMessage.textContent = "تم توليد المستحقات الشهرية.";
+  } catch (error) {
+    console.error(error);
+    if (elements.payoutsMessage) elements.payoutsMessage.textContent = "فشل توليد المستحقات.";
+  } finally {
+    if (elements.payoutGenerateButton) {
+      elements.payoutGenerateButton.disabled = false;
+      elements.payoutGenerateButton.textContent = "Generate Payouts";
+    }
+  }
+}
+
+async function onPayoutListAction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  const trigger = target.closest("[data-mark-paid]");
+  if (!trigger) return;
+
+  const payoutId = String(trigger.getAttribute("data-mark-paid") || "");
+  if (!payoutId || !state.user || !state.isAdmin) return;
+
+  try {
+    await setDoc(doc(db, "payouts", payoutId), {
+      status: "paid",
+      paidAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedByUid: state.user.uid
+    }, { merge: true });
+    await loadPayouts();
+    renderPayouts();
+    if (elements.payoutsMessage) elements.payoutsMessage.textContent = "تم تحديث حالة الدفع.";
+  } catch (error) {
+    console.error(error);
+    if (elements.payoutsMessage) elements.payoutsMessage.textContent = "فشل تحديث حالة الدفع.";
+  }
 }
 
 function renderRecentSubscriptions() {
@@ -595,6 +747,12 @@ function formatCurrency(value) {
   return new Intl.NumberFormat("ar-SA").format(Number(value || 0)) + " ر.س";
 }
 
+function getCurrentMonthKey() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return String(now.getFullYear()) + "-" + month;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -610,4 +768,11 @@ function practitionerName(uid) {
     return entry.uid === uid;
   });
   return item ? item.displayName : uid;
+}
+
+function roleLabel(role) {
+  if (role === "coach") return "مدرب بدني";
+  if (role === "nutrition") return "أخصائي تغذية";
+  if (role === "physio") return "علاج طبيعي";
+  return role || "Role";
 }
