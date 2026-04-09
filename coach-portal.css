@@ -208,6 +208,13 @@ section + section { margin-top: 10px; }
 }
 .thread-search { display: grid; gap: 6px; margin-bottom: 10px; }
 .thread-search span { color: #62594f; font-size: 13px; font-weight: 700; }
+.template-actions {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
 
 .support-layout {
   display: grid;
@@ -269,4 +276,5 @@ section + section { margin-top: 10px; }
   .auth-grid,
   .kpi-grid { grid-template-columns: 1fr; }
   .dash-head { align-items: flex-start; flex-direction: column; }
+  .template-actions { grid-template-columns: 1fr; }
 }

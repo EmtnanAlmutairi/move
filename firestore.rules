@@ -808,6 +808,304 @@ service cloud.firestore {
         request.resource.data.updatedAt == request.time;
     }
 
+    match /specialistProfiles/{userId} {
+      allow read: if request.auth != null;
+      allow delete: if false;
+      allow create, update: if
+        request.auth != null &&
+        (request.auth.uid == userId || isAdmin()) &&
+        request.resource.data.keys().hasOnly([
+          "uid",
+          "role",
+          "displayName",
+          "specialization",
+          "yearsExperience",
+          "certifications",
+          "bio",
+          "updatedAt"
+        ]) &&
+        request.resource.data.uid is string &&
+        request.resource.data.uid == userId &&
+        request.resource.data.role is string &&
+        request.resource.data.role.size() >= 4 &&
+        request.resource.data.role.size() <= 20 &&
+        request.resource.data.displayName is string &&
+        request.resource.data.displayName.size() >= 2 &&
+        request.resource.data.displayName.size() <= 120 &&
+        request.resource.data.specialization is string &&
+        request.resource.data.specialization.size() >= 2 &&
+        request.resource.data.specialization.size() <= 120 &&
+        request.resource.data.yearsExperience is number &&
+        request.resource.data.yearsExperience >= 0 &&
+        request.resource.data.yearsExperience <= 60 &&
+        request.resource.data.certifications is string &&
+        request.resource.data.certifications.size() <= 500 &&
+        request.resource.data.bio is string &&
+        request.resource.data.bio.size() <= 2000 &&
+        request.resource.data.updatedAt == request.time;
+    }
+
+    match /workoutLibrary/{documentId} {
+      allow read: if
+        isStaff() &&
+        (
+          isAdmin() ||
+          resource.data.createdByUid == request.auth.uid
+        );
+      allow create: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "title",
+          "defaultDay",
+          "durationMin",
+          "intensity",
+          "focus",
+          "videoUrl",
+          "instructions",
+          "sortOrder",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.defaultDay is string &&
+        request.resource.data.defaultDay.size() >= 2 &&
+        request.resource.data.defaultDay.size() <= 30 &&
+        request.resource.data.durationMin is number &&
+        request.resource.data.durationMin >= 5 &&
+        request.resource.data.durationMin <= 180 &&
+        request.resource.data.intensity is string &&
+        request.resource.data.intensity.size() >= 2 &&
+        request.resource.data.intensity.size() <= 20 &&
+        request.resource.data.focus is string &&
+        request.resource.data.focus.size() >= 3 &&
+        request.resource.data.focus.size() <= 30 &&
+        request.resource.data.videoUrl is string &&
+        request.resource.data.videoUrl.size() >= 8 &&
+        request.resource.data.videoUrl.size() <= 1000 &&
+        request.resource.data.instructions is string &&
+        request.resource.data.instructions.size() <= 2000 &&
+        request.resource.data.sortOrder is number &&
+        request.resource.data.sortOrder >= 1 &&
+        request.resource.data.sortOrder <= 999 &&
+        request.resource.data.createdByUid == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "title",
+          "defaultDay",
+          "durationMin",
+          "intensity",
+          "focus",
+          "videoUrl",
+          "instructions",
+          "sortOrder",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.defaultDay is string &&
+        request.resource.data.defaultDay.size() >= 2 &&
+        request.resource.data.defaultDay.size() <= 30 &&
+        request.resource.data.durationMin is number &&
+        request.resource.data.durationMin >= 5 &&
+        request.resource.data.durationMin <= 180 &&
+        request.resource.data.intensity is string &&
+        request.resource.data.intensity.size() >= 2 &&
+        request.resource.data.intensity.size() <= 20 &&
+        request.resource.data.focus is string &&
+        request.resource.data.focus.size() >= 3 &&
+        request.resource.data.focus.size() <= 30 &&
+        request.resource.data.videoUrl is string &&
+        request.resource.data.videoUrl.size() >= 8 &&
+        request.resource.data.videoUrl.size() <= 1000 &&
+        request.resource.data.instructions is string &&
+        request.resource.data.instructions.size() <= 2000 &&
+        request.resource.data.sortOrder is number &&
+        request.resource.data.sortOrder >= 1 &&
+        request.resource.data.sortOrder <= 999 &&
+        (
+          isAdmin() ||
+          resource.data.createdByUid == request.auth.uid
+        ) &&
+        request.resource.data.createdByUid == resource.data.createdByUid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if
+        isStaff() &&
+        (
+          isAdmin() ||
+          resource.data.createdByUid == request.auth.uid
+        );
+    }
+
+    match /nutritionTemplates/{documentId} {
+      allow read: if
+        isStaff() &&
+        (
+          isAdmin() ||
+          resource.data.createdByUid == request.auth.uid
+        );
+      allow create: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "templateName",
+          "caseType",
+          "weekDay",
+          "title",
+          "time",
+          "kcal",
+          "protein",
+          "carbs",
+          "fat",
+          "sortOrder",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.templateName is string &&
+        request.resource.data.templateName.size() >= 2 &&
+        request.resource.data.templateName.size() <= 120 &&
+        request.resource.data.caseType is string &&
+        request.resource.data.caseType.size() >= 3 &&
+        request.resource.data.caseType.size() <= 40 &&
+        request.resource.data.weekDay is string &&
+        request.resource.data.weekDay.size() >= 2 &&
+        request.resource.data.weekDay.size() <= 30 &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.time is string &&
+        request.resource.data.time.size() >= 2 &&
+        request.resource.data.time.size() <= 30 &&
+        request.resource.data.kcal is number &&
+        request.resource.data.kcal >= 0 &&
+        request.resource.data.kcal <= 3000 &&
+        request.resource.data.protein is number &&
+        request.resource.data.protein >= 0 &&
+        request.resource.data.protein <= 300 &&
+        request.resource.data.carbs is number &&
+        request.resource.data.carbs >= 0 &&
+        request.resource.data.carbs <= 400 &&
+        request.resource.data.fat is number &&
+        request.resource.data.fat >= 0 &&
+        request.resource.data.fat <= 300 &&
+        request.resource.data.sortOrder is number &&
+        request.resource.data.sortOrder >= 1 &&
+        request.resource.data.sortOrder <= 999 &&
+        request.resource.data.createdByUid == request.auth.uid &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "templateName",
+          "caseType",
+          "weekDay",
+          "title",
+          "time",
+          "kcal",
+          "protein",
+          "carbs",
+          "fat",
+          "sortOrder",
+          "createdByUid",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.templateName is string &&
+        request.resource.data.templateName.size() >= 2 &&
+        request.resource.data.templateName.size() <= 120 &&
+        request.resource.data.caseType is string &&
+        request.resource.data.caseType.size() >= 3 &&
+        request.resource.data.caseType.size() <= 40 &&
+        request.resource.data.weekDay is string &&
+        request.resource.data.weekDay.size() >= 2 &&
+        request.resource.data.weekDay.size() <= 30 &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 2 &&
+        request.resource.data.title.size() <= 140 &&
+        request.resource.data.time is string &&
+        request.resource.data.time.size() >= 2 &&
+        request.resource.data.time.size() <= 30 &&
+        request.resource.data.kcal is number &&
+        request.resource.data.kcal >= 0 &&
+        request.resource.data.kcal <= 3000 &&
+        request.resource.data.protein is number &&
+        request.resource.data.protein >= 0 &&
+        request.resource.data.protein <= 300 &&
+        request.resource.data.carbs is number &&
+        request.resource.data.carbs >= 0 &&
+        request.resource.data.carbs <= 400 &&
+        request.resource.data.fat is number &&
+        request.resource.data.fat >= 0 &&
+        request.resource.data.fat <= 300 &&
+        request.resource.data.sortOrder is number &&
+        request.resource.data.sortOrder >= 1 &&
+        request.resource.data.sortOrder <= 999 &&
+        (
+          isAdmin() ||
+          resource.data.createdByUid == request.auth.uid
+        ) &&
+        request.resource.data.createdByUid == resource.data.createdByUid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if
+        isStaff() &&
+        (
+          isAdmin() ||
+          resource.data.createdByUid == request.auth.uid
+        );
+    }
+
+    match /injuryFollowups/{documentId} {
+      allow read: if
+        request.auth != null &&
+        resource.data.memberUid is string &&
+        canAccessMember(resource.data.memberUid);
+      allow create: if
+        isStaff() &&
+        request.resource.data.keys().hasOnly([
+          "memberUid",
+          "injuryId",
+          "status",
+          "plan",
+          "nextCheckDate",
+          "specialistUid",
+          "specialistRole",
+          "createdAt",
+          "updatedAt"
+        ]) &&
+        request.resource.data.memberUid is string &&
+        request.resource.data.memberUid.size() >= 4 &&
+        request.resource.data.memberUid.size() <= 128 &&
+        canAccessMember(request.resource.data.memberUid) &&
+        request.resource.data.injuryId is string &&
+        request.resource.data.injuryId.size() <= 128 &&
+        request.resource.data.status is string &&
+        request.resource.data.status.size() >= 3 &&
+        request.resource.data.status.size() <= 40 &&
+        request.resource.data.plan is string &&
+        request.resource.data.plan.size() >= 4 &&
+        request.resource.data.plan.size() <= 2500 &&
+        request.resource.data.nextCheckDate is string &&
+        request.resource.data.nextCheckDate.size() <= 20 &&
+        request.resource.data.specialistUid == request.auth.uid &&
+        request.resource.data.specialistRole is string &&
+        request.resource.data.specialistRole.size() >= 4 &&
+        request.resource.data.specialistRole.size() <= 20 &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+      allow update, delete: if false;
+    }
+
     match /appConfig/{documentId} {
       allow read: if true;
       allow delete: if false;

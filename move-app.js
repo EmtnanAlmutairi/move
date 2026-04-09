@@ -75,6 +75,7 @@ const state = {
   meals: fallbackMeals,
   communityFeed: fallbackFeed,
   latestInjury: null,
+  latestInjuryFollowup: null,
   devices: [
     { id: "d1", name: "Apple Health", status: "غير متصل" },
     { id: "d2", name: "Google Fit", status: "غير متصل" },
@@ -119,6 +120,7 @@ async function init() {
     loadMemberSchedule(),
     loadMemberTeam(),
     loadLatestInjuryFromFirestore(),
+    loadLatestInjuryFollowupFromFirestore(),
     loadWorkouts(),
     loadMeals(),
     loadCommunityFeed()
@@ -925,6 +927,34 @@ async function loadLatestInjuryFromFirestore() {
   }
 }
 
+async function loadLatestInjuryFollowupFromFirestore() {
+  if (!state.userUid) return;
+
+  try {
+    const followupQuery = query(
+      collection(db, "injuryFollowups"),
+      where("memberUid", "==", state.userUid),
+      limit(20)
+    );
+    const snapshot = await getDocs(followupQuery);
+    if (!snapshot.empty) {
+      const latest = snapshot.docs
+        .map(function (entry) {
+          return entry.data();
+        })
+        .sort(function (a, b) {
+          return toMillis(b.updatedAt || b.createdAt) - toMillis(a.updatedAt || a.createdAt);
+        })[0];
+      state.latestInjuryFollowup = latest || null;
+    } else {
+      state.latestInjuryFollowup = null;
+    }
+  } catch (error) {
+    console.error("Failed to load injury followup", error);
+    state.latestInjuryFollowup = null;
+  }
+}
+
 async function loadWorkouts() {
   if (!state.userUid) return;
   try {
@@ -1331,23 +1361,30 @@ function renderLatestInjury() {
   const latestInjuryCard = document.getElementById("latestInjuryCard");
   if (!latestInjuryCard) return;
 
-  if (!state.latestInjury) {
+  if (!state.latestInjury && !state.latestInjuryFollowup) {
     latestInjuryCard.innerHTML =
       "<h3>حالة الاستشفاء</h3>" + '<p class="muted">لا توجد بلاغات حديثة.</p>';
     return;
   }
 
-  const severityText = state.latestInjury.severity === 1 ? "خفيفة" : state.latestInjury.severity === 2 ? "متوسطة" : "عالية";
+  const injuryHtml = state.latestInjury
+    ? '<p class="item-sub">' + escapeHtml(
+      (state.latestInjury.area || "إصابة") +
+      " (" + (state.latestInjury.severity === 1 ? "خفيفة" : state.latestInjury.severity === 2 ? "متوسطة" : "عالية") + ") • " +
+      (state.latestInjury.note || "")
+    ) + "</p>"
+    : '<p class="item-sub">لا يوجد بلاغ إصابة جديد.</p>';
 
-  latestInjuryCard.innerHTML =
-    "<h3>تم الإبلاغ عن إصابة نشطة</h3>" +
-    '<p class="item-sub">' +
-    escapeHtml(
-      state.latestInjury.area +
-        " (" + severityText + ") • " +
-        state.latestInjury.note
-    ) +
-    "</p>";
+  const followup = state.latestInjuryFollowup;
+  const followupHtml = followup
+    ? '<p class="item-sub">' + escapeHtml("متابعة العلاج الطبيعي: " + (followup.plan || "")) + "</p>" +
+      '<p class="item-sub">' + escapeHtml(
+        "الحالة: " + followupStatusLabel(followup.status) +
+        (followup.nextCheckDate ? " • المراجعة القادمة: " + followup.nextCheckDate : "")
+      ) + "</p>"
+    : '<p class="item-sub">بانتظار متابعة المختص في العلاج الطبيعي.</p>';
+
+  latestInjuryCard.innerHTML = "<h3>حالة الاستشفاء</h3>" + injuryHtml + followupHtml;
 }
 
 function renderCommunityFeed() {
@@ -1390,6 +1427,14 @@ function roleLabel(role) {
   if (role === "nutrition") return "تغذية";
   if (role === "physio") return "علاج";
   return "فريق";
+}
+
+function followupStatusLabel(status) {
+  if (status === "under-review") return "قيد المتابعة";
+  if (status === "improving") return "تحسن";
+  if (status === "stable") return "مستقرة";
+  if (status === "closed") return "مغلقة";
+  return "متابعة";
 }
 
 function getMessagesForRole(role) {

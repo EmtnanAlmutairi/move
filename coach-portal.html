@@ -70,6 +70,21 @@
       </section>
 
       <section class="card">
+        <div class="card-head"><h3>ملف المختص</h3><span class="badge">Profile</span></div>
+        <form id="specialistProfileForm" class="form-grid">
+          <label><span>اسم العرض</span><input name="displayName" required /></label>
+          <label><span>التخصص</span><input name="specialization" required placeholder="لياقة / تغذية علاجية / علاج طبيعي" /></label>
+          <label><span>سنوات الخبرة</span><input type="number" name="yearsExperience" min="0" max="50" required /></label>
+          <label class="full"><span>الشهادات</span><input name="certifications" placeholder="ACE, NASM, CPT..." /></label>
+          <label class="full"><span>نبذة مهنية</span><textarea name="bio" rows="2" placeholder="نبذة قصيرة عن خبرتك ومنهجك"></textarea></label>
+          <div class="form-actions">
+            <button type="submit" class="primary-btn" id="saveSpecialistProfileBtn">حفظ الملف</button>
+          </div>
+        </form>
+        <p class="message" id="specialistProfileMessage"></p>
+      </section>
+
+      <section class="card">
         <div class="card-head"><h3>عملائي المشتركين معي</h3><span class="badge" id="staffRoleBadge">Coach</span></div>
         <label class="thread-search">
           <span>العميل النشط لإدارة الخطة</span>
@@ -100,6 +115,26 @@
         <div id="coachWorkoutsList" class="item-list"></div>
       </section>
 
+      <section class="card" id="coachLibrarySection">
+        <div class="card-head"><h3>مكتبة تمارين المدرب</h3><span class="badge">Library</span></div>
+        <form id="coachLibraryForm" class="form-grid">
+          <input type="hidden" name="editId" />
+          <label><span>اسم التمرين</span><input name="title" required /></label>
+          <label><span>اليوم الافتراضي</span><input name="defaultDay" placeholder="الأحد" required /></label>
+          <label><span>المدة (دقيقة)</span><input type="number" name="durationMin" min="5" max="180" required /></label>
+          <label><span>الشدة</span><select name="intensity"><option>خفيفة</option><option selected>متوسطة</option><option>عالية</option></select></label>
+          <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option></select></label>
+          <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
+          <label class="full"><span>رابط الفيديو</span><input name="videoUrl" placeholder="https://..." required /></label>
+          <label class="full"><span>تعليمات</span><textarea name="instructions" rows="2"></textarea></label>
+          <div class="form-actions">
+            <button type="button" class="ghost-btn hidden" id="cancelLibraryEditBtn">إلغاء</button>
+            <button type="submit" class="primary-btn" id="saveLibraryBtn">حفظ في المكتبة</button>
+          </div>
+        </form>
+        <div id="coachLibraryList" class="item-list"></div>
+      </section>
+
       <section class="card" id="coachMealSection">
         <div class="card-head"><h3>إضافة وجبة غذائية</h3><span class="badge">Nutrition</span></div>
         <form id="coachMealForm" class="form-grid">
@@ -117,6 +152,50 @@
           </div>
         </form>
         <div id="coachMealsList" class="item-list"></div>
+      </section>
+
+      <section class="card" id="nutritionTemplateSection">
+        <div class="card-head"><h3>قوالب الوجبات الأسبوعية</h3><span class="badge">Templates</span></div>
+        <form id="nutritionTemplateForm" class="form-grid">
+          <input type="hidden" name="editId" />
+          <label><span>اسم الجدول</span><input name="templateName" required placeholder="خسارة وزن - الأسبوع 1" /></label>
+          <label><span>نوع الحالة</span><select name="caseType" required><option value="general">عام</option><option value="insulin-resistance">مقاومة إنسولين</option><option value="weight-loss">خسارة وزن</option><option value="allergy-friendly">حساسية غذائية</option></select></label>
+          <label><span>اليوم</span><select name="weekDay" required><option>الأحد</option><option>الاثنين</option><option>الثلاثاء</option><option>الأربعاء</option><option>الخميس</option><option>الجمعة</option><option>السبت</option></select></label>
+          <label><span>اسم الوجبة</span><input name="title" required /></label>
+          <label><span>الوقت</span><input name="time" placeholder="08:00 ص" required /></label>
+          <label><span>السعرات</span><input type="number" name="kcal" min="0" max="3000" required /></label>
+          <label><span>بروتين</span><input type="number" name="protein" min="0" max="300" required /></label>
+          <label><span>كارب</span><input type="number" name="carbs" min="0" max="400" required /></label>
+          <label><span>دهون</span><input type="number" name="fat" min="0" max="300" required /></label>
+          <label><span>ترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
+          <div class="form-actions">
+            <button type="button" class="ghost-btn hidden" id="cancelTemplateEditBtn">إلغاء</button>
+            <button type="submit" class="primary-btn" id="saveTemplateBtn">حفظ سطر في القالب</button>
+          </div>
+        </form>
+        <div class="template-actions">
+          <label class="thread-search">
+            <span>تطبيق قالب على المتدرب النشط</span>
+            <select id="applyTemplateNameSelect"></select>
+          </label>
+          <button type="button" class="ghost-btn" id="applyTemplateToMemberBtn">تطبيق القالب</button>
+        </div>
+        <div id="nutritionTemplatesList" class="item-list"></div>
+      </section>
+
+      <section class="card" id="physioRecoverySection">
+        <div class="card-head"><h3>متابعة الإصابات والاستشفاء</h3><span class="badge">Physio</span></div>
+        <div id="physioInjuriesList" class="item-list"></div>
+        <form id="physioFollowupForm" class="form-grid">
+          <label><span>الإصابة</span><select name="injuryId"><option value="">بدون ربط مباشر</option></select></label>
+          <label><span>الحالة</span><select name="status"><option value="under-review">قيد المتابعة</option><option value="improving">تحسن</option><option value="stable">مستقرة</option><option value="closed">مغلقة</option></select></label>
+          <label><span>موعد المراجعة</span><input type="date" name="nextCheckDate" /></label>
+          <label class="full"><span>خطة العلاج / التوصيات</span><textarea name="plan" rows="3" required placeholder="أدخل خطة العلاج الطبيعي والتوصيات اليومية"></textarea></label>
+          <div class="form-actions">
+            <button type="submit" class="primary-btn" id="savePhysioFollowupBtn">حفظ متابعة</button>
+          </div>
+        </form>
+        <div id="physioFollowupsList" class="item-list"></div>
       </section>
 
       <section class="card" id="coachPostSection">

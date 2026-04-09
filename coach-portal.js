@@ -10,6 +10,7 @@
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -45,9 +46,14 @@ const state = {
   myClientMemberUids: [],
   memberProfilesByUid: {},
   payouts: [],
+  specialistProfile: null,
   workouts: [],
+  workoutLibrary: [],
   meals: [],
+  nutritionTemplates: [],
   posts: [],
+  injuryReports: [],
+  injuryFollowups: [],
   supportMessages: [],
   threadSearch: "",
   selectedThreadId: null,
@@ -87,19 +93,39 @@ function cacheElements() {
   elements.financePlanBreakdown = document.getElementById("financePlanBreakdown");
   elements.financePayoutMonth = document.getElementById("financePayoutMonth");
   elements.financePayoutStatus = document.getElementById("financePayoutStatus");
+  elements.specialistProfileForm = document.getElementById("specialistProfileForm");
+  elements.saveSpecialistProfileBtn = document.getElementById("saveSpecialistProfileBtn");
+  elements.specialistProfileMessage = document.getElementById("specialistProfileMessage");
   elements.workoutSection = document.getElementById("coachWorkoutSection");
+  elements.librarySection = document.getElementById("coachLibrarySection");
   elements.mealSection = document.getElementById("coachMealSection");
+  elements.nutritionTemplateSection = document.getElementById("nutritionTemplateSection");
+  elements.physioRecoverySection = document.getElementById("physioRecoverySection");
   elements.postSection = document.getElementById("coachPostSection");
 
   elements.workoutForm = document.getElementById("coachWorkoutForm");
   elements.workoutsList = document.getElementById("coachWorkoutsList");
   elements.cancelWorkoutEditBtn = document.getElementById("cancelWorkoutEditBtn");
   elements.saveWorkoutBtn = document.getElementById("saveWorkoutBtn");
+  elements.libraryForm = document.getElementById("coachLibraryForm");
+  elements.libraryList = document.getElementById("coachLibraryList");
+  elements.cancelLibraryEditBtn = document.getElementById("cancelLibraryEditBtn");
+  elements.saveLibraryBtn = document.getElementById("saveLibraryBtn");
 
   elements.mealForm = document.getElementById("coachMealForm");
   elements.mealsList = document.getElementById("coachMealsList");
   elements.cancelMealEditBtn = document.getElementById("cancelMealEditBtn");
   elements.saveMealBtn = document.getElementById("saveMealBtn");
+  elements.nutritionTemplateForm = document.getElementById("nutritionTemplateForm");
+  elements.nutritionTemplatesList = document.getElementById("nutritionTemplatesList");
+  elements.cancelTemplateEditBtn = document.getElementById("cancelTemplateEditBtn");
+  elements.saveTemplateBtn = document.getElementById("saveTemplateBtn");
+  elements.applyTemplateNameSelect = document.getElementById("applyTemplateNameSelect");
+  elements.applyTemplateToMemberBtn = document.getElementById("applyTemplateToMemberBtn");
+  elements.physioFollowupForm = document.getElementById("physioFollowupForm");
+  elements.physioInjuriesList = document.getElementById("physioInjuriesList");
+  elements.physioFollowupsList = document.getElementById("physioFollowupsList");
+  elements.savePhysioFollowupBtn = document.getElementById("savePhysioFollowupBtn");
 
   elements.postForm = document.getElementById("coachPostForm");
   elements.postsList = document.getElementById("coachPostsList");
@@ -128,14 +154,41 @@ function bindEvents() {
   elements.mealForm.addEventListener("submit", onMealSubmit);
   elements.postForm.addEventListener("submit", onPostSubmit);
   elements.replyForm.addEventListener("submit", onReplySubmit);
+  if (elements.specialistProfileForm) {
+    elements.specialistProfileForm.addEventListener("submit", onSpecialistProfileSubmit);
+  }
+  if (elements.libraryForm) {
+    elements.libraryForm.addEventListener("submit", onLibrarySubmit);
+  }
+  if (elements.nutritionTemplateForm) {
+    elements.nutritionTemplateForm.addEventListener("submit", onNutritionTemplateSubmit);
+  }
+  if (elements.physioFollowupForm) {
+    elements.physioFollowupForm.addEventListener("submit", onPhysioFollowupSubmit);
+  }
 
   elements.cancelWorkoutEditBtn.addEventListener("click", clearWorkoutForm);
   elements.cancelMealEditBtn.addEventListener("click", clearMealForm);
   elements.cancelPostEditBtn.addEventListener("click", clearPostForm);
+  if (elements.cancelLibraryEditBtn) {
+    elements.cancelLibraryEditBtn.addEventListener("click", clearLibraryForm);
+  }
+  if (elements.cancelTemplateEditBtn) {
+    elements.cancelTemplateEditBtn.addEventListener("click", clearNutritionTemplateForm);
+  }
 
   elements.workoutsList.addEventListener("click", onWorkoutListAction);
   elements.mealsList.addEventListener("click", onMealListAction);
   elements.postsList.addEventListener("click", onPostListAction);
+  if (elements.libraryList) {
+    elements.libraryList.addEventListener("click", onLibraryListAction);
+  }
+  if (elements.nutritionTemplatesList) {
+    elements.nutritionTemplatesList.addEventListener("click", onNutritionTemplateListAction);
+  }
+  if (elements.applyTemplateToMemberBtn) {
+    elements.applyTemplateToMemberBtn.addEventListener("click", applyNutritionTemplateToActiveMember);
+  }
   if (elements.threadSearch) {
     elements.threadSearch.addEventListener("input", function () {
       state.threadSearch = String(elements.threadSearch.value || "").trim().toLowerCase();
@@ -252,11 +305,16 @@ async function loadDashboardData() {
 
   await loadSubscriptions();
   await loadMemberProfiles();
+  await loadSpecialistProfile();
   await Promise.all([
     loadWorkouts(),
+    loadWorkoutLibrary(),
     loadMeals(),
+    loadNutritionTemplates(),
     loadPosts(),
-    loadPayouts()
+    loadPayouts(),
+    loadInjuryReports(),
+    loadInjuryFollowups()
   ]);
 
   render();
@@ -277,6 +335,87 @@ async function loadPayouts() {
   }).sort(function (a, b) {
     return String(b.month || "").localeCompare(String(a.month || ""));
   });
+}
+
+async function loadSpecialistProfile() {
+  if (!state.user || !state.user.uid) return;
+  try {
+    const snapshot = await getDoc(doc(db, "specialistProfiles", state.user.uid));
+    state.specialistProfile = snapshot.exists() ? snapshot.data() : null;
+  } catch (error) {
+    console.error("Failed to load specialist profile", error);
+    state.specialistProfile = null;
+  }
+}
+
+async function loadWorkoutLibrary() {
+  if (!state.user || !state.user.uid) return;
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "workoutLibrary"), where("createdByUid", "==", state.user.uid), limit(200))
+    );
+    state.workoutLibrary = snapshot.docs
+      .map(function (entry) { return Object.assign({ id: entry.id }, entry.data()); })
+      .sort(function (a, b) { return Number(a.sortOrder || 0) - Number(b.sortOrder || 0); });
+  } catch (error) {
+    console.error("Failed to load workout library", error);
+    state.workoutLibrary = [];
+  }
+}
+
+async function loadNutritionTemplates() {
+  if (!state.user || !state.user.uid) return;
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "nutritionTemplates"), where("createdByUid", "==", state.user.uid), limit(300))
+    );
+    state.nutritionTemplates = snapshot.docs
+      .map(function (entry) { return Object.assign({ id: entry.id }, entry.data()); })
+      .sort(function (a, b) {
+        const nameCompare = String(a.templateName || "").localeCompare(String(b.templateName || ""));
+        if (nameCompare !== 0) return nameCompare;
+        return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+      });
+  } catch (error) {
+    console.error("Failed to load nutrition templates", error);
+    state.nutritionTemplates = [];
+  }
+}
+
+async function loadInjuryReports() {
+  if (!state.activeMemberUid) {
+    state.injuryReports = [];
+    return;
+  }
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "injuryReports"), where("memberUid", "==", state.activeMemberUid), limit(50))
+    );
+    state.injuryReports = snapshot.docs
+      .map(function (entry) { return Object.assign({ id: entry.id }, entry.data()); })
+      .sort(function (a, b) { return toMillis(b.createdAt) - toMillis(a.createdAt); });
+  } catch (error) {
+    console.error("Failed to load injury reports", error);
+    state.injuryReports = [];
+  }
+}
+
+async function loadInjuryFollowups() {
+  if (!state.activeMemberUid) {
+    state.injuryFollowups = [];
+    return;
+  }
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "injuryFollowups"), where("memberUid", "==", state.activeMemberUid), limit(80))
+    );
+    state.injuryFollowups = snapshot.docs
+      .map(function (entry) { return Object.assign({ id: entry.id }, entry.data()); })
+      .sort(function (a, b) { return toMillis(b.updatedAt || b.createdAt) - toMillis(a.updatedAt || a.createdAt); });
+  } catch (error) {
+    console.error("Failed to load injury followups", error);
+    state.injuryFollowups = [];
+  }
 }
 
 async function loadMemberProfiles() {
@@ -650,6 +789,179 @@ async function onReplySubmit(event) {
   }
 }
 
+async function onSpecialistProfileSubmit(event) {
+  event.preventDefault();
+  if (!state.user || !state.user.uid) return;
+
+  const form = event.currentTarget;
+  const payload = {
+    uid: state.user.uid,
+    role: state.staffRole,
+    displayName: String(form.displayName.value || "").trim(),
+    specialization: String(form.specialization.value || "").trim(),
+    yearsExperience: Number(form.yearsExperience.value || 0),
+    certifications: String(form.certifications.value || "").trim(),
+    bio: String(form.bio.value || "").trim(),
+    updatedAt: serverTimestamp()
+  };
+
+  if (!payload.displayName || !payload.specialization) {
+    if (elements.specialistProfileMessage) elements.specialistProfileMessage.textContent = "أكمل بيانات الملف المهني.";
+    return;
+  }
+
+  try {
+    setFormBusy(elements.saveSpecialistProfileBtn, true, "جاري الحفظ...");
+    await setDoc(doc(db, "specialistProfiles", state.user.uid), payload, { merge: true });
+    if (elements.specialistProfileMessage) elements.specialistProfileMessage.textContent = "تم حفظ ملف المختص.";
+    await loadSpecialistProfile();
+    renderSpecialistProfile();
+  } catch (error) {
+    console.error("Failed to save specialist profile", error);
+    if (elements.specialistProfileMessage) elements.specialistProfileMessage.textContent = "تعذر حفظ الملف.";
+  } finally {
+    setFormBusy(elements.saveSpecialistProfileBtn, false, "", "حفظ الملف");
+  }
+}
+
+async function onLibrarySubmit(event) {
+  event.preventDefault();
+  if (!(state.staffRole === "coach" || state.staffRole === "admin")) {
+    elements.dashboardMessage.textContent = "مكتبة التمارين للمدرب البدني فقط.";
+    return;
+  }
+
+  const form = event.currentTarget;
+  const editId = String(form.editId.value || "").trim();
+  const payload = {
+    title: String(form.title.value || "").trim(),
+    defaultDay: String(form.defaultDay.value || "").trim(),
+    durationMin: Number(form.durationMin.value || 0),
+    intensity: String(form.intensity.value || "متوسطة"),
+    focus: String(form.focus.value || "fitness"),
+    videoUrl: String(form.videoUrl.value || "").trim(),
+    instructions: String(form.instructions.value || "").trim(),
+    sortOrder: Number(form.sortOrder ? form.sortOrder.value : 10),
+    createdByUid: state.user.uid,
+    updatedAt: serverTimestamp()
+  };
+
+  if (!payload.title || !payload.defaultDay || !isLikelyHttpUrl(payload.videoUrl)) {
+    elements.dashboardMessage.textContent = "تحقق من عنوان التمرين ورابط الفيديو.";
+    return;
+  }
+
+  try {
+    setFormBusy(elements.saveLibraryBtn, true, editId ? "جاري التعديل..." : "جاري الحفظ...");
+    if (editId) {
+      await updateDoc(doc(db, "workoutLibrary", editId), payload);
+    } else {
+      await addDoc(collection(db, "workoutLibrary"), Object.assign({}, payload, { createdAt: serverTimestamp() }));
+    }
+    clearLibraryForm();
+    await loadWorkoutLibrary();
+    renderWorkoutLibrary();
+    elements.dashboardMessage.textContent = "تم حفظ التمرين في المكتبة.";
+  } catch (error) {
+    console.error("Failed to save workout library item", error);
+    elements.dashboardMessage.textContent = "تعذر حفظ عنصر المكتبة.";
+  } finally {
+    setFormBusy(elements.saveLibraryBtn, false, "", "حفظ في المكتبة");
+  }
+}
+
+async function onNutritionTemplateSubmit(event) {
+  event.preventDefault();
+  if (!(state.staffRole === "nutrition" || state.staffRole === "admin")) {
+    elements.dashboardMessage.textContent = "قوالب الوجبات مخصصة للتغذية.";
+    return;
+  }
+
+  const form = event.currentTarget;
+  const editId = String(form.editId.value || "").trim();
+  const payload = {
+    templateName: String(form.templateName.value || "").trim(),
+    caseType: String(form.caseType.value || "general"),
+    weekDay: String(form.weekDay.value || ""),
+    title: String(form.title.value || "").trim(),
+    time: String(form.time.value || "").trim(),
+    kcal: Number(form.kcal.value || 0),
+    protein: Number(form.protein.value || 0),
+    carbs: Number(form.carbs.value || 0),
+    fat: Number(form.fat.value || 0),
+    sortOrder: Number(form.sortOrder.value || 10),
+    createdByUid: state.user.uid,
+    updatedAt: serverTimestamp()
+  };
+
+  if (!payload.templateName || !payload.title || !payload.time) {
+    elements.dashboardMessage.textContent = "أكمل بيانات قالب الوجبات.";
+    return;
+  }
+
+  try {
+    setFormBusy(elements.saveTemplateBtn, true, editId ? "جاري التعديل..." : "جاري الحفظ...");
+    if (editId) {
+      await updateDoc(doc(db, "nutritionTemplates", editId), payload);
+    } else {
+      await addDoc(collection(db, "nutritionTemplates"), Object.assign({}, payload, { createdAt: serverTimestamp() }));
+    }
+    clearNutritionTemplateForm();
+    await loadNutritionTemplates();
+    renderNutritionTemplates();
+    elements.dashboardMessage.textContent = "تم حفظ سطر القالب الغذائي.";
+  } catch (error) {
+    console.error("Failed to save nutrition template", error);
+    elements.dashboardMessage.textContent = "تعذر حفظ قالب التغذية.";
+  } finally {
+    setFormBusy(elements.saveTemplateBtn, false, "", "حفظ سطر في القالب");
+  }
+}
+
+async function onPhysioFollowupSubmit(event) {
+  event.preventDefault();
+  if (!(state.staffRole === "physio" || state.staffRole === "admin")) {
+    elements.dashboardMessage.textContent = "متابعة الإصابات مخصصة للعلاج الطبيعي.";
+    return;
+  }
+  const memberUid = getActiveMemberUid();
+  if (!memberUid) {
+    elements.dashboardMessage.textContent = "اختر متدرباً أولاً.";
+    return;
+  }
+
+  const form = event.currentTarget;
+  const payload = {
+    memberUid: memberUid,
+    injuryId: String(form.injuryId.value || ""),
+    status: String(form.status.value || "under-review"),
+    plan: String(form.plan.value || "").trim(),
+    nextCheckDate: String(form.nextCheckDate.value || ""),
+    specialistUid: state.user.uid,
+    specialistRole: "physio",
+    updatedAt: serverTimestamp()
+  };
+
+  if (!payload.plan) {
+    elements.dashboardMessage.textContent = "أدخل خطة المتابعة.";
+    return;
+  }
+
+  try {
+    setFormBusy(elements.savePhysioFollowupBtn, true, "جاري الحفظ...");
+    await addDoc(collection(db, "injuryFollowups"), Object.assign({}, payload, { createdAt: serverTimestamp() }));
+    form.reset();
+    await loadInjuryFollowups();
+    renderPhysioRecovery();
+    elements.dashboardMessage.textContent = "تم حفظ متابعة العلاج الطبيعي.";
+  } catch (error) {
+    console.error("Failed to save physio followup", error);
+    elements.dashboardMessage.textContent = "تعذر حفظ المتابعة.";
+  } finally {
+    setFormBusy(elements.savePhysioFollowupBtn, false, "", "حفظ متابعة");
+  }
+}
+
 async function onWorkoutListAction(event) {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
@@ -776,6 +1088,188 @@ async function onPostListAction(event) {
   }
 }
 
+async function onLibraryListAction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const editTrigger = target.closest("[data-edit-library]");
+  if (editTrigger) {
+    const id = String(editTrigger.getAttribute("data-edit-library") || "");
+    const item = state.workoutLibrary.find(function (entry) { return entry.id === id; });
+    if (!item || !elements.libraryForm) return;
+    const form = elements.libraryForm;
+    form.editId.value = item.id;
+    form.title.value = item.title || "";
+    form.defaultDay.value = item.defaultDay || "";
+    form.durationMin.value = item.durationMin || 30;
+    form.intensity.value = item.intensity || "متوسطة";
+    form.focus.value = item.focus || "fitness";
+    form.videoUrl.value = item.videoUrl || "";
+    form.instructions.value = item.instructions || "";
+    if (form.sortOrder) form.sortOrder.value = item.sortOrder || 10;
+    elements.cancelLibraryEditBtn.classList.remove("hidden");
+    elements.saveLibraryBtn.textContent = "حفظ تعديل المكتبة";
+    return;
+  }
+
+  const addTrigger = target.closest("[data-add-library-to-member]");
+  if (addTrigger) {
+    const id = String(addTrigger.getAttribute("data-add-library-to-member") || "");
+    const item = state.workoutLibrary.find(function (entry) { return entry.id === id; });
+    const memberUid = getActiveMemberUid();
+    if (!item || !memberUid) {
+      elements.dashboardMessage.textContent = "اختر متدرباً نشطاً أولاً.";
+      return;
+    }
+    try {
+      await addDoc(collection(db, "workoutVideos"), {
+        memberUid: memberUid,
+        title: item.title || "تمرين",
+        coachName: (state.specialistProfile && state.specialistProfile.displayName) || (state.user.email || "Coach"),
+        day: item.defaultDay || "الأحد",
+        durationMin: Number(item.durationMin || 30),
+        intensity: item.intensity || "متوسطة",
+        focus: item.focus || "fitness",
+        videoUrl: item.videoUrl || "",
+        instructions: item.instructions || "",
+        sortOrder: Number(item.sortOrder || 10),
+        createdByUid: state.user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      await loadWorkouts();
+      renderWorkouts();
+      renderKpis();
+      elements.dashboardMessage.textContent = "تمت إضافة التمرين من المكتبة إلى خطة المتدرب.";
+    } catch (error) {
+      console.error("Failed to add workout from library", error);
+      elements.dashboardMessage.textContent = "تعذر الإضافة من المكتبة.";
+    }
+    return;
+  }
+
+  const deleteTrigger = target.closest("[data-delete-library]");
+  if (deleteTrigger) {
+    const id = String(deleteTrigger.getAttribute("data-delete-library") || "");
+    if (!id || !confirm("حذف عنصر المكتبة؟")) return;
+    try {
+      await deleteDoc(doc(db, "workoutLibrary", id));
+      if (elements.libraryForm && elements.libraryForm.editId.value === id) {
+        clearLibraryForm();
+      }
+      await loadWorkoutLibrary();
+      renderWorkoutLibrary();
+      elements.dashboardMessage.textContent = "تم حذف عنصر المكتبة.";
+    } catch (error) {
+      console.error("Failed to delete library item", error);
+      elements.dashboardMessage.textContent = "تعذر حذف عنصر المكتبة.";
+    }
+  }
+}
+
+async function onNutritionTemplateListAction(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const editTrigger = target.closest("[data-edit-template]");
+  if (editTrigger) {
+    const id = String(editTrigger.getAttribute("data-edit-template") || "");
+    const item = state.nutritionTemplates.find(function (entry) { return entry.id === id; });
+    if (!item || !elements.nutritionTemplateForm) return;
+    const form = elements.nutritionTemplateForm;
+    form.editId.value = item.id;
+    form.templateName.value = item.templateName || "";
+    form.caseType.value = item.caseType || "general";
+    form.weekDay.value = item.weekDay || "الأحد";
+    form.title.value = item.title || "";
+    form.time.value = item.time || "";
+    form.kcal.value = item.kcal || 0;
+    form.protein.value = item.protein || 0;
+    form.carbs.value = item.carbs || 0;
+    form.fat.value = item.fat || 0;
+    form.sortOrder.value = item.sortOrder || 10;
+    elements.cancelTemplateEditBtn.classList.remove("hidden");
+    elements.saveTemplateBtn.textContent = "حفظ تعديل القالب";
+    return;
+  }
+
+  const deleteTrigger = target.closest("[data-delete-template]");
+  if (deleteTrigger) {
+    const id = String(deleteTrigger.getAttribute("data-delete-template") || "");
+    if (!id || !confirm("حذف سطر القالب؟")) return;
+    try {
+      await deleteDoc(doc(db, "nutritionTemplates", id));
+      if (elements.nutritionTemplateForm && elements.nutritionTemplateForm.editId.value === id) {
+        clearNutritionTemplateForm();
+      }
+      await loadNutritionTemplates();
+      renderNutritionTemplates();
+      elements.dashboardMessage.textContent = "تم حذف سطر القالب.";
+    } catch (error) {
+      console.error("Failed to delete template row", error);
+      elements.dashboardMessage.textContent = "تعذر حذف سطر القالب.";
+    }
+  }
+}
+
+async function applyNutritionTemplateToActiveMember() {
+  const memberUid = getActiveMemberUid();
+  const templateName = String((elements.applyTemplateNameSelect && elements.applyTemplateNameSelect.value) || "");
+  if (!memberUid || !templateName) {
+    elements.dashboardMessage.textContent = "اختر متدرباً نشطاً واسم القالب أولاً.";
+    return;
+  }
+
+  const rows = state.nutritionTemplates
+    .filter(function (item) { return String(item.templateName || "") === templateName; })
+    .sort(function (a, b) {
+      if (Number(a.sortOrder || 0) !== Number(b.sortOrder || 0)) {
+        return Number(a.sortOrder || 0) - Number(b.sortOrder || 0);
+      }
+      return String(a.weekDay || "").localeCompare(String(b.weekDay || ""));
+    });
+  if (!rows.length) {
+    elements.dashboardMessage.textContent = "القالب المختار فارغ.";
+    return;
+  }
+
+  try {
+    setFormBusy(elements.applyTemplateToMemberBtn, true, "جاري التطبيق...");
+    const currentMeals = state.meals.slice();
+    await Promise.all(
+      currentMeals.map(function (meal) {
+        return deleteDoc(doc(db, "nutritionMeals", meal.id));
+      })
+    );
+    await Promise.all(
+      rows.map(function (row, index) {
+        return addDoc(collection(db, "nutritionMeals"), {
+          memberUid: memberUid,
+          title: row.title || "وجبة",
+          time: row.time || "--:--",
+          kcal: Number(row.kcal || 0),
+          protein: Number(row.protein || 0),
+          carbs: Number(row.carbs || 0),
+          fat: Number(row.fat || 0),
+          sortOrder: Number(index + 1),
+          createdByUid: state.user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      })
+    );
+    await loadMeals();
+    renderMeals();
+    renderKpis();
+    elements.dashboardMessage.textContent = "تم تطبيق القالب الغذائي على المتدرب النشط.";
+  } catch (error) {
+    console.error("Failed to apply nutrition template", error);
+    elements.dashboardMessage.textContent = "تعذر تطبيق القالب على المتدرب.";
+  } finally {
+    setFormBusy(elements.applyTemplateToMemberBtn, false, "", "تطبيق القالب");
+  }
+}
+
 function clearWorkoutForm() {
   const form = elements.workoutForm;
   form.reset();
@@ -787,6 +1281,18 @@ function clearWorkoutForm() {
   elements.saveWorkoutBtn.textContent = "نشر فيديو التدريب";
 }
 
+function clearLibraryForm() {
+  if (!elements.libraryForm) return;
+  const form = elements.libraryForm;
+  form.reset();
+  form.editId.value = "";
+  form.intensity.value = "متوسطة";
+  form.focus.value = "strength";
+  if (form.sortOrder) form.sortOrder.value = "10";
+  if (elements.cancelLibraryEditBtn) elements.cancelLibraryEditBtn.classList.add("hidden");
+  if (elements.saveLibraryBtn) elements.saveLibraryBtn.textContent = "حفظ في المكتبة";
+}
+
 function clearMealForm() {
   const form = elements.mealForm;
   form.reset();
@@ -794,6 +1300,18 @@ function clearMealForm() {
   form.sortOrder.value = "10";
   elements.cancelMealEditBtn.classList.add("hidden");
   elements.saveMealBtn.textContent = "نشر الوجبة";
+}
+
+function clearNutritionTemplateForm() {
+  if (!elements.nutritionTemplateForm) return;
+  const form = elements.nutritionTemplateForm;
+  form.reset();
+  form.editId.value = "";
+  form.caseType.value = "general";
+  form.weekDay.value = "الأحد";
+  form.sortOrder.value = "10";
+  if (elements.cancelTemplateEditBtn) elements.cancelTemplateEditBtn.classList.add("hidden");
+  if (elements.saveTemplateBtn) elements.saveTemplateBtn.textContent = "حفظ سطر في القالب";
 }
 
 function clearPostForm() {
@@ -808,14 +1326,141 @@ function clearPostForm() {
 function render() {
   renderKpis();
   renderFinance();
+  renderSpecialistProfile();
   renderActiveMemberSelect();
   renderActiveMemberProfile();
   renderMyClients();
   renderWorkouts();
+  renderWorkoutLibrary();
   renderMeals();
+  renderNutritionTemplates();
+  renderPhysioRecovery();
   renderPosts();
   renderSupportInbox();
   renderSelectedThread();
+}
+
+function renderSpecialistProfile() {
+  if (!elements.specialistProfileForm) return;
+  const form = elements.specialistProfileForm;
+  if (document.activeElement && form.contains(document.activeElement)) return;
+  const profile = state.specialistProfile || {};
+  form.displayName.value = profile.displayName || (state.user && state.user.email ? state.user.email.split("@")[0] : "");
+  form.specialization.value = profile.specialization || roleLabel(state.staffRole);
+  form.yearsExperience.value = profile.yearsExperience != null ? profile.yearsExperience : 0;
+  form.certifications.value = profile.certifications || "";
+  form.bio.value = profile.bio || "";
+}
+
+function renderWorkoutLibrary() {
+  if (!elements.libraryList) return;
+  if (!(state.staffRole === "coach" || state.staffRole === "admin")) {
+    elements.libraryList.innerHTML = "";
+    return;
+  }
+  if (!state.workoutLibrary.length) {
+    elements.libraryList.innerHTML = '<article class="item"><strong>المكتبة فارغة</strong><p>أضف فيديوهاتك القياسية ثم طبقها على المتدربين.</p></article>';
+    return;
+  }
+
+  elements.libraryList.innerHTML = state.workoutLibrary
+    .map(function (item) {
+      return (
+        '<article class="item">' +
+        '<strong>' + escapeHtml(item.title || "تمرين") + " • " + escapeHtml(item.defaultDay || "-") + '</strong>' +
+        '<p>' + escapeHtml((item.durationMin || 0) + " دقيقة • " + (item.intensity || "")) + '</p>' +
+        '<div class="item-actions">' +
+        '<button class="ghost-btn small" type="button" data-add-library-to-member="' + item.id + '">إضافة للمتدرب النشط</button>' +
+        '<button class="ghost-btn small" type="button" data-edit-library="' + item.id + '">تعديل</button>' +
+        '<button class="ghost-btn small danger" type="button" data-delete-library="' + item.id + '">حذف</button>' +
+        '</div>' +
+        "</article>"
+      );
+    })
+    .join("");
+}
+
+function renderNutritionTemplates() {
+  if (!elements.nutritionTemplatesList) return;
+  if (!(state.staffRole === "nutrition" || state.staffRole === "admin")) {
+    elements.nutritionTemplatesList.innerHTML = "";
+    return;
+  }
+
+  const templateNames = Array.from(new Set(state.nutritionTemplates.map(function (item) {
+    return String(item.templateName || "");
+  }).filter(Boolean)));
+
+  if (elements.applyTemplateNameSelect) {
+    elements.applyTemplateNameSelect.innerHTML = templateNames.length
+      ? templateNames.map(function (name) {
+          return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + "</option>";
+        }).join("")
+      : '<option value="">لا توجد قوالب</option>';
+  }
+
+  if (!state.nutritionTemplates.length) {
+    elements.nutritionTemplatesList.innerHTML = '<article class="item"><strong>لا توجد قوالب بعد</strong><p>أنشئ جدولاً أسبوعياً للحالات المختلفة ثم طبقه على المتدرب.</p></article>';
+    return;
+  }
+
+  elements.nutritionTemplatesList.innerHTML = state.nutritionTemplates
+    .map(function (item) {
+      return (
+        '<article class="item">' +
+        '<strong>' + escapeHtml(item.templateName || "قالب") + ' <span class="badge">' + escapeHtml(caseTypeLabel(item.caseType)) + "</span></strong>" +
+        '<p>' + escapeHtml((item.weekDay || "-") + " • " + (item.time || "--:--") + " • " + (item.title || "وجبة")) + '</p>' +
+        '<p>' + escapeHtml((item.kcal || 0) + " سعرة • بروتين " + (item.protein || 0) + "ج") + '</p>' +
+        '<div class="item-actions">' +
+        '<button class="ghost-btn small" type="button" data-edit-template="' + item.id + '">تعديل</button>' +
+        '<button class="ghost-btn small danger" type="button" data-delete-template="' + item.id + '">حذف</button>' +
+        '</div>' +
+        "</article>"
+      );
+    })
+    .join("");
+}
+
+function renderPhysioRecovery() {
+  if (!elements.physioInjuriesList || !elements.physioFollowupsList) return;
+  if (!(state.staffRole === "physio" || state.staffRole === "admin")) {
+    elements.physioInjuriesList.innerHTML = "";
+    elements.physioFollowupsList.innerHTML = "";
+    return;
+  }
+
+  if (elements.physioFollowupForm && elements.physioFollowupForm.injuryId) {
+    const injuryOptions = ['<option value="">بدون ربط مباشر</option>'].concat(
+      state.injuryReports.map(function (item) {
+        const label = (item.area || "إصابة") + " • " + severityLabel(item.severity);
+        return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(label) + "</option>";
+      })
+    );
+    elements.physioFollowupForm.injuryId.innerHTML = injuryOptions.join("");
+  }
+
+  elements.physioInjuriesList.innerHTML = state.injuryReports.length
+    ? state.injuryReports.map(function (item) {
+        return (
+          '<article class="item">' +
+          '<strong>' + escapeHtml(item.area || "إصابة") + " • " + escapeHtml(severityLabel(item.severity)) + '</strong>' +
+          '<p>' + escapeHtml(item.note || "") + "</p>" +
+          "</article>"
+        );
+      }).join("")
+    : '<article class="item"><strong>لا توجد بلاغات إصابة</strong><p>عند الإبلاغ من المتدرب ستظهر هنا.</p></article>';
+
+  elements.physioFollowupsList.innerHTML = state.injuryFollowups.length
+    ? state.injuryFollowups.map(function (item) {
+        return (
+          '<article class="item">' +
+          '<strong>' + escapeHtml(followupStatusLabel(item.status)) + '</strong>' +
+          '<p>' + escapeHtml(item.plan || "") + "</p>" +
+          '<p>' + escapeHtml(item.nextCheckDate ? "المراجعة القادمة: " + item.nextCheckDate : "بدون موعد متابعة") + "</p>" +
+          "</article>"
+        );
+      }).join("")
+    : '<article class="item"><strong>لا توجد متابعات علاجية</strong><p>أضف أول متابعة للمتدرب النشط.</p></article>';
 }
 
 function renderActiveMemberProfile() {
@@ -1134,12 +1779,17 @@ async function onActiveMemberChanged() {
   state.activeMemberUid = String(elements.activeMemberSelect.value || "");
   clearWorkoutForm();
   clearMealForm();
+  clearLibraryForm();
+  clearNutritionTemplateForm();
   elements.dashboardMessage.textContent = "جاري تحميل خطة المتدرب...";
-  await Promise.all([loadWorkouts(), loadMeals()]);
+  await Promise.all([loadWorkouts(), loadMeals(), loadInjuryReports(), loadInjuryFollowups()]);
   const threads = buildThreads();
   state.selectedThreadId = threads.length ? threads[0].threadId : null;
   renderWorkouts();
+  renderWorkoutLibrary();
   renderMeals();
+  renderNutritionTemplates();
+  renderPhysioRecovery();
   renderActiveMemberProfile();
   renderSupportInbox();
   renderSelectedThread();
@@ -1163,6 +1813,28 @@ function roleLabel(role) {
   return role || "Staff";
 }
 
+function caseTypeLabel(caseType) {
+  if (caseType === "insulin-resistance") return "مقاومة إنسولين";
+  if (caseType === "weight-loss") return "خسارة وزن";
+  if (caseType === "allergy-friendly") return "حساسية غذائية";
+  return "عام";
+}
+
+function followupStatusLabel(status) {
+  if (status === "under-review") return "قيد المتابعة";
+  if (status === "improving") return "تحسن";
+  if (status === "stable") return "مستقرة";
+  if (status === "closed") return "مغلقة";
+  return "متابعة";
+}
+
+function severityLabel(value) {
+  const severity = Number(value || 1);
+  if (severity >= 3) return "شديدة";
+  if (severity === 2) return "متوسطة";
+  return "خفيفة";
+}
+
 function planLabel(planId) {
   if (planId === "move-plus") return "MOVE Plus";
   if (planId === "move-pro") return "MOVE Pro Team";
@@ -1176,13 +1848,23 @@ function formatCurrency(value) {
 function applyRoleExperience() {
   const isCoachRole = state.staffRole === "coach" || state.staffRole === "admin";
   const isNutritionRole = state.staffRole === "nutrition" || state.staffRole === "admin";
+  const isPhysioRole = state.staffRole === "physio" || state.staffRole === "admin";
   const canPublishCommunity = state.staffRole === "admin" || state.staffRole === "coach";
 
   if (elements.workoutSection) {
     elements.workoutSection.classList.toggle("hidden", !isCoachRole);
   }
+  if (elements.librarySection) {
+    elements.librarySection.classList.toggle("hidden", !isCoachRole);
+  }
   if (elements.mealSection) {
     elements.mealSection.classList.toggle("hidden", !isNutritionRole);
+  }
+  if (elements.nutritionTemplateSection) {
+    elements.nutritionTemplateSection.classList.toggle("hidden", !isNutritionRole);
+  }
+  if (elements.physioRecoverySection) {
+    elements.physioRecoverySection.classList.toggle("hidden", !isPhysioRole);
   }
   if (elements.postSection) {
     elements.postSection.classList.toggle("hidden", !canPublishCommunity);
