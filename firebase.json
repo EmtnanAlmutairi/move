@@ -12,7 +12,7 @@
     "rewrites": [
       {
         "source": "/move",
-        "destination": "/move-app.html"
+        "destination": "/index.html"
       },
       {
         "source": "/coach",
