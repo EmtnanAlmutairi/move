@@ -363,7 +363,8 @@ function renderEntries() {
         '<span class="entry-badge">' + escapeHtml(formatSportLabel(entry.sportCategory)) + "</span>" +
         '<div class="entry-date">' + escapeHtml(formatSpecializationLabel(entry.specialization)) + "</div>" +
         "</div>" +
-        '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>";
+        '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>" +
+        renderCoachProfileDetails(entry);
       elements.coachEntriesList.appendChild(item);
     });
   }
@@ -386,10 +387,65 @@ function renderEntries() {
         '<span class="entry-badge">' + escapeHtml(formatGoalLabel(entry.goal)) + "</span>" +
         '<div class="entry-date">' + escapeHtml(formatFitnessLevelLabel(entry.fitnessLevel)) + " • " + escapeHtml(formatTrainingLocationLabel(entry.trainingLocation)) + "</div>" +
         "</div>" +
-        '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>";
+        '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>" +
+        renderTraineeProfileDetails(entry);
       elements.traineeEntriesList.appendChild(item);
     });
   }
+}
+
+function renderCoachProfileDetails(entry) {
+  return (
+    '<details class="entry-profile">' +
+    '<summary>عرض الملف الكامل</summary>' +
+    '<div class="entry-profile-grid">' +
+    renderProfileField("الاسم", entry.fullName) +
+    renderProfileField("البريد", entry.email) +
+    renderProfileField("الجوال", entry.phone) +
+    renderProfileField("سنوات الخبرة", entry.yearsExperience) +
+    renderProfileField("التخصص", formatSpecializationLabel(entry.specialization)) +
+    renderProfileField("الرياضة", formatSportLabel(entry.sportCategory)) +
+    renderProfileField("الشهادات", entry.certifications) +
+    renderProfileField("نمط التدريب", entry.coachingType) +
+    renderProfileField("مكان التدريب", entry.coachingLocation) +
+    renderProfileField("نبذة الخبرة", entry.experienceDetails) +
+    renderProfileField("أوقات التفرغ", entry.availability) +
+    renderProfileField("المصدر", entry.source) +
+    renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
+    renderProfileField("رقم المستند", entry.id) +
+    "</div>" +
+    "</details>"
+  );
+}
+
+function renderTraineeProfileDetails(entry) {
+  return (
+    '<details class="entry-profile">' +
+    '<summary>عرض الملف الكامل</summary>' +
+    '<div class="entry-profile-grid">' +
+    renderProfileField("الاسم", entry.fullName) +
+    renderProfileField("البريد", entry.email) +
+    renderProfileField("الجوال", entry.phone) +
+    renderProfileField("الهدف", formatGoalLabel(entry.goal)) +
+    renderProfileField("مستوى اللياقة", formatFitnessLevelLabel(entry.fitnessLevel)) +
+    renderProfileField("مكان التمرين", formatTrainingLocationLabel(entry.trainingLocation)) +
+    renderProfileField("المعدات", entry.equipment) +
+    renderProfileField("ملاحظات صحية", entry.healthNotes) +
+    renderProfileField("المصدر", entry.source) +
+    renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
+    renderProfileField("رقم المستند", entry.id) +
+    "</div>" +
+    "</details>"
+  );
+}
+
+function renderProfileField(label, value) {
+  return (
+    '<div class="entry-profile-field">' +
+    '<small>' + escapeHtml(label) + "</small>" +
+    '<strong>' + escapeHtml(value || "-") + "</strong>" +
+    "</div>"
+  );
 }
 
 function getLatestSignupLabel() {

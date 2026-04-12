@@ -441,6 +441,47 @@ input {
   text-transform: uppercase;
 }
 
+.entry-profile {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 10px 12px;
+}
+
+.entry-profile summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.entry-profile-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.entry-profile-field {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.entry-profile-field small {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.entry-profile-field strong {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 @media (max-width: 900px) {
   .stats-grid,
   .identity-bar,
@@ -449,6 +490,10 @@ input {
   }
 
   .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-profile-grid {
     grid-template-columns: 1fr;
   }
 }
