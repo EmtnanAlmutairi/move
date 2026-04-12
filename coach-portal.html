@@ -38,7 +38,7 @@
     <section class="panel hidden" id="coachDashboard">
       <div class="dash-head">
         <div>
-          <h2>لوحة المدرب</h2>
+          <h2 id="dashboardRoleTitle">لوحة المدرب</h2>
           <p class="muted" id="coachWelcome">إدارة كاملة للمحتوى والتواصل</p>
         </div>
         <div class="dash-actions">
@@ -48,11 +48,16 @@
       </div>
 
       <div class="kpi-grid">
-        <article><strong id="coachTraineesCount">0</strong><span>متدربين</span></article>
-        <article><strong id="coachWorkoutsCount">0</strong><span>فيديوهات تدريب</span></article>
-        <article><strong id="coachMealsCount">0</strong><span>وجبات</span></article>
-        <article><strong id="coachThreadsCount">0</strong><span>محادثات نشطة</span></article>
+        <article><strong id="coachTraineesCount">0</strong><span id="kpiLabel1">متدربين</span></article>
+        <article><strong id="coachWorkoutsCount">0</strong><span id="kpiLabel2">فيديوهات تدريب</span></article>
+        <article><strong id="coachMealsCount">0</strong><span id="kpiLabel3">وجبات</span></article>
+        <article><strong id="coachThreadsCount">0</strong><span id="kpiLabel4">محادثات نشطة</span></article>
       </div>
+
+      <section class="card" id="roleFocusSection">
+        <div class="card-head"><h3 id="roleFocusTitle">أولويات اليوم</h3><span class="badge" id="roleFocusBadge">Coach</span></div>
+        <div id="roleFocusList" class="item-list"></div>
+      </section>
 
       <section class="card">
         <div class="card-head"><h3>المالية</h3><span class="badge">تقديري</span></div>

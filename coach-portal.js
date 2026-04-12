@@ -76,12 +76,21 @@ function cacheElements() {
   elements.refreshBtn = document.getElementById("coachRefreshBtn");
   elements.signOutBtn = document.getElementById("coachSignOutBtn");
   elements.welcome = document.getElementById("coachWelcome");
+  elements.dashboardRoleTitle = document.getElementById("dashboardRoleTitle");
   elements.dashboardMessage = document.getElementById("coachDashboardMessage");
 
   elements.traineesCount = document.getElementById("coachTraineesCount");
   elements.workoutsCount = document.getElementById("coachWorkoutsCount");
   elements.mealsCount = document.getElementById("coachMealsCount");
   elements.threadsCount = document.getElementById("coachThreadsCount");
+  elements.kpiLabel1 = document.getElementById("kpiLabel1");
+  elements.kpiLabel2 = document.getElementById("kpiLabel2");
+  elements.kpiLabel3 = document.getElementById("kpiLabel3");
+  elements.kpiLabel4 = document.getElementById("kpiLabel4");
+  elements.roleFocusSection = document.getElementById("roleFocusSection");
+  elements.roleFocusTitle = document.getElementById("roleFocusTitle");
+  elements.roleFocusBadge = document.getElementById("roleFocusBadge");
+  elements.roleFocusList = document.getElementById("roleFocusList");
   elements.staffRoleBadge = document.getElementById("staffRoleBadge");
   elements.myClientsList = document.getElementById("myClientsList");
   elements.activeMemberProfileCard = document.getElementById("activeMemberProfileCard");
@@ -1325,6 +1334,7 @@ function clearPostForm() {
 
 function render() {
   renderKpis();
+  renderRoleFocus();
   renderFinance();
   renderSpecialistProfile();
   renderActiveMemberSelect();
@@ -1539,10 +1549,100 @@ function renderFinance() {
 
 function renderKpis() {
   const threads = buildThreads();
-  elements.traineesCount.textContent = String(state.visibleSubscriptions.length);
-  elements.workoutsCount.textContent = String(state.workouts.length);
-  elements.mealsCount.textContent = String(state.meals.length);
+  const assignedClients = state.visibleSubscriptions.length;
+  const workoutsCount = state.workouts.length;
+  const mealsCount = state.meals.length;
+  const templatesCount = state.nutritionTemplates.length;
+  const injuriesCount = state.injuryReports.length;
+  const followupsCount = state.injuryFollowups.length;
+
+  if (state.staffRole === "nutrition") {
+    elements.kpiLabel1.textContent = "عملاء التغذية";
+    elements.kpiLabel2.textContent = "وجبات للعميل النشط";
+    elements.kpiLabel3.textContent = "قوالب غذائية";
+    elements.kpiLabel4.textContent = "محادثات نشطة";
+    elements.traineesCount.textContent = String(assignedClients);
+    elements.workoutsCount.textContent = String(mealsCount);
+    elements.mealsCount.textContent = String(templatesCount);
+    elements.threadsCount.textContent = String(threads.length);
+    return;
+  }
+
+  if (state.staffRole === "physio") {
+    elements.kpiLabel1.textContent = "حالات معيّنة";
+    elements.kpiLabel2.textContent = "بلاغات إصابة";
+    elements.kpiLabel3.textContent = "متابعات علاجية";
+    elements.kpiLabel4.textContent = "محادثات نشطة";
+    elements.traineesCount.textContent = String(assignedClients);
+    elements.workoutsCount.textContent = String(injuriesCount);
+    elements.mealsCount.textContent = String(followupsCount);
+    elements.threadsCount.textContent = String(threads.length);
+    return;
+  }
+
+  if (state.staffRole === "admin") {
+    elements.kpiLabel1.textContent = "إجمالي العملاء";
+    elements.kpiLabel2.textContent = "خطة تدريب نشطة";
+    elements.kpiLabel3.textContent = "خطة غذائية نشطة";
+    elements.kpiLabel4.textContent = "محادثات نشطة";
+    elements.traineesCount.textContent = String(assignedClients);
+    elements.workoutsCount.textContent = String(workoutsCount);
+    elements.mealsCount.textContent = String(mealsCount);
+    elements.threadsCount.textContent = String(threads.length);
+    return;
+  }
+
+  elements.kpiLabel1.textContent = "متدربين";
+  elements.kpiLabel2.textContent = "فيديوهات تدريب";
+  elements.kpiLabel3.textContent = "مكتبة المدرب";
+  elements.kpiLabel4.textContent = "محادثات نشطة";
+  elements.traineesCount.textContent = String(assignedClients);
+  elements.workoutsCount.textContent = String(workoutsCount);
+  elements.mealsCount.textContent = String(state.workoutLibrary.length);
   elements.threadsCount.textContent = String(threads.length);
+}
+
+function renderRoleFocus() {
+  if (!elements.roleFocusSection || !elements.roleFocusList || !elements.roleFocusTitle || !elements.roleFocusBadge) return;
+
+  const activeMemberName = state.activeMemberUid ? memberNameByUid(state.activeMemberUid) : "لا يوجد متدرب محدد";
+  let title = "أولويات المدرب";
+  let tasks = [
+    "راجِع خطة العميل النشط وحدّث الشدة إذا ظهر تعب أو ألم.",
+    "أضف تمرين أو بديل آمن لكل يوم ناقص.",
+    "تابع محادثات العملاء المفتوحة قبل نهاية اليوم."
+  ];
+
+  if (state.staffRole === "nutrition") {
+    title = "أولويات التغذية";
+    tasks = [
+      "راجع وجبات " + activeMemberName + " وتأكد من السعرات والمغذيات.",
+      "طبّق قالب غذائي مناسب للحالة الصحية الحالية.",
+      "أرسل ملاحظة غذائية قصيرة مرتبطة بالتزام اليوم."
+    ];
+  } else if (state.staffRole === "physio") {
+    title = "أولويات العلاج الطبيعي";
+    tasks = [
+      "راجع بلاغات الإصابة الحديثة للحالة النشطة.",
+      "حدّث خطة العلاج وموعد المراجعة القادمة.",
+      "أبلغ المدرب فوراً عند وجود تقييد حركي عالي."
+    ];
+  } else if (state.staffRole === "admin") {
+    title = "أولويات الإدارة";
+    tasks = [
+      "راقب توزيع العملاء على المختصين وتغطية الفريق.",
+      "راجع التنبيهات الحرجة وتحقق من الاستجابة خلال اليوم.",
+      "تابع جودة المحتوى: تدريب، تغذية، ومتابعات إصابات."
+    ];
+  }
+
+  elements.roleFocusTitle.textContent = title;
+  elements.roleFocusBadge.textContent = roleLabel(state.staffRole);
+  elements.roleFocusList.innerHTML = tasks
+    .map(function (task) {
+      return '<article class="item"><p>' + escapeHtml(task) + "</p></article>";
+    })
+    .join("");
 }
 
 function renderMyClients() {
@@ -1850,6 +1950,16 @@ function applyRoleExperience() {
   const isNutritionRole = state.staffRole === "nutrition" || state.staffRole === "admin";
   const isPhysioRole = state.staffRole === "physio" || state.staffRole === "admin";
   const canPublishCommunity = state.staffRole === "admin" || state.staffRole === "coach";
+  const titleByRole = {
+    coach: "لوحة المدرب البدني",
+    nutrition: "لوحة أخصائي التغذية",
+    physio: "لوحة العلاج الطبيعي",
+    admin: "لوحة الإدارة"
+  };
+
+  if (elements.dashboardRoleTitle) {
+    elements.dashboardRoleTitle.textContent = titleByRole[state.staffRole] || "لوحة الفريق";
+  }
 
   if (elements.workoutSection) {
     elements.workoutSection.classList.toggle("hidden", !isCoachRole);
