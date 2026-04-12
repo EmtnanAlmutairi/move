@@ -229,6 +229,7 @@ service cloud.firestore {
           "phone",
           "yearsExperience",
           "specialization",
+          "sportCategory",
           "certifications",
           "coachingType",
           "coachingLocation",
@@ -254,6 +255,17 @@ service cloud.firestore {
         request.resource.data.specialization is string &&
         request.resource.data.specialization.size() >= 3 &&
         request.resource.data.specialization.size() <= 40 &&
+        request.resource.data.sportCategory is string &&
+        request.resource.data.sportCategory in [
+          "strength-muscle",
+          "weight-loss-fitness",
+          "calisthenics",
+          "running-cardio",
+          "yoga",
+          "pilates",
+          "mobility-recovery",
+          "rehab-physio"
+        ] &&
         request.resource.data.certifications is string &&
         request.resource.data.certifications.size() >= 2 &&
         request.resource.data.certifications.size() <= 300 &&
