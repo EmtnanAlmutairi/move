@@ -28,6 +28,7 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background:
+    radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.5), transparent 35%),
     radial-gradient(circle at top left, rgba(181, 255, 69, 0.24), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 122, 24, 0.18), transparent 24%),
     linear-gradient(180deg, #f6f1e8 0%, #ece2d2 100%);
@@ -44,12 +45,13 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
 .admin-shell {
-  width: min(calc(100% - 32px), 1100px);
+  width: min(calc(100% - 32px), 1220px);
   margin: 0 auto;
   padding: 24px 0 48px;
 }
@@ -66,12 +68,25 @@ input {
 }
 
 .admin-hero {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 24px;
   align-items: center;
   padding: 28px;
   box-shadow: var(--soft-shadow);
+}
+
+.admin-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto -120px -120px auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 122, 24, 0.28), transparent 70%);
+  pointer-events: none;
 }
 
 .admin-brand {
@@ -90,6 +105,11 @@ input {
   width: 78px;
   height: auto;
   object-fit: contain;
+}
+
+.admin-hero-copy {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-kicker,
@@ -162,7 +182,8 @@ input {
   font-size: 0.9rem;
 }
 
-.admin-field input {
+.admin-field input,
+.admin-field select {
   min-height: 56px;
   padding: 0 18px;
   border: 1px solid rgba(17, 17, 17, 0.12);
@@ -171,7 +192,8 @@ input {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.admin-field input:focus {
+.admin-field input:focus,
+.admin-field select:focus {
   outline: none;
   border-color: rgba(17, 17, 17, 0.28);
   box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.12);
@@ -230,6 +252,10 @@ input {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.dashboard-actions .admin-btn {
+  min-width: 116px;
 }
 
 .portal-quicknav {
@@ -320,7 +346,8 @@ input {
 }
 
 .stats-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 8px;
 }
 
 .stat-card,
@@ -335,6 +362,8 @@ input {
 .stat-card {
   padding: 18px 20px;
   transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .stat-card strong {
@@ -349,6 +378,30 @@ input {
   transform: translateY(-2px);
   border-color: rgba(255, 122, 24, 0.22);
   background: rgba(255, 255, 255, 0.78);
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--orange), rgba(255, 122, 24, 0.25));
+}
+
+.stat-card:nth-child(2)::before {
+  background: linear-gradient(180deg, #ff6f32, rgba(255, 111, 50, 0.25));
+}
+
+.stat-card:nth-child(3)::before {
+  background: linear-gradient(180deg, #ff9f46, rgba(255, 159, 70, 0.25));
+}
+
+.stat-card:nth-child(4)::before {
+  background: linear-gradient(180deg, #c7b789, rgba(199, 183, 137, 0.3));
+}
+
+.stat-card:nth-child(5)::before {
+  background: linear-gradient(180deg, #8f846d, rgba(143, 132, 109, 0.28));
 }
 
 .setup-note {
@@ -378,6 +431,8 @@ input {
 .entries-card {
   margin-top: 18px;
   padding: 22px;
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(6px);
 }
 
 .entries-head {
@@ -386,6 +441,8 @@ input {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
 }
 
 .entries-head h3 {
@@ -395,6 +452,7 @@ input {
 
 .entries-state {
   margin-top: 16px;
+  font-weight: 600;
 }
 
 .entries-list {
@@ -407,12 +465,20 @@ input {
 
 .filters-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
 }
 
 .entries-item {
   grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 0.7fr));
   align-items: center;
   padding: 18px;
+  row-gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.entries-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 122, 24, 0.2);
 }
 
 .entry-email {
@@ -445,7 +511,7 @@ input {
   grid-column: 1 / -1;
   border: 1px solid rgba(17, 17, 17, 0.08);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.78);
   padding: 10px 12px;
 }
 
@@ -453,6 +519,23 @@ input {
   cursor: pointer;
   font-weight: 700;
   color: var(--ink);
+  list-style: none;
+}
+
+.entry-profile summary::-webkit-details-marker {
+  display: none;
+}
+
+.entry-profile summary::before {
+  content: "+";
+  display: inline-flex;
+  width: 20px;
+  margin-inline-start: 6px;
+  font-weight: 800;
+}
+
+.entry-profile[open] summary::before {
+  content: "-";
 }
 
 .entry-profile-grid {
@@ -466,7 +549,7 @@ input {
   border: 1px solid rgba(17, 17, 17, 0.08);
   border-radius: 12px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .entry-profile-field small {
@@ -520,6 +603,19 @@ input {
   .dashboard-actions .admin-btn,
   .admin-form .admin-btn {
     width: 100%;
+  }
+
+  .identity-bar {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .entries-card {
+    padding: 16px;
+  }
+
+  .entries-head h3 {
+    font-size: 1.25rem;
   }
 
   .portal-quicknav {

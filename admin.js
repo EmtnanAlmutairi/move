@@ -392,6 +392,9 @@ function renderEntries() {
       elements.traineeEntriesList.appendChild(item);
     });
   }
+
+  bindProfileAccordion(elements.coachEntriesList);
+  bindProfileAccordion(elements.traineeEntriesList);
 }
 
 function renderCoachProfileDetails(entry) {
@@ -446,6 +449,20 @@ function renderProfileField(label, value) {
     '<strong>' + escapeHtml(value || "-") + "</strong>" +
     "</div>"
   );
+}
+
+function bindProfileAccordion(container) {
+  if (!container) return;
+  container.querySelectorAll(".entry-profile").forEach(function (details) {
+    details.addEventListener("toggle", function () {
+      if (!details.open) return;
+      container.querySelectorAll(".entry-profile").forEach(function (other) {
+        if (other !== details) {
+          other.open = false;
+        }
+      });
+    });
+  });
 }
 
 function getLatestSignupLabel() {
