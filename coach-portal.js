@@ -23,6 +23,9 @@ import { auth, db, initializeAnalytics } from "./firebase-client.js";
 
 initializeAnalytics();
 
+const ACCESS_LOCK_MODE = true;
+const REGISTRATION_ONLY_MESSAGE = "الدخول موقوف حالياً. التسجيل فقط متاح في الوقت الحالي.";
+
 const PLAN_PRICES = {
   "move-plus": 299,
   "move-pro": 499
@@ -150,6 +153,10 @@ function cacheElements() {
 
 function bindEvents() {
   elements.loginForm.addEventListener("submit", onLoginSubmit);
+  if (ACCESS_LOCK_MODE) {
+    setLoginLoading(false);
+    elements.authMessage.textContent = REGISTRATION_ONLY_MESSAGE;
+  }
 
   elements.signOutBtn.addEventListener("click", function () {
     signOut(auth);
@@ -225,6 +232,11 @@ function bindEvents() {
 async function onLoginSubmit(event) {
   event.preventDefault();
 
+  if (ACCESS_LOCK_MODE) {
+    elements.authMessage.textContent = REGISTRATION_ONLY_MESSAGE;
+    return;
+  }
+
   const email = event.currentTarget.email.value.trim();
   const password = event.currentTarget.password.value;
 
@@ -245,6 +257,11 @@ async function onLoginSubmit(event) {
 }
 
 function setLoginLoading(loading) {
+  if (ACCESS_LOCK_MODE) {
+    elements.loginBtn.disabled = true;
+    elements.loginBtn.textContent = "مغلق مؤقتاً";
+    return;
+  }
   elements.loginBtn.disabled = loading;
   elements.loginBtn.textContent = loading ? "جاري الدخول..." : "دخول";
 }
@@ -253,6 +270,17 @@ async function onAuthChanged(user) {
   state.user = user;
   state.isStaff = false;
   state.staffRole = "coach";
+
+  if (ACCESS_LOCK_MODE) {
+    teardownSupportListener();
+    if (user) {
+      await signOut(auth);
+    }
+    elements.authCard.classList.remove("hidden");
+    elements.dashboard.classList.add("hidden");
+    elements.authMessage.textContent = REGISTRATION_ONLY_MESSAGE;
+    return;
+  }
 
   if (!user) {
     teardownSupportListener();

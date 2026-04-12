@@ -13,6 +13,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { auth, db } from "./firebase-client.js";
 
+const ACCESS_LOCK_MODE = true;
+const REGISTRATION_ONLY_MESSAGE = "الدخول موقوف حالياً. التسجيل فقط متاح في الوقت الحالي.";
+
 const state = {
   entries: [],
   user: null,
@@ -51,6 +54,12 @@ function cacheElements() {
 
 function bindEvents() {
   elements.loginForm.addEventListener("submit", handleLoginSubmit);
+  if (ACCESS_LOCK_MODE) {
+    setAuthLoading(false);
+    elements.loginButton.disabled = true;
+    elements.loginButton.textContent = "Access Closed";
+    setAuthMessage(REGISTRATION_ONLY_MESSAGE);
+  }
   elements.refreshButton.addEventListener("click", refreshDashboard);
   elements.exportButton.addEventListener("click", exportCsv);
   elements.copyUidButton.addEventListener("click", copyUid);
@@ -59,6 +68,11 @@ function bindEvents() {
 
 async function handleLoginSubmit(event) {
   event.preventDefault();
+
+  if (ACCESS_LOCK_MODE) {
+    setAuthMessage(REGISTRATION_ONLY_MESSAGE);
+    return;
+  }
 
   const email = event.currentTarget.email.value.trim();
   const password = event.currentTarget.password.value;
@@ -88,6 +102,15 @@ async function handleAuthStateChanged(user) {
   state.hasAdminAccess = false;
   state.entries = [];
   renderEntries([]);
+
+  if (ACCESS_LOCK_MODE) {
+    if (user) {
+      await signOut(auth);
+    }
+    showSignedOutState();
+    setAuthMessage(REGISTRATION_ONLY_MESSAGE);
+    return;
+  }
 
   if (!user) {
     showSignedOutState();

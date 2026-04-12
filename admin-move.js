@@ -13,6 +13,9 @@
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { auth, db } from "./firebase-client.js";
 
+const ACCESS_LOCK_MODE = true;
+const REGISTRATION_ONLY_MESSAGE = "الدخول موقوف حالياً. التسجيل فقط متاح في الوقت الحالي.";
+
 const PLAN_PRICES = {
   "move-plus": 299,
   "move-pro": 499
@@ -85,6 +88,11 @@ function cacheElements() {
 
 function bindEvents() {
   elements.loginForm.addEventListener("submit", onLoginSubmit);
+  if (ACCESS_LOCK_MODE) {
+    elements.loginButton.disabled = true;
+    elements.loginButton.textContent = "Access Closed";
+    elements.authMessage.textContent = REGISTRATION_ONLY_MESSAGE;
+  }
   elements.refreshButton.addEventListener("click", loadDashboardData);
   elements.signOutButton.addEventListener("click", function () {
     signOut(auth);
@@ -128,6 +136,12 @@ function bindEvents() {
 
 async function onLoginSubmit(event) {
   event.preventDefault();
+
+  if (ACCESS_LOCK_MODE) {
+    elements.authMessage.textContent = REGISTRATION_ONLY_MESSAGE;
+    return;
+  }
+
   const email = event.currentTarget.email.value.trim();
   const password = event.currentTarget.password.value;
 
@@ -153,6 +167,16 @@ async function onLoginSubmit(event) {
 async function handleAuthState(user) {
   state.user = user;
   state.isAdmin = false;
+
+  if (ACCESS_LOCK_MODE) {
+    if (user) {
+      await signOut(auth);
+    }
+    elements.authCard.classList.remove("panel-hidden");
+    elements.dashboardCard.classList.add("panel-hidden");
+    elements.authMessage.textContent = REGISTRATION_ONLY_MESSAGE;
+    return;
+  }
 
   if (!user) {
     elements.authCard.classList.remove("panel-hidden");
