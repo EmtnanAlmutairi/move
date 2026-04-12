@@ -13,13 +13,16 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { auth, db } from "./firebase-client.js";
 
-const ACCESS_LOCK_MODE = true;
-const REGISTRATION_ONLY_MESSAGE = "الدخول موقوف حالياً. التسجيل فقط متاح في الوقت الحالي.";
-
 const state = {
-  entries: [],
   user: null,
-  hasAdminAccess: false
+  hasAdminAccess: false,
+  coachEntries: [],
+  traineeEntries: [],
+  filters: {
+    search: "",
+    coachSport: "all",
+    dateRange: "all"
+  }
 };
 
 const elements = {};
@@ -40,12 +43,20 @@ function cacheElements() {
   elements.currentUserEmail = document.getElementById("currentUserEmail");
   elements.currentUserUid = document.getElementById("currentUserUid");
   elements.signupsCount = document.getElementById("signupsCount");
+  elements.coachesCount = document.getElementById("coachesCount");
+  elements.traineesCount = document.getElementById("traineesCount");
   elements.latestSignup = document.getElementById("latestSignup");
   elements.accessState = document.getElementById("accessState");
   elements.setupNote = document.getElementById("setupNote");
   elements.entriesState = document.getElementById("entriesState");
-  elements.entriesList = document.getElementById("entriesList");
+  elements.traineeEntriesState = document.getElementById("traineeEntriesState");
   elements.entriesMeta = document.getElementById("entriesMeta");
+  elements.traineeEntriesMeta = document.getElementById("traineeEntriesMeta");
+  elements.coachEntriesList = document.getElementById("coachEntriesList");
+  elements.traineeEntriesList = document.getElementById("traineeEntriesList");
+  elements.registrationsSearchInput = document.getElementById("registrationsSearchInput");
+  elements.coachSportFilter = document.getElementById("coachSportFilter");
+  elements.dateFilter = document.getElementById("dateFilter");
   elements.refreshButton = document.getElementById("refreshButton");
   elements.exportButton = document.getElementById("exportButton");
   elements.copyUidButton = document.getElementById("copyUidButton");
@@ -54,36 +65,43 @@ function cacheElements() {
 
 function bindEvents() {
   elements.loginForm.addEventListener("submit", handleLoginSubmit);
-  if (ACCESS_LOCK_MODE) {
-    setAuthLoading(false);
-    elements.loginButton.disabled = true;
-    elements.loginButton.textContent = "Access Closed";
-    setAuthMessage(REGISTRATION_ONLY_MESSAGE);
-  }
   elements.refreshButton.addEventListener("click", refreshDashboard);
   elements.exportButton.addEventListener("click", exportCsv);
   elements.copyUidButton.addEventListener("click", copyUid);
   elements.signOutButton.addEventListener("click", handleSignOut);
+  if (elements.registrationsSearchInput) {
+    elements.registrationsSearchInput.addEventListener("input", function () {
+      state.filters.search = String(elements.registrationsSearchInput.value || "").trim().toLowerCase();
+      renderEntries();
+    });
+  }
+  if (elements.coachSportFilter) {
+    elements.coachSportFilter.addEventListener("change", function () {
+      state.filters.coachSport = String(elements.coachSportFilter.value || "all");
+      renderEntries();
+    });
+  }
+  if (elements.dateFilter) {
+    elements.dateFilter.addEventListener("change", function () {
+      state.filters.dateRange = String(elements.dateFilter.value || "all");
+      renderEntries();
+    });
+  }
 }
 
 async function handleLoginSubmit(event) {
   event.preventDefault();
 
-  if (ACCESS_LOCK_MODE) {
-    setAuthMessage(REGISTRATION_ONLY_MESSAGE);
-    return;
-  }
-
   const email = event.currentTarget.email.value.trim();
   const password = event.currentTarget.password.value;
 
   if (!email || !password) {
-    setAuthMessage("Enter both email and password.");
+    setAuthMessage("يرجى إدخال البريد وكلمة المرور.");
     return;
   }
 
   setAuthLoading(true);
-  setAuthMessage("Signing in...");
+  setAuthMessage("جارٍ تسجيل الدخول...");
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -100,17 +118,9 @@ async function handleLoginSubmit(event) {
 async function handleAuthStateChanged(user) {
   state.user = user;
   state.hasAdminAccess = false;
-  state.entries = [];
-  renderEntries([]);
-
-  if (ACCESS_LOCK_MODE) {
-    if (user) {
-      await signOut(auth);
-    }
-    showSignedOutState();
-    setAuthMessage(REGISTRATION_ONLY_MESSAGE);
-    return;
-  }
+  state.coachEntries = [];
+  state.traineeEntries = [];
+  renderEntries();
 
   if (!user) {
     showSignedOutState();
@@ -118,35 +128,39 @@ async function handleAuthStateChanged(user) {
   }
 
   showDashboardState();
-  elements.currentUserEmail.textContent = user.email || "No email";
+  elements.currentUserEmail.textContent = user.email || "بدون بريد";
   elements.currentUserUid.textContent = user.uid;
-  elements.entriesState.textContent = "Checking admin access...";
-  elements.accessState.textContent = "Checking";
+  elements.accessState.textContent = "جارٍ التحقق";
   elements.signupsCount.textContent = "0";
-  elements.latestSignup.textContent = "No data yet";
+  elements.coachesCount.textContent = "0";
+  elements.traineesCount.textContent = "0";
+  elements.latestSignup.textContent = "لا يوجد";
+  elements.entriesState.textContent = "جارٍ التحقق من صلاحية الأدمن...";
+  elements.traineeEntriesState.textContent = "جارٍ التحقق من صلاحية الأدمن...";
 
   try {
     const adminSnapshot = await getDoc(doc(db, "admins", user.uid));
-
     if (!adminSnapshot.exists()) {
       state.hasAdminAccess = false;
-      elements.accessState.textContent = "Needs approval";
+      elements.accessState.textContent = "غير مفعل";
       elements.setupNote.classList.remove("panel-hidden");
-      elements.entriesState.textContent = "Create your admin document, then refresh.";
-      setDashboardMessage("This account can sign in, but it is not listed in Firestore admins yet.");
+      elements.entriesState.textContent = "أضف الحساب داخل admins في Firestore.";
+      elements.traineeEntriesState.textContent = "أضف الحساب داخل admins في Firestore.";
+      setDashboardMessage("هذا الحساب غير مضاف كأدمن في قاعدة البيانات.");
       updateActionState();
       return;
     }
 
     state.hasAdminAccess = true;
-    elements.accessState.textContent = "Approved";
+    elements.accessState.textContent = "مفعل";
     elements.setupNote.classList.add("panel-hidden");
-    await loadWaitlist();
+    await loadRegistrations();
   } catch (error) {
     console.error("Failed to verify admin access", error);
-    elements.accessState.textContent = "Error";
+    elements.accessState.textContent = "خطأ";
     elements.setupNote.classList.remove("panel-hidden");
-    elements.entriesState.textContent = "Could not verify admin access.";
+    elements.entriesState.textContent = "تعذر التحقق من الصلاحية.";
+    elements.traineeEntriesState.textContent = "تعذر التحقق من الصلاحية.";
     setDashboardMessage(getFriendlyFirestoreError(error));
     updateActionState();
   }
@@ -157,7 +171,13 @@ function showSignedOutState() {
   elements.dashboardCard.classList.add("panel-hidden");
   elements.setupNote.classList.add("panel-hidden");
   setDashboardMessage("");
-  setAuthMessage("Sign in with a Firebase Authentication admin account.");
+  setAuthMessage("ادخل بحساب Firebase Admin.");
+  if (elements.registrationsSearchInput) elements.registrationsSearchInput.value = "";
+  if (elements.coachSportFilter) elements.coachSportFilter.value = "all";
+  if (elements.dateFilter) elements.dateFilter.value = "all";
+  state.filters.search = "";
+  state.filters.coachSport = "all";
+  state.filters.dateRange = "all";
   updateActionState();
 }
 
@@ -165,46 +185,48 @@ function showDashboardState() {
   elements.authCard.classList.add("panel-hidden");
   elements.dashboardCard.classList.remove("panel-hidden");
   setAuthMessage("");
+  if (elements.registrationsSearchInput) elements.registrationsSearchInput.value = state.filters.search;
+  if (elements.coachSportFilter) elements.coachSportFilter.value = state.filters.coachSport;
+  if (elements.dateFilter) elements.dateFilter.value = state.filters.dateRange;
   updateActionState();
 }
 
-async function loadWaitlist() {
-  elements.entriesState.textContent = "Loading waitlist signups...";
-
-  const waitlistQuery = query(collection(db, "waitlist"), orderBy("createdAt", "desc"));
+async function loadRegistrations() {
+  elements.entriesState.textContent = "جارٍ تحميل تسجيلات المدربين...";
+  elements.traineeEntriesState.textContent = "جارٍ تحميل تسجيلات المتدربين...";
 
   try {
-    const snapshot = await getDocs(waitlistQuery);
-    state.entries = snapshot.docs.map(function (docSnapshot) {
-      const data = docSnapshot.data();
-      return {
-        id: docSnapshot.id,
-        email: data.email || "",
-        source: data.source || "unknown",
-        createdAt: data.createdAt || null
-      };
+    const coachQuery = query(collection(db, "coachApplications"), orderBy("createdAt", "desc"));
+    const traineeQuery = query(collection(db, "traineeInterests"), orderBy("createdAt", "desc"));
+
+    const [coachSnapshot, traineeSnapshot] = await Promise.all([
+      getDocs(coachQuery),
+      getDocs(traineeQuery)
+    ]);
+
+    state.coachEntries = coachSnapshot.docs.map(function (docSnapshot) {
+      return Object.assign({ id: docSnapshot.id }, docSnapshot.data());
+    });
+    state.traineeEntries = traineeSnapshot.docs.map(function (docSnapshot) {
+      return Object.assign({ id: docSnapshot.id }, docSnapshot.data());
     });
 
-    renderEntries(state.entries);
-    elements.accessState.textContent = "Approved";
-    setDashboardMessage("Dashboard synced successfully.");
+    renderEntries();
+    setDashboardMessage("تم تحديث بيانات التسجيلات بنجاح.");
     updateActionState();
   } catch (error) {
-    console.error("Failed to read waitlist", error);
-    state.entries = [];
-    renderEntries([]);
-    elements.entriesState.textContent = "Could not load waitlist data.";
+    console.error("Failed to read registrations", error);
+    state.coachEntries = [];
+    state.traineeEntries = [];
+    renderEntries();
     setDashboardMessage(getFriendlyFirestoreError(error));
     updateActionState();
   }
 }
 
 async function refreshDashboard() {
-  if (!state.user) {
-    return;
-  }
-
-  setDashboardMessage("Refreshing dashboard...");
+  if (!state.user) return;
+  setDashboardMessage("جارٍ التحديث...");
   await handleAuthStateChanged(state.user);
 }
 
@@ -213,36 +235,76 @@ async function handleSignOut() {
 }
 
 async function copyUid() {
-  if (!state.user) {
-    return;
-  }
+  if (!state.user) return;
 
   try {
     await navigator.clipboard.writeText(state.user.uid);
-    setDashboardMessage("UID copied to clipboard.");
+    setDashboardMessage("تم نسخ UID.");
   } catch (error) {
     console.error("Failed to copy UID", error);
-    setDashboardMessage("Copy failed. Use the UID shown on screen.");
+    setDashboardMessage("تعذر النسخ. انسخ UID يدويًا.");
   }
 }
 
 function exportCsv() {
-  if (!state.entries.length) {
-    setDashboardMessage("There is no data to export yet.");
+  const coachEntries = getFilteredCoachEntries();
+  const traineeEntries = getFilteredTraineeEntries();
+  const total = coachEntries.length + traineeEntries.length;
+  if (!total) {
+    setDashboardMessage("لا توجد بيانات للتصدير.");
     return;
   }
 
   const rows = [
-    ["email", "source", "createdAt", "documentId"],
-    ...state.entries.map(function (entry) {
-      return [
-        entry.email,
-        entry.source,
-        formatDate(entry.createdAt),
-        entry.id
-      ];
-    })
+    [
+      "type",
+      "fullName",
+      "email",
+      "phone",
+      "specialization_or_goal",
+      "sportCategory",
+      "fitnessLevel",
+      "coachingType",
+      "coachingLocation_or_trainingLocation",
+      "experience_or_equipment",
+      "createdAt",
+      "documentId"
+    ]
   ];
+
+  coachEntries.forEach(function (entry) {
+    rows.push([
+      "coach",
+      entry.fullName || "",
+      entry.email || "",
+      entry.phone || "",
+      entry.specialization || "",
+      entry.sportCategory || "",
+      "",
+      entry.coachingType || "",
+      entry.coachingLocation || "",
+      entry.experienceDetails || "",
+      formatDate(entry.createdAt),
+      entry.id || ""
+    ]);
+  });
+
+  traineeEntries.forEach(function (entry) {
+    rows.push([
+      "trainee",
+      entry.fullName || "",
+      entry.email || "",
+      entry.phone || "",
+      entry.goal || "",
+      "",
+      entry.fitnessLevel || "",
+      "",
+      entry.trainingLocation || "",
+      entry.equipment || "",
+      formatDate(entry.createdAt),
+      entry.id || ""
+    ]);
+  });
 
   const csv = rows
     .map(function (row) {
@@ -254,60 +316,113 @@ function exportCsv() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "move-waitlist.csv";
+  link.download = "move-registrations.csv";
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  setDashboardMessage("CSV exported.");
+  setDashboardMessage("تم تصدير CSV.");
 }
 
-function renderEntries(entries) {
-  elements.signupsCount.textContent = String(entries.length);
-  elements.latestSignup.textContent = entries.length
-    ? entries[0].email
-    : "No data yet";
-  elements.entriesMeta.textContent = entries.length
-    ? entries.length + " signups loaded"
-    : "Newest first";
-  elements.entriesList.innerHTML = "";
+function renderEntries() {
+  const coachEntries = getFilteredCoachEntries();
+  const traineeEntries = getFilteredTraineeEntries();
+  const total = coachEntries.length + traineeEntries.length;
+  const totalRaw = state.coachEntries.length + state.traineeEntries.length;
 
-  if (!entries.length) {
-    elements.exportButton.disabled = true;
+  elements.signupsCount.textContent = String(total);
+  elements.coachesCount.textContent = String(coachEntries.length);
+  elements.traineesCount.textContent = String(traineeEntries.length);
+  elements.latestSignup.textContent = getLatestSignupLabel();
+
+  elements.entriesMeta.textContent = coachEntries.length
+    ? coachEntries.length + " مدرب" + (totalRaw !== total ? " (بعد الفلترة)" : "")
+    : "الأحدث أولاً";
+  elements.traineeEntriesMeta.textContent = traineeEntries.length
+    ? traineeEntries.length + " متدرب" + (totalRaw !== total ? " (بعد الفلترة)" : "")
+    : "الأحدث أولاً";
+
+  elements.coachEntriesList.innerHTML = "";
+  elements.traineeEntriesList.innerHTML = "";
+
+  if (!coachEntries.length) {
     elements.entriesState.textContent = state.hasAdminAccess
-      ? "No waitlist signups yet."
-      : "Waiting for admin access.";
-    return;
+      ? "لا توجد تسجيلات مدربين بعد."
+      : "بانتظار صلاحية الأدمن.";
+  } else {
+    elements.entriesState.textContent = "";
+    coachEntries.forEach(function (entry) {
+      const item = document.createElement("li");
+      item.className = "entries-item";
+      item.innerHTML =
+        '<div>' +
+        '<strong class="entry-email">' + escapeHtml(entry.fullName || "-") + "</strong>" +
+        '<div class="entry-date">' + escapeHtml(entry.email || "-") + " • " + escapeHtml(entry.phone || "-") + "</div>" +
+        "</div>" +
+        '<div class="entry-meta">' +
+        '<span class="entry-badge">' + escapeHtml(formatSportLabel(entry.sportCategory)) + "</span>" +
+        '<div class="entry-date">' + escapeHtml(formatSpecializationLabel(entry.specialization)) + "</div>" +
+        "</div>" +
+        '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>";
+      elements.coachEntriesList.appendChild(item);
+    });
   }
 
-  elements.exportButton.disabled = false;
-  elements.entriesState.textContent = "";
+  if (!traineeEntries.length) {
+    elements.traineeEntriesState.textContent = state.hasAdminAccess
+      ? "لا توجد تسجيلات متدربين بعد."
+      : "بانتظار صلاحية الأدمن.";
+  } else {
+    elements.traineeEntriesState.textContent = "";
+    traineeEntries.forEach(function (entry) {
+      const item = document.createElement("li");
+      item.className = "entries-item";
+      item.innerHTML =
+        '<div>' +
+        '<strong class="entry-email">' + escapeHtml(entry.fullName || "-") + "</strong>" +
+        '<div class="entry-date">' + escapeHtml(entry.email || "-") + " • " + escapeHtml(entry.phone || "-") + "</div>" +
+        "</div>" +
+        '<div class="entry-meta">' +
+        '<span class="entry-badge">' + escapeHtml(formatGoalLabel(entry.goal)) + "</span>" +
+        '<div class="entry-date">' + escapeHtml(formatFitnessLevelLabel(entry.fitnessLevel)) + " • " + escapeHtml(formatTrainingLocationLabel(entry.trainingLocation)) + "</div>" +
+        "</div>" +
+        '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>";
+      elements.traineeEntriesList.appendChild(item);
+    });
+  }
+}
 
-  entries.forEach(function (entry) {
-    const item = document.createElement("li");
-    item.className = "entries-item";
-    item.innerHTML =
-      '<div>' +
-      '<strong class="entry-email">' + escapeHtml(entry.email) + "</strong>" +
-      '<div class="entry-date">' + escapeHtml(formatDate(entry.createdAt)) + "</div>" +
-      "</div>" +
-      '<div class="entry-meta"><span class="entry-badge">' + escapeHtml(entry.source) + "</span></div>" +
-      '<div class="entry-meta">ID: ' + escapeHtml(entry.id) + "</div>";
-    elements.entriesList.appendChild(item);
-  });
+function getLatestSignupLabel() {
+  const all = getFilteredCoachEntries()
+    .map(function (entry) {
+      return { type: "مدرب", name: entry.fullName || "-", createdAt: toMillis(entry.createdAt) };
+    })
+    .concat(
+      getFilteredTraineeEntries().map(function (entry) {
+        return { type: "متدرب", name: entry.fullName || "-", createdAt: toMillis(entry.createdAt) };
+      })
+    )
+    .sort(function (a, b) {
+      return b.createdAt - a.createdAt;
+    });
+
+  if (!all.length) return "لا يوجد";
+  return all[0].type + ": " + all[0].name;
 }
 
 function updateActionState() {
   const signedIn = Boolean(state.user);
+  const hasData = getFilteredCoachEntries().length + getFilteredTraineeEntries().length > 0;
+
   elements.refreshButton.disabled = !signedIn;
   elements.copyUidButton.disabled = !signedIn;
   elements.signOutButton.disabled = !signedIn;
-  elements.exportButton.disabled = !state.hasAdminAccess || !state.entries.length;
+  elements.exportButton.disabled = !state.hasAdminAccess || !hasData;
 }
 
 function setAuthLoading(isLoading) {
   elements.loginButton.disabled = isLoading;
-  elements.loginButton.textContent = isLoading ? "Signing in..." : "Sign in";
+  elements.loginButton.textContent = isLoading ? "جارٍ الدخول..." : "دخول";
 }
 
 function setAuthMessage(message) {
@@ -322,18 +437,16 @@ function getFriendlyAuthError(error) {
   const code = error && error.code ? error.code : "";
 
   if (code === "auth/invalid-credential") {
-    return "Incorrect email or password.";
+    return "البريد أو كلمة المرور غير صحيحة.";
   }
-
   if (code === "auth/too-many-requests") {
-    return "Too many attempts. Try again in a few minutes.";
+    return "محاولات كثيرة. حاول بعد قليل.";
   }
-
   if (code === "auth/network-request-failed") {
-    return "Network error. Check your connection and try again.";
+    return "مشكلة اتصال. تحقق من الإنترنت.";
   }
 
-  return "Sign-in failed. Check Firebase Auth and your admin account.";
+  return "فشل تسجيل الدخول. تحقق من إعدادات Firebase.";
 }
 
 function getFriendlyFirestoreError(error) {
@@ -341,33 +454,145 @@ function getFriendlyFirestoreError(error) {
   const code = error && error.code ? error.code : "";
 
   if (message.indexOf("Database '(default)' not found") !== -1) {
-    return "Create a Firestore database for project move-6cef6 in the Firebase console, then refresh.";
+    return "فعّل Firestore أولاً في مشروع Firebase ثم أعد المحاولة.";
   }
-
   if (code === "permission-denied") {
-    return "This account is not allowed to read waitlist data yet. Create admins/<your-uid> in Firestore.";
+    return "هذا الحساب لا يملك صلاحية قراءة التسجيلات.";
   }
 
-  return "Check Firestore setup for this project, then try again.";
+  return "تحقق من إعدادات Firestore ثم أعد المحاولة.";
+}
+
+function toMillis(timestamp) {
+  if (!timestamp) return 0;
+  if (typeof timestamp.toMillis === "function") return timestamp.toMillis();
+  if (typeof timestamp.seconds === "number") return timestamp.seconds * 1000;
+  return 0;
+}
+
+function getFilteredCoachEntries() {
+  return state.coachEntries.filter(function (entry) {
+    if (!passesSearchFilter(entry)) return false;
+    if (!passesDateFilter(entry.createdAt)) return false;
+    if (state.filters.coachSport !== "all" && String(entry.sportCategory || "") !== state.filters.coachSport) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function getFilteredTraineeEntries() {
+  return state.traineeEntries.filter(function (entry) {
+    if (!passesSearchFilter(entry)) return false;
+    if (!passesDateFilter(entry.createdAt)) return false;
+    return true;
+  });
+}
+
+function passesSearchFilter(entry) {
+  const search = state.filters.search;
+  if (!search) return true;
+  const haystack = [
+    entry.fullName,
+    entry.email,
+    entry.phone,
+    entry.specialization,
+    entry.goal,
+    entry.sportCategory
+  ]
+    .map(function (value) {
+      return String(value || "").toLowerCase();
+    })
+    .join(" ");
+  return haystack.indexOf(search) !== -1;
+}
+
+function passesDateFilter(createdAt) {
+  const range = state.filters.dateRange;
+  if (range === "all") return true;
+
+  const millis = toMillis(createdAt);
+  if (!millis) return false;
+
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  if (range === "7d") return now - millis <= 7 * day;
+  if (range === "30d") return now - millis <= 30 * day;
+  if (range === "90d") return now - millis <= 90 * day;
+  return true;
 }
 
 function formatDate(timestamp) {
   if (!timestamp || typeof timestamp.toDate !== "function") {
-    return "Pending server timestamp";
+    return "بانتظار وقت الخادم";
   }
-
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("ar-SA", {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(timestamp.toDate());
 }
 
+function formatSportLabel(value) {
+  const map = {
+    "strength-muscle": "بناء عضلات وقوة",
+    "weight-loss-fitness": "خسارة وزن ولياقة",
+    calisthenics: "كاليستنكس",
+    "running-cardio": "جري وكارديو",
+    yoga: "يوغا",
+    pilates: "بيلاتس",
+    "mobility-recovery": "مرونة وتعافٍ",
+    "rehab-physio": "تأهيل وعلاج طبيعي"
+  };
+  return map[value] || "غير محدد";
+}
+
+function formatSpecializationLabel(value) {
+  const map = {
+    "fat-loss": "تنشيف وخسارة وزن",
+    "muscle-gain": "بناء عضلات",
+    strength: "قوة وأداء",
+    "general-fitness": "لياقة عامة",
+    rehab: "تأهيل وإصابات",
+    other: "أخرى"
+  };
+  return map[value] || "غير محدد";
+}
+
+function formatGoalLabel(value) {
+  const map = {
+    "fat-loss": "خسارة وزن",
+    "muscle-gain": "زيادة عضلات",
+    fitness: "تحسين اللياقة",
+    performance: "تحسين الأداء",
+    rehab: "عودة بعد إصابة"
+  };
+  return map[value] || "غير محدد";
+}
+
+function formatFitnessLevelLabel(value) {
+  const map = {
+    beginner: "مبتدئ",
+    intermediate: "متوسط",
+    advanced: "متقدم"
+  };
+  return map[value] || "غير محدد";
+}
+
+function formatTrainingLocationLabel(value) {
+  const map = {
+    gym: "النادي",
+    home: "البيت",
+    both: "الاثنين"
+  };
+  return map[value] || "غير محدد";
+}
+
 function escapeCsvValue(value) {
-  return '"' + String(value).replace(/"/g, '""') + '"';
+  return '"' + String(value || "").replace(/"/g, '""') + '"';
 }
 
 function escapeHtml(value) {
-  return String(value)
+  return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

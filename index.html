@@ -21,6 +21,7 @@
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">انتقل إلى المحتوى</a>
   <div class="page-shell">
     <header class="header">
       <nav class="nav">
@@ -34,7 +35,19 @@
           />
         </a>
 
-        <ul class="nav-links">
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="فتح القائمة"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <ul class="nav-links" id="primary-nav">
           <li><a href="#system">النظام</a></li>
           <li><a href="#coaching">التجربة</a></li>
           <li><a href="#communities">المجتمعات</a></li>
@@ -45,9 +58,10 @@
 
         <!-- <a href="/move" class="btn btn-primary">افتح التطبيق</a> -->
       </nav>
+      <button class="nav-overlay" type="button" tabindex="-1" aria-hidden="true"></button>
     </header>
 
-    <main>
+    <main id="main-content">
       <section class="hero">
         <div class="hero-backdrop">
           <div class="hero-orb hero-orb-lime"></div>
@@ -461,6 +475,21 @@
             </label>
 
             <label class="form-field">
+              <span>الرياضة الأساسية</span>
+              <select name="sportCategory" required>
+                <option value="">اختر الرياضة</option>
+                <option value="strength-muscle">بناء عضلات وقوة</option>
+                <option value="weight-loss-fitness">خسارة وزن ولياقة</option>
+                <option value="calisthenics">كاليستنكس</option>
+                <option value="running-cardio">جري وكارديو</option>
+                <option value="yoga">يوغا</option>
+                <option value="pilates">بيلاتس</option>
+                <option value="mobility-recovery">مرونة وتعافٍ</option>
+                <option value="rehab-physio">تأهيل وعلاج طبيعي</option>
+              </select>
+            </label>
+
+            <label class="form-field">
               <span>الشهادات أو الاعتمادات</span>
               <input type="text" name="certifications" placeholder="مثال: NASM, ACE, ISSA" required />
             </label>
@@ -602,6 +631,7 @@
       <p>MOVE App © 2026 | Training. Nutrition. Recovery.</p>
     </footer>
   </div>
+  <button class="back-to-top" type="button" aria-label="العودة إلى الأعلى">↑</button>
 
   <script type="module" src="app.js"></script>
   <script>

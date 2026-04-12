@@ -405,6 +405,10 @@ input {
   list-style: none;
 }
 
+.filters-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .entries-item {
   grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 0.7fr));
   align-items: center;
@@ -441,6 +445,10 @@ input {
   .stats-grid,
   .identity-bar,
   .entries-item {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -15,6 +15,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
   initializeTrainerForm();
   initializeTraineeForm();
+  initializeNavigationUX();
   initializeAnimations();
 });
 
@@ -38,6 +39,7 @@ function initializeTrainerForm() {
       phone: normalizePhone(getFormValue(form, "phone")),
       yearsExperience: Number(getFormValue(form, "yearsExperience")),
       specialization: getFormValue(form, "specialization"),
+      sportCategory: getFormValue(form, "sportCategory"),
       certifications: getFormValue(form, "certifications"),
       coachingType: getFormValue(form, "coachingType"),
       coachingLocation: getFormValue(form, "coachingLocation"),
@@ -55,6 +57,7 @@ function initializeTrainerForm() {
       !Number.isFinite(payload.yearsExperience) ||
       payload.yearsExperience < 0 ||
       !payload.specialization ||
+      !payload.sportCategory ||
       !payload.certifications ||
       !payload.coachingType ||
       !payload.coachingLocation ||
@@ -217,6 +220,123 @@ function initializeAnimations() {
         scrub: true
       }
     });
+  });
+}
+
+function initializeNavigationUX() {
+  const body = document.body;
+  const header = document.querySelector(".header");
+  const navToggle = document.querySelector(".nav-toggle");
+  const navOverlay = document.querySelector(".nav-overlay");
+  const backToTop = document.querySelector(".back-to-top");
+  const navLinks = Array.from(document.querySelectorAll('.nav-links a[href^="#"]'));
+
+  syncLayoutState();
+  window.addEventListener("resize", syncLayoutState);
+
+  if (navToggle) {
+    navToggle.addEventListener("click", function () {
+      const open = !body.classList.contains("nav-open");
+      setNavOpen(open);
+    });
+  }
+
+  if (navOverlay) {
+    navOverlay.addEventListener("click", function () {
+      setNavOpen(false);
+    });
+  }
+
+  navLinks.forEach(function (link) {
+    link.addEventListener("click", function () {
+      setNavOpen(false);
+    });
+  });
+
+  window.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      setNavOpen(false);
+    }
+  });
+
+  highlightActiveSection(navLinks);
+
+  if (backToTop) {
+    backToTop.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    const syncBackToTop = function () {
+      backToTop.classList.toggle("is-visible", window.scrollY > 560);
+    };
+
+    window.addEventListener("scroll", syncBackToTop, { passive: true });
+    syncBackToTop();
+  }
+
+  function setNavOpen(open) {
+    body.classList.toggle("nav-open", open);
+    if (navToggle) {
+      navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+  }
+
+  function updateHeaderHeight() {
+    if (!header) {
+      return;
+    }
+
+    const height = Math.ceil(header.getBoundingClientRect().height);
+    document.documentElement.style.setProperty("--header-height", String(height) + "px");
+  }
+
+  function syncLayoutState() {
+    updateHeaderHeight();
+    if (window.innerWidth > 820) {
+      setNavOpen(false);
+    }
+  }
+}
+
+function highlightActiveSection(navLinks) {
+  if (!navLinks.length || typeof window.IntersectionObserver === "undefined") {
+    return;
+  }
+
+  const byId = {};
+  navLinks.forEach(function (link) {
+    const targetId = link.getAttribute("href").slice(1);
+    if (targetId) {
+      byId[targetId] = link;
+    }
+  });
+
+  const observer = new IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        const id = entry.target.getAttribute("id");
+        if (!id || !byId[id]) {
+          return;
+        }
+
+        navLinks.forEach(function (link) {
+          link.classList.remove("is-active");
+        });
+        byId[id].classList.add("is-active");
+      });
+    },
+    { rootMargin: "-42% 0px -46% 0px", threshold: 0.01 }
+  );
+
+  Object.keys(byId).forEach(function (id) {
+    const section = document.getElementById(id);
+    if (section) {
+      observer.observe(section);
+    }
   });
 }
 
