@@ -257,6 +257,12 @@ service cloud.firestore {
         request.resource.data.specialization.size() <= 40 &&
         request.resource.data.sportCategory is string &&
         request.resource.data.sportCategory in [
+          "bodybuilding",
+          "physique",
+          "crossfit",
+          "powerlifting",
+          "injury-rehab-online",
+          "running-general-fitness",
           "strength-muscle",
           "weight-loss-fitness",
           "calisthenics",

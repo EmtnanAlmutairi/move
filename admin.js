@@ -409,10 +409,10 @@ function renderCoachProfileDetails(entry) {
     renderProfileField("التخصص", formatSpecializationLabel(entry.specialization)) +
     renderProfileField("الرياضة", formatSportLabel(entry.sportCategory)) +
     renderProfileField("الشهادات", entry.certifications) +
-    renderProfileField("نمط التدريب", entry.coachingType) +
-    renderProfileField("مكان التدريب", entry.coachingLocation) +
+    renderProfileField("نمط التدريب", formatCoachingType(entry.coachingType)) +
+    renderProfileField("مكان التدريب", formatCoachingLocation(entry.coachingLocation)) +
     renderProfileField("نبذة الخبرة", entry.experienceDetails) +
-    renderProfileField("أوقات التفرغ", entry.availability) +
+    renderProfileField("التفرغ", formatAvailability(entry.availability)) +
     renderProfileField("المصدر", entry.source) +
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
@@ -607,9 +607,15 @@ function formatDate(timestamp) {
 
 function formatSportLabel(value) {
   const map = {
+    bodybuilding: "بناء أجسام",
+    physique: "فيزيك",
+    crossfit: "كروس فيت",
+    calisthenics: "كاليستنكس",
+    powerlifting: "باور لفتنق",
+    "injury-rehab-online": "تأهيل الإصابات أون لاين",
+    "running-general-fitness": "جري ولياقة عامة",
     "strength-muscle": "بناء عضلات وقوة",
     "weight-loss-fitness": "خسارة وزن ولياقة",
-    calisthenics: "كاليستنكس",
     "running-cardio": "جري وكارديو",
     yoga: "يوغا",
     pilates: "بيلاتس",
@@ -658,6 +664,32 @@ function formatTrainingLocationLabel(value) {
     both: "الاثنين"
   };
   return map[value] || "غير محدد";
+}
+
+function formatCoachingType(value) {
+  const map = {
+    online: "أون لاين",
+    "in-person": "حضوري",
+    hybrid: "هجين"
+  };
+  return map[value] || "غير محدد";
+}
+
+function formatCoachingLocation(value) {
+  const map = {
+    online: "أون لاين",
+    gym: "داخل نادي",
+    "home-visits": "زيارات منزلية",
+    both: "الاثنين"
+  };
+  return map[value] || "غير محدد";
+}
+
+function formatAvailability(value) {
+  const map = {
+    "full-time": "دوام كامل"
+  };
+  return map[value] || (value ? String(value) : "غير محدد");
 }
 
 function escapeCsvValue(value) {

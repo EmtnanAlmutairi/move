@@ -475,14 +475,13 @@
               <span>الرياضة الأساسية</span>
               <select name="sportCategory" required>
                 <option value="">اختر الرياضة</option>
-                <option value="strength-muscle">بناء عضلات وقوة</option>
-                <option value="weight-loss-fitness">خسارة وزن ولياقة</option>
+                <option value="bodybuilding">بناء أجسام</option>
+                <option value="physique">فيزيك</option>
+                <option value="crossfit">كروس فيت</option>
                 <option value="calisthenics">كاليستنكس</option>
-                <option value="running-cardio">جري وكارديو</option>
-                <option value="yoga">يوغا</option>
-                <option value="pilates">بيلاتس</option>
-                <option value="mobility-recovery">مرونة وتعافٍ</option>
-                <option value="rehab-physio">تأهيل وعلاج طبيعي</option>
+                <option value="powerlifting">باور لفتنق</option>
+                <option value="injury-rehab-online">تأهيل الإصابات أون لاين</option>
+                <option value="running-general-fitness">جري ولياقة عامة</option>
               </select>
             </label>
 
@@ -491,34 +490,9 @@
               <input type="text" name="certifications" placeholder="مثال: NASM, ACE, ISSA" required />
             </label>
 
-            <label class="form-field">
-              <span>نمط التدريب</span>
-              <select name="coachingType" required>
-                <option value="">اختر نمط التدريب</option>
-                <option value="online">عن بعد</option>
-                <option value="in-person">حضوري</option>
-                <option value="hybrid">هجين (عن بعد + حضوري)</option>
-              </select>
-            </label>
-
-            <label class="form-field">
-              <span>مكان تقديم التدريب</span>
-              <select name="coachingLocation" required>
-                <option value="">اختر مكان التدريب</option>
-                <option value="gym">داخل نادي</option>
-                <option value="home-visits">زيارات منزلية</option>
-                <option value="both">الاثنين</option>
-              </select>
-            </label>
-
             <label class="form-field form-field-full">
               <span>نبذة الخبرة والمنهج التدريبي</span>
               <textarea name="experienceDetails" rows="3" placeholder="اكتب خبراتك، الفئات التي تعمل معها، وأسلوبك في التدريب..." required></textarea>
-            </label>
-
-            <label class="form-field form-field-full">
-              <span>أوقات التفرغ</span>
-              <textarea name="availability" rows="2" placeholder="مثال: أيام الأسبوع مساءً، الويكند صباحًا..." required></textarea>
             </label>
 
             <button type="submit" class="btn btn-primary form-submit">إرسال طلب المدرب</button>

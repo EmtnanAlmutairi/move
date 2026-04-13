@@ -41,10 +41,10 @@ function initializeTrainerForm() {
       specialization: getFormValue(form, "specialization"),
       sportCategory: getFormValue(form, "sportCategory"),
       certifications: getFormValue(form, "certifications"),
-      coachingType: getFormValue(form, "coachingType"),
-      coachingLocation: getFormValue(form, "coachingLocation"),
+      coachingType: "online",
+      coachingLocation: "online",
       experienceDetails: getFormValue(form, "experienceDetails"),
-      availability: getFormValue(form, "availability"),
+      availability: "full-time",
       source: "landing-page-coach",
       createdAt: serverTimestamp()
     };
@@ -59,10 +59,7 @@ function initializeTrainerForm() {
       !payload.specialization ||
       !payload.sportCategory ||
       !payload.certifications ||
-      !payload.coachingType ||
-      !payload.coachingLocation ||
-      !payload.experienceDetails ||
-      !payload.availability
+      !payload.experienceDetails
     ) {
       formMessage.textContent = "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.";
       return;
