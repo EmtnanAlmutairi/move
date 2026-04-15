@@ -184,6 +184,7 @@ service cloud.firestore {
           "phone",
           "goal",
           "fitnessLevel",
+          "sportType",
           "trainingLocation",
           "equipment",
           "healthNotes",
@@ -207,6 +208,22 @@ service cloud.firestore {
         request.resource.data.fitnessLevel is string &&
         request.resource.data.fitnessLevel.size() >= 3 &&
         request.resource.data.fitnessLevel.size() <= 20 &&
+        request.resource.data.sportType is string &&
+        request.resource.data.sportType in [
+          "bodybuilding",
+          "physique",
+          "strength",
+          "powerlifting",
+          "crossfit",
+          "calisthenics",
+          "cardio",
+          "running",
+          "pilates",
+          "yoga",
+          "cycling",
+          "rehab",
+          "other"
+        ] &&
         request.resource.data.trainingLocation is string &&
         request.resource.data.trainingLocation.size() >= 3 &&
         request.resource.data.trainingLocation.size() <= 20 &&
@@ -259,8 +276,14 @@ service cloud.firestore {
         request.resource.data.sportCategory in [
           "bodybuilding",
           "physique",
+          "strength",
           "crossfit",
           "powerlifting",
+          "cardio",
+          "running",
+          "cycling",
+          "rehab",
+          "other",
           "injury-rehab-online",
           "running-general-fitness",
           "strength-muscle",

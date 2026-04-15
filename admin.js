@@ -262,7 +262,7 @@ function exportCsv() {
       "email",
       "phone",
       "specialization_or_goal",
-      "sportCategory",
+      "sport",
       "fitnessLevel",
       "coachingType",
       "coachingLocation_or_trainingLocation",
@@ -296,7 +296,7 @@ function exportCsv() {
       entry.email || "",
       entry.phone || "",
       entry.goal || "",
-      "",
+      entry.sportType || "",
       entry.fitnessLevel || "",
       "",
       entry.trainingLocation || "",
@@ -385,7 +385,7 @@ function renderEntries() {
         "</div>" +
         '<div class="entry-meta">' +
         '<span class="entry-badge">' + escapeHtml(formatGoalLabel(entry.goal)) + "</span>" +
-        '<div class="entry-date">' + escapeHtml(formatFitnessLevelLabel(entry.fitnessLevel)) + " • " + escapeHtml(formatTrainingLocationLabel(entry.trainingLocation)) + "</div>" +
+        '<div class="entry-date">' + escapeHtml(formatSportLabel(entry.sportType)) + " • " + escapeHtml(formatFitnessLevelLabel(entry.fitnessLevel)) + " • " + escapeHtml(formatTrainingLocationLabel(entry.trainingLocation)) + "</div>" +
         "</div>" +
         '<div class="entry-meta">ID: ' + escapeHtml(entry.id || "-") + "<br>" + escapeHtml(formatDate(entry.createdAt)) + "</div>" +
         renderTraineeProfileDetails(entry);
@@ -430,6 +430,7 @@ function renderTraineeProfileDetails(entry) {
     renderProfileField("البريد", entry.email) +
     renderProfileField("الجوال", entry.phone) +
     renderProfileField("الهدف", formatGoalLabel(entry.goal)) +
+    renderProfileField("الرياضة", formatSportLabel(entry.sportType)) +
     renderProfileField("مستوى اللياقة", formatFitnessLevelLabel(entry.fitnessLevel)) +
     renderProfileField("مكان التمرين", formatTrainingLocationLabel(entry.trainingLocation)) +
     renderProfileField("المعدات", entry.equipment) +
@@ -571,7 +572,8 @@ function passesSearchFilter(entry) {
     entry.phone,
     entry.specialization,
     entry.goal,
-    entry.sportCategory
+    entry.sportCategory,
+    entry.sportType
   ]
     .map(function (value) {
       return String(value || "").toLowerCase();
@@ -609,9 +611,15 @@ function formatSportLabel(value) {
   const map = {
     bodybuilding: "بناء أجسام",
     physique: "فيزيك",
+    strength: "قوة وأداء",
     crossfit: "كروس فيت",
     calisthenics: "كاليستنكس",
+    cardio: "كارديو وتحمل",
+    running: "جري",
+    cycling: "دراجة",
     powerlifting: "باور لفتنق",
+    rehab: "تأهيل وإصابات",
+    other: "أخرى",
     "injury-rehab-online": "تأهيل الإصابات أون لاين",
     "running-general-fitness": "جري ولياقة عامة",
     "strength-muscle": "بناء عضلات وقوة",
