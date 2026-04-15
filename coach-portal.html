@@ -78,7 +78,21 @@
         <div class="card-head"><h3>ملف المختص</h3><span class="badge">Profile</span></div>
         <form id="specialistProfileForm" class="form-grid">
           <label><span>اسم العرض</span><input name="displayName" required /></label>
-          <label><span>التخصص</span><input name="specialization" required placeholder="لياقة / تغذية علاجية / علاج طبيعي" /></label>
+          <label><span>التخصص</span><select name="specialization" required>
+            <option value="">اختر التخصص</option>
+            <option value="fitness">لياقة عامة</option>
+            <option value="fat-loss">تنشيف وخسارة وزن</option>
+            <option value="muscle-gain">بناء عضلات</option>
+            <option value="strength">قوة وأداء</option>
+            <option value="pilates">بيلاتس</option>
+            <option value="yoga">يوغا</option>
+            <option value="crossfit">كروس فيت</option>
+            <option value="calisthenics">كاليستنكس</option>
+            <option value="running">جري وتحمل</option>
+            <option value="nutrition">تغذية علاجية</option>
+            <option value="rehab">علاج طبيعي وتأهيل</option>
+            <option value="other">أخرى</option>
+          </select></label>
           <label><span>سنوات الخبرة</span><input type="number" name="yearsExperience" min="0" max="50" required /></label>
           <label class="full"><span>الشهادات</span><input name="certifications" placeholder="ACE, NASM, CPT..." /></label>
           <label class="full"><span>نبذة مهنية</span><textarea name="bio" rows="2" placeholder="نبذة قصيرة عن خبرتك ومنهجك"></textarea></label>
@@ -108,7 +122,7 @@
           <label><span>اليوم</span><input name="day" placeholder="الأحد" required /></label>
           <label><span>المدة (دقيقة)</span><input type="number" name="durationMin" min="5" max="180" required /></label>
           <label><span>الشدة</span><select name="intensity"><option>خفيفة</option><option selected>متوسطة</option><option>عالية</option></select></label>
-          <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option></select></label>
+          <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option><option value="pilates">بيلاتس</option><option value="yoga">يوغا</option><option value="running">جري</option><option value="cardio">كارديو</option></select></label>
           <label class="full"><span>رابط الفيديو (YouTube / Drive / Vimeo)</span><input name="videoUrl" placeholder="https://..." /></label>
           <label class="full"><span>تعليمات</span><textarea name="instructions" rows="2"></textarea></label>
           <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
@@ -128,7 +142,7 @@
           <label><span>اليوم الافتراضي</span><input name="defaultDay" placeholder="الأحد" required /></label>
           <label><span>المدة (دقيقة)</span><input type="number" name="durationMin" min="5" max="180" required /></label>
           <label><span>الشدة</span><select name="intensity"><option>خفيفة</option><option selected>متوسطة</option><option>عالية</option></select></label>
-          <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option></select></label>
+          <label><span>التركيز</span><select name="focus"><option value="strength">قوة</option><option value="fat-loss">حرق دهون</option><option value="fitness">لياقة</option><option value="pilates">بيلاتس</option><option value="yoga">يوغا</option><option value="running">جري</option><option value="cardio">كارديو</option></select></label>
           <label><span>الترتيب</span><input type="number" name="sortOrder" min="1" max="999" value="10" required /></label>
           <label class="full"><span>رابط الفيديو</span><input name="videoUrl" placeholder="https://..." required /></label>
           <label class="full"><span>تعليمات</span><textarea name="instructions" rows="2"></textarea></label>

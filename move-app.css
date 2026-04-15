@@ -524,6 +524,155 @@ textarea:focus {
 .modal-card h3 { margin: 0 0 8px; font-size: 26px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 
+/* ─── Running Tracker ─────────────────────────────── */
+.run-hero-card { display: grid; gap: 8px; }
+.run-hero-title { margin: 4px 0; font-size: 48px; line-height: 1; }
+.run-permission-tip {
+  margin-top: 4px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.18);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Last session stats pills */
+.run-last-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.run-stat-pill {
+  background: #fff1eb;
+  border-radius: 14px;
+  padding: 10px 6px;
+  text-align: center;
+}
+.run-stat-pill strong { display: block; font-size: 20px; }
+.run-stat-pill span { font-size: 11px; color: var(--muted); }
+
+/* Start button */
+.run-start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  border: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(255, 89, 55, .35);
+  margin-top: 4px;
+}
+.run-start-icon { font-size: 22px; }
+
+/* Map */
+.run-map-wrap { position: relative; border-radius: 20px; overflow: hidden; margin-bottom: 10px; }
+#runMap { height: 240px; background: #eee; }
+#runSummaryMap { height: 200px; background: #eee; }
+.run-gps-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  z-index: 999;
+}
+
+/* Live stats */
+.run-live-stats {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.run-live-main { text-align: center; margin-bottom: 12px; }
+.run-live-label { display: block; font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+.run-live-value { font-size: 64px; font-weight: 800; line-height: 1; display: block; }
+.run-live-unit { font-size: 18px; color: var(--muted); }
+.run-live-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.run-live-cell {
+  background: #fff7f4;
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+}
+.run-live-cell strong { display: block; font-size: 22px; font-weight: 800; }
+.run-live-cell small { color: var(--muted); font-size: 11px; }
+
+/* Km badges */
+.run-km-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.run-km-chip {
+  padding: 4px 12px;
+  background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+  color: #fff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Controls */
+.run-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.run-ctrl-btn {
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.run-pause { background: #fff3ee; color: #e94221; border: 1px solid #ffd9cc; }
+.run-resume { background: #edf9ef; color: #1a7d32; border: 1px solid #b8e8c0; }
+.run-stop { background: #1a1a1a; color: #fff; grid-column: 1 / -1; }
+
+/* Summary */
+.run-summary-hero { display: grid; gap: 6px; }
+.run-summary-hero h2 { font-size: 52px; margin: 4px 0; line-height: 1; }
+.run-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.run-sum-cell {
+  background: #fff7f4;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+}
+.run-sum-cell strong { display: block; font-size: 22px; font-weight: 800; }
+.run-sum-cell span { font-size: 12px; color: var(--muted); }
+
+/* History */
+.run-history-list { display: grid; gap: 8px; margin-top: 4px; }
+.run-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: #fff7f4;
+  border-radius: 14px;
+  border: 1px solid #ffd9cc;
+}
+.run-hist-left { display: grid; gap: 2px; }
+.run-hist-dist { font-size: 20px; font-weight: 800; }
+.run-hist-meta { font-size: 12px; color: var(--muted); }
+.run-hist-right { text-align: left; display: grid; gap: 2px; }
+.run-hist-date { font-size: 13px; font-weight: 700; }
+.run-hist-steps { font-size: 12px; color: var(--muted); }
+
 @media (max-width: 560px) {
   .form-grid { grid-template-columns: 1fr; }
   .tab-btn { font-size: 11px; }
@@ -532,4 +681,6 @@ textarea:focus {
   .team-grid { grid-template-columns: 1fr; }
   .exp-grid { grid-template-columns: 1fr; }
   .pref-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .run-last-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .run-live-value { font-size: 52px; }
 }

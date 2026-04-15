@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/png" href="logo.png" />
   <link rel="stylesheet" href="move-app.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -187,6 +188,114 @@
         </article>
       </section>
 
+      <!-- ======== شاشة تتبع الجري ======== -->
+      <section class="screen" data-screen="running">
+
+        <!-- حالة الجلسة: جاهز -->
+        <div id="runReadyState">
+          <div class="gradient-card run-hero-card">
+            <div class="kicker">تتبع الجري</div>
+            <h2 class="run-hero-title">مستعد؟</h2>
+            <p>سيتتبع التطبيق مسارك، وتيرتك، وخطواتك في الوقت الحقيقي.</p>
+            <div class="run-permission-tip" id="runPermTip" style="display:none">
+              <span>⚠️ يرجى السماح بالوصول للموقع عند الطلب</span>
+            </div>
+          </div>
+
+          <article class="card">
+            <div class="card-head">
+              <h3>إحصائيات الجلسة الأخيرة</h3>
+              <span class="badge" id="lastRunDate">—</span>
+            </div>
+            <div class="run-last-stats" id="runLastStats">
+              <div class="run-stat-pill"><strong id="lastDist">—</strong><span>كم</span></div>
+              <div class="run-stat-pill"><strong id="lastTime">—</strong><span>الوقت</span></div>
+              <div class="run-stat-pill"><strong id="lastPace">—</strong><span>د/كم</span></div>
+              <div class="run-stat-pill"><strong id="lastSteps">—</strong><span>خطوة</span></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>سجل الجري</h3>
+            <div id="runHistory" class="run-history-list"><p class="muted">لا توجد جلسات محفوظة بعد.</p></div>
+          </article>
+
+          <button id="startRunBtn" class="run-start-btn">
+            <span class="run-start-icon">▶</span>
+            ابدأ الجري
+          </button>
+        </div>
+
+        <!-- حالة الجلسة: نشطة -->
+        <div id="runActiveState" style="display:none">
+          <div class="run-map-wrap">
+            <div id="runMap"></div>
+            <div class="run-gps-badge" id="runGpsBadge">GPS</div>
+          </div>
+
+          <div class="run-live-stats">
+            <div class="run-live-main">
+              <span class="run-live-label">المسافة</span>
+              <strong class="run-live-value" id="liveDist">0.00</strong>
+              <span class="run-live-unit">كم</span>
+            </div>
+            <div class="run-live-grid">
+              <div class="run-live-cell">
+                <span class="run-live-label">الوقت</span>
+                <strong id="liveTime">00:00</strong>
+              </div>
+              <div class="run-live-cell">
+                <span class="run-live-label">الوتيرة الحالية</span>
+                <strong id="livePaceCurrent">—</strong>
+                <small>د/كم</small>
+              </div>
+              <div class="run-live-cell">
+                <span class="run-live-label">متوسط الوتيرة</span>
+                <strong id="livePaceAvg">—</strong>
+                <small>د/كم</small>
+              </div>
+              <div class="run-live-cell">
+                <span class="run-live-label">الخطوات</span>
+                <strong id="liveSteps">0</strong>
+              </div>
+            </div>
+            <div class="run-km-badges" id="runKmBadges"></div>
+          </div>
+
+          <div class="run-controls">
+            <button id="pauseRunBtn" class="run-ctrl-btn run-pause">⏸ إيقاف مؤقت</button>
+            <button id="resumeRunBtn" class="run-ctrl-btn run-resume" style="display:none">▶ استئناف</button>
+            <button id="stopRunBtn" class="run-ctrl-btn run-stop">⏹ إنهاء</button>
+          </div>
+        </div>
+
+        <!-- حالة الجلسة: ملخص -->
+        <div id="runSummaryState" style="display:none">
+          <div class="gradient-card run-summary-hero">
+            <div class="kicker">انتهت الجلسة 🎉</div>
+            <h2 id="summaryDist">0.00 كم</h2>
+            <p id="summaryMsg">أحسنت! حافظ على الإيقاع.</p>
+          </div>
+
+          <div class="run-map-wrap">
+            <div id="runSummaryMap"></div>
+          </div>
+
+          <article class="card">
+            <h3>ملخص الجلسة</h3>
+            <div class="run-summary-grid">
+              <div class="run-sum-cell"><strong id="sumTime">—</strong><span>الوقت الكلي</span></div>
+              <div class="run-sum-cell"><strong id="sumPace">—</strong><span>متوسط الوتيرة</span></div>
+              <div class="run-sum-cell"><strong id="sumSteps">—</strong><span>الخطوات</span></div>
+              <div class="run-sum-cell"><strong id="sumCal">—</strong><span>سعرة محروقة</span></div>
+            </div>
+          </article>
+
+          <button id="newRunBtn" class="run-start-btn">جلسة جري جديدة</button>
+        </div>
+
+      </section>
+
       <section class="screen" data-screen="devices">
         <article class="card">
           <h3>ربط أجهزة التتبع</h3>
@@ -220,6 +329,30 @@
                 <option value="muscle-gain">بناء العضلات</option>
                 <option value="weight-loss">خسارة الوزن</option>
                 <option value="fitness">الحفاظ على اللياقة</option>
+                <option value="performance">تحسين الأداء</option>
+                <option value="rehab">العودة بعد إصابة</option>
+              </select>
+            </label>
+
+            <label>
+              <span>نوع الرياضة المفضلة</span>
+              <select name="sportType">
+                <option value="">اختر نوع الرياضة</option>
+                <option value="bodybuilding">بناء أجسام</option>
+                <option value="physique">فيزيك</option>
+                <option value="strength">قوة وأداء</option>
+                <option value="powerlifting">باور لفتنق</option>
+                <option value="crossfit">كروس فيت</option>
+                <option value="calisthenics">كاليستنكس</option>
+                <option value="cardio">كارديو وتحمل</option>
+                <option value="running">جري</option>
+                <option value="pilates">بيلاتس</option>
+                <option value="yoga">يوغا</option>
+                <option value="martial_arts">رياضات قتالية</option>
+                <option value="swimming">سباحة</option>
+                <option value="cycling">دراجة</option>
+                <option value="rehab">تأهيل وإصابات</option>
+                <option value="other">أخرى</option>
               </select>
             </label>
             <label class="full">
@@ -251,6 +384,7 @@
       <button type="button" class="tab-btn" data-tab="workout">التمارين</button>
       <button type="button" class="tab-btn" data-tab="nutrition">التغذية</button>
       <button type="button" class="tab-btn" data-tab="recovery">الاستشفاء</button>
+      <button type="button" class="tab-btn" data-tab="running">الجري</button>
       <button type="button" class="tab-btn" data-tab="community">المجتمع <span class="nav-badge hidden" id="navCommunityBadge">0</span></button>
       <button type="button" class="tab-btn" data-tab="devices">الأجهزة</button>
       <button type="button" class="tab-btn" data-tab="profile">الملف</button>
@@ -283,6 +417,30 @@
           <option value="muscle-gain">بناء العضلات</option>
           <option value="weight-loss">خسارة الوزن</option>
           <option value="fitness">الحفاظ على اللياقة</option>
+          <option value="performance">تحسين الأداء</option>
+          <option value="rehab">العودة بعد إصابة</option>
+        </select>
+      </label>
+
+      <label>
+        <span>نوع الرياضة المفضلة</span>
+        <select name="sportType" required>
+          <option value="">اختر نوع الرياضة</option>
+          <option value="bodybuilding">بناء أجسام</option>
+          <option value="physique">فيزيك</option>
+          <option value="strength">قوة وأداء</option>
+          <option value="powerlifting">باور لفتنق</option>
+          <option value="crossfit">كروس فيت</option>
+          <option value="calisthenics">كاليستنكس</option>
+          <option value="cardio">كارديو وتحمل</option>
+          <option value="running">جري</option>
+          <option value="pilates">بيلاتس</option>
+          <option value="yoga">يوغا</option>
+          <option value="martial_arts">رياضات قتالية</option>
+          <option value="swimming">سباحة</option>
+          <option value="cycling">دراجة</option>
+          <option value="rehab">تأهيل وإصابات</option>
+          <option value="other">أخرى</option>
         </select>
       </label>
 
@@ -302,6 +460,7 @@
     </form>
   </dialog>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     (function () {
       function activateTab(target) {

@@ -109,6 +109,7 @@ async function init() {
   bindProfileActions();
   bindTabJumpButtons();
   bindWorkoutToggles();
+  initRunningTracker();
   renderAll();
 
   await ensureMemberSession();
@@ -589,7 +590,11 @@ function renderWorkoutFilters() {
     { id: "all", label: "الكل" },
     { id: "strength", label: "قوة" },
     { id: "fat-loss", label: "حرق دهون" },
-    { id: "fitness", label: "لياقة" }
+    { id: "fitness", label: "لياقة" },
+    { id: "pilates", label: "بيلاتس" },
+    { id: "yoga", label: "يوغا" },
+    { id: "running", label: "جري" },
+    { id: "cardio", label: "كارديو" }
   ];
 
   container.innerHTML = filters
@@ -1719,4 +1724,429 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// ─────────────────────────────────────────────
+//  RUNNING TRACKER
+// ─────────────────────────────────────────────
+
+const run = {
+  watchId: null,
+  timerInterval: null,
+  motionHandler: null,
+  map: null,
+  polyline: null,
+  summaryMap: null,
+  summaryPolyline: null,
+  points: [],          // [[lat,lng], ...]
+  distanceM: 0,
+  startTime: 0,
+  elapsedSec: 0,
+  paused: false,
+  pauseStart: 0,
+  totalPauseSec: 0,
+  steps: 0,
+  lastMag: 0,
+  lastStepMs: 0,
+  lastKmAlert: 0,
+  recentPacePoints: [],  // {t, d} for current-pace calc
+  sessions: []
+};
+
+function initRunningTracker() {
+  document.getElementById("startRunBtn")?.addEventListener("click", requestRunStart);
+  document.getElementById("pauseRunBtn")?.addEventListener("click", pauseRun);
+  document.getElementById("resumeRunBtn")?.addEventListener("click", resumeRun);
+  document.getElementById("stopRunBtn")?.addEventListener("click", stopRun);
+  document.getElementById("newRunBtn")?.addEventListener("click", resetToReady);
+  loadRunHistory();
+  renderRunHistory();
+}
+
+// ── Start ──────────────────────────────────────
+async function requestRunStart() {
+  const tip = document.getElementById("runPermTip");
+  if (tip) tip.style.display = "block";
+
+  // Request iOS motion permission if needed
+  if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+    try { await DeviceMotionEvent.requestPermission(); } catch (_) {}
+  }
+
+  if (!navigator.geolocation) {
+    alert("المتصفح لا يدعم GPS. يرجى تجربة التطبيق على جهاز محمول.");
+    return;
+  }
+
+  resetRunState();
+  showRunState("active");
+
+  // Init Leaflet map
+  if (!run.map) {
+    run.map = L.map("runMap", { zoomControl: false, attributionControl: false })
+               .setView([24.7136, 46.6753], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(run.map);
+    run.polyline = L.polyline([], { color: "#ff5937", weight: 4, opacity: 0.9 }).addTo(run.map);
+  } else {
+    run.map.setView([24.7136, 46.6753], 15);
+    run.polyline.setLatLngs([]);
+  }
+
+  run.startTime = Date.now();
+  run.timerInterval = setInterval(tickTimer, 1000);
+
+  run.watchId = navigator.geolocation.watchPosition(
+    onGpsPoint,
+    onGpsError,
+    { enableHighAccuracy: true, maximumAge: 1500, timeout: 15000 }
+  );
+
+  startMotionTracking();
+}
+
+// ── GPS callback ───────────────────────────────
+function onGpsPoint(pos) {
+  const badge = document.getElementById("runGpsBadge");
+  if (badge) { badge.textContent = "GPS ✓"; badge.style.color = "#2c9d63"; }
+
+  const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+  if (accuracy > 60) return; // ignore noisy points
+
+  const pt = [lat, lng];
+  if (run.points.length > 0) {
+    const last = run.points[run.points.length - 1];
+    const dist = haversine(last[0], last[1], lat, lng);
+    if (dist < 2) return; // filter GPS drift under 2 m
+    run.distanceM += dist;
+    run.recentPacePoints.push({ t: Date.now(), d: run.distanceM });
+    if (run.recentPacePoints.length > 20) run.recentPacePoints.shift();
+  }
+
+  run.points.push(pt);
+  run.polyline.addLatLng(pt);
+  run.map.panTo(pt, { animate: true, duration: 0.5 });
+
+  // Km milestones
+  const kmDone = Math.floor(run.distanceM / 1000);
+  if (kmDone > run.lastKmAlert) {
+    run.lastKmAlert = kmDone;
+    triggerKmAlert(kmDone);
+  }
+
+  updateLiveDisplay();
+}
+
+function onGpsError(err) {
+  const badge = document.getElementById("runGpsBadge");
+  if (badge) { badge.textContent = "GPS ✗"; badge.style.color = "#e94221"; }
+  console.warn("GPS error", err.message);
+}
+
+// ── Timer ──────────────────────────────────────
+function tickTimer() {
+  if (run.paused) return;
+  run.elapsedSec++;
+  updateLiveDisplay();
+}
+
+// ── Motion / Steps ─────────────────────────────
+function startMotionTracking() {
+  run.motionHandler = function (e) {
+    const g = e.accelerationIncludingGravity;
+    if (!g) return;
+    const mag = Math.sqrt((g.x || 0) ** 2 + (g.y || 0) ** 2 + (g.z || 0) ** 2);
+    const THRESHOLD = 11.5;
+    const MIN_INTERVAL_MS = 280;
+    if (run.lastMag < THRESHOLD && mag >= THRESHOLD) {
+      const now = Date.now();
+      if (now - run.lastStepMs > MIN_INTERVAL_MS) {
+        run.steps++;
+        run.lastStepMs = now;
+        const el = document.getElementById("liveSteps");
+        if (el) el.textContent = String(run.steps);
+      }
+    }
+    run.lastMag = mag;
+  };
+  window.addEventListener("devicemotion", run.motionHandler);
+}
+
+// ── Km alert ──────────────────────────────────
+function triggerKmAlert(km) {
+  // Vibrate if supported
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+  // Visual km badge
+  const badges = document.getElementById("runKmBadges");
+  if (badges) {
+    const b = document.createElement("span");
+    b.className = "run-km-chip";
+    b.textContent = km + " كم ✓";
+    badges.appendChild(b);
+  }
+
+  // Audio beep
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(); osc.stop(ctx.currentTime + 0.6);
+  } catch (_) {}
+}
+
+// ── Pause / Resume ─────────────────────────────
+function pauseRun() {
+  run.paused = true;
+  run.pauseStart = Date.now();
+  document.getElementById("pauseRunBtn").style.display = "none";
+  document.getElementById("resumeRunBtn").style.display = "";
+}
+
+function resumeRun() {
+  run.totalPauseSec += Math.floor((Date.now() - run.pauseStart) / 1000);
+  run.paused = false;
+  document.getElementById("pauseRunBtn").style.display = "";
+  document.getElementById("resumeRunBtn").style.display = "none";
+}
+
+// ── Stop ──────────────────────────────────────
+async function stopRun() {
+  // Stop GPS
+  if (run.watchId !== null) {
+    navigator.geolocation.clearWatch(run.watchId);
+    run.watchId = null;
+  }
+  // Stop timer
+  if (run.timerInterval) { clearInterval(run.timerInterval); run.timerInterval = null; }
+  // Stop motion
+  if (run.motionHandler) { window.removeEventListener("devicemotion", run.motionHandler); run.motionHandler = null; }
+
+  const distKm = run.distanceM / 1000;
+  const avgPaceMin = distKm > 0.05 ? run.elapsedSec / 60 / distKm : 0;
+  const estCal = Math.round(distKm * 62); // ~62 kcal/km for avg 70 kg
+
+  const session = {
+    id: String(Date.now()),
+    date: new Date().toISOString(),
+    distanceM: Math.round(run.distanceM),
+    durationSec: run.elapsedSec,
+    avgPaceMinPerKm: avgPaceMin,
+    steps: run.steps,
+    estCalories: estCal,
+    points: run.points
+  };
+
+  // Save locally
+  run.sessions.unshift(session);
+  if (run.sessions.length > 50) run.sessions.pop();
+  localStorage.setItem("moveRunSessions", JSON.stringify(run.sessions));
+
+  // Save to Firebase
+  if (state.userUid) {
+    try {
+      await addDoc(collection(db, "runSessions"), {
+        userId: state.userUid,
+        distanceM: session.distanceM,
+        durationSec: session.durationSec,
+        avgPaceMinPerKm: avgPaceMin,
+        steps: session.steps,
+        estCalories: session.estCalories,
+        pointCount: session.points.length,
+        date: session.date,
+        createdAt: serverTimestamp()
+      });
+    } catch (err) { console.warn("Run save error", err); }
+  }
+
+  showRunSummary(session);
+}
+
+// ── Summary ───────────────────────────────────
+function showRunSummary(session) {
+  showRunState("summary");
+
+  const distKm = session.distanceM / 1000;
+  document.getElementById("summaryDist").textContent = distKm.toFixed(2) + " كم";
+  document.getElementById("sumTime").textContent = formatSecs(session.durationSec);
+  document.getElementById("sumPace").textContent = session.avgPaceMinPerKm > 0
+    ? formatPace(session.avgPaceMinPerKm) + " د/كم"
+    : "—";
+  document.getElementById("sumSteps").textContent = session.steps.toLocaleString("ar");
+  document.getElementById("sumCal").textContent = session.estCalories.toLocaleString("ar");
+
+  const msg = distKm >= 5 ? "أداء رائع! استمر في التطور."
+    : distKm >= 2 ? "جلسة ممتازة! في كل مرة ستتحسن أكثر."
+    : "خطوة أولى رائعة! استمر.";
+  document.getElementById("summaryMsg").textContent = msg;
+
+  // Summary map
+  setTimeout(() => {
+    if (!run.summaryMap) {
+      run.summaryMap = L.map("runSummaryMap", { zoomControl: false, attributionControl: false, dragging: false });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(run.summaryMap);
+      run.summaryPolyline = L.polyline([], { color: "#ff5937", weight: 4 }).addTo(run.summaryMap);
+    }
+    if (session.points.length > 1) {
+      run.summaryPolyline.setLatLngs(session.points);
+      run.summaryMap.fitBounds(run.summaryPolyline.getBounds(), { padding: [20, 20] });
+    } else {
+      run.summaryMap.setView([24.7136, 46.6753], 13);
+    }
+    run.summaryMap.invalidateSize();
+  }, 100);
+
+  renderRunHistory();
+}
+
+// ── Reset ─────────────────────────────────────
+function resetToReady() {
+  resetRunState();
+  showRunState("ready");
+  renderRunHistory();
+}
+
+function resetRunState() {
+  run.points = [];
+  run.distanceM = 0;
+  run.elapsedSec = 0;
+  run.paused = false;
+  run.totalPauseSec = 0;
+  run.steps = 0;
+  run.lastMag = 0;
+  run.lastStepMs = 0;
+  run.lastKmAlert = 0;
+  run.recentPacePoints = [];
+
+  const el = document.getElementById("runKmBadges");
+  if (el) el.innerHTML = "";
+  const pauseBtn = document.getElementById("pauseRunBtn");
+  const resumeBtn = document.getElementById("resumeRunBtn");
+  if (pauseBtn) pauseBtn.style.display = "";
+  if (resumeBtn) resumeBtn.style.display = "none";
+  updateLiveDisplay();
+}
+
+function showRunState(state) {
+  document.getElementById("runReadyState").style.display = state === "ready" ? "" : "none";
+  document.getElementById("runActiveState").style.display = state === "active" ? "" : "none";
+  document.getElementById("runSummaryState").style.display = state === "summary" ? "" : "none";
+
+  if (state === "active" && run.map) {
+    setTimeout(() => run.map.invalidateSize(), 150);
+  }
+}
+
+// ── Live display ───────────────────────────────
+function updateLiveDisplay() {
+  const distKm = run.distanceM / 1000;
+  const distEl = document.getElementById("liveDist");
+  if (distEl) distEl.textContent = distKm.toFixed(2);
+
+  const timeEl = document.getElementById("liveTime");
+  if (timeEl) timeEl.textContent = formatSecs(run.elapsedSec);
+
+  // Avg pace
+  const avgPaceEl = document.getElementById("livePaceAvg");
+  if (avgPaceEl) {
+    if (distKm > 0.05 && run.elapsedSec > 0) {
+      avgPaceEl.textContent = formatPace(run.elapsedSec / 60 / distKm);
+    } else {
+      avgPaceEl.textContent = "—";
+    }
+  }
+
+  // Current pace (last 30s window)
+  const curPaceEl = document.getElementById("livePaceCurrent");
+  if (curPaceEl) {
+    const now = Date.now();
+    const window30 = run.recentPacePoints.filter(p => now - p.t < 30000);
+    if (window30.length >= 2) {
+      const oldest = window30[0];
+      const newest = window30[window30.length - 1];
+      const deltaDM = (newest.d - oldest.d) / 1000; // km
+      const deltaTMin = (newest.t - oldest.t) / 60000;
+      const pace = deltaDM > 0.01 ? deltaTMin / deltaDM : 0;
+      curPaceEl.textContent = pace > 0 ? formatPace(pace) : "—";
+    } else {
+      curPaceEl.textContent = "—";
+    }
+  }
+
+  const stepsEl = document.getElementById("liveSteps");
+  if (stepsEl) stepsEl.textContent = String(run.steps);
+}
+
+// ── History ───────────────────────────────────
+function loadRunHistory() {
+  try {
+    const raw = localStorage.getItem("moveRunSessions");
+    if (raw) run.sessions = JSON.parse(raw);
+  } catch (_) { run.sessions = []; }
+}
+
+function renderRunHistory() {
+  const container = document.getElementById("runHistory");
+  if (!container) return;
+
+  if (run.sessions.length === 0) {
+    container.innerHTML = "<p class=\"muted\">لا توجد جلسات محفوظة بعد.</p>";
+    return;
+  }
+
+  // Update last session stats
+  const last = run.sessions[0];
+  const lastDistKm = last.distanceM / 1000;
+  const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  el("lastDist", lastDistKm.toFixed(2));
+  el("lastTime", formatSecs(last.durationSec));
+  el("lastPace", last.avgPaceMinPerKm > 0 ? formatPace(last.avgPaceMinPerKm) : "—");
+  el("lastSteps", last.steps.toLocaleString("ar"));
+  const dateEl = document.getElementById("lastRunDate");
+  if (dateEl) {
+    dateEl.textContent = new Intl.DateTimeFormat("ar-SA", { day: "numeric", month: "short" }).format(new Date(last.date));
+  }
+
+  container.innerHTML = run.sessions.slice(0, 10).map(function (s) {
+    const dk = (s.distanceM / 1000).toFixed(2);
+    const d = new Intl.DateTimeFormat("ar-SA", { day: "numeric", month: "short" }).format(new Date(s.date));
+    return `<div class="run-history-item">
+      <div class="run-hist-left">
+        <strong class="run-hist-dist">${dk} كم</strong>
+        <span class="run-hist-meta">${formatSecs(s.durationSec)} · ${s.avgPaceMinPerKm > 0 ? formatPace(s.avgPaceMinPerKm) + " د/كم" : "—"}</span>
+      </div>
+      <div class="run-hist-right">
+        <span class="run-hist-date">${d}</span>
+        <span class="run-hist-steps">${s.steps.toLocaleString("ar")} خطوة</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Helpers ────────────────────────────────────
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatSecs(total) {
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function formatPace(minPerKm) {
+  const m = Math.floor(minPerKm);
+  const s = Math.round((minPerKm - m) * 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
