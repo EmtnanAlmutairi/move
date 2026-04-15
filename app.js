@@ -108,6 +108,7 @@ function initializeTraineeForm() {
       phone: normalizePhone(getFormValue(form, "phone")),
       goal: getFormValue(form, "goal"),
       fitnessLevel: getFormValue(form, "fitnessLevel"),
+      sportType: getFormValue(form, "sportType"),
       trainingLocation: getFormValue(form, "trainingLocation"),
       equipment: getFormValue(form, "equipment"),
       healthNotes: getFormValue(form, "healthNotes") || "none",
@@ -122,6 +123,7 @@ function initializeTraineeForm() {
       !isLikelyValidPhone(payload.phone) ||
       !payload.goal ||
       !payload.fitnessLevel ||
+      !payload.sportType ||
       !payload.trainingLocation ||
       !payload.equipment
     ) {
