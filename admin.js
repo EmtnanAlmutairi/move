@@ -548,7 +548,10 @@ function getFilteredCoachEntries() {
   return state.coachEntries.filter(function (entry) {
     if (!passesSearchFilter(entry)) return false;
     if (!passesDateFilter(entry.createdAt)) return false;
-    if (state.filters.coachSport !== "all" && String(entry.sportCategory || "") !== state.filters.coachSport) {
+    if (
+      state.filters.coachSport !== "all" &&
+      normalizeSportValue(entry.sportCategory) !== normalizeSportValue(state.filters.coachSport)
+    ) {
       return false;
     }
     return true;
@@ -613,7 +616,8 @@ function formatSportLabel(value) {
     physique: "فيزيك",
     strength: "قوة وأداء",
     crossfit: "كروس فيت",
-    calisthenics: "كاليستنكس",
+    calisthenics: "كاليسثينكس",
+    "functional-fitness": "لياقة وظيفية",
     cardio: "كارديو وتحمل",
     running: "جري",
     cycling: "دراجة",
@@ -633,12 +637,46 @@ function formatSportLabel(value) {
   return map[value] || "غير محدد";
 }
 
+function normalizeSportValue(value) {
+  const normalized = String(value || "").trim();
+  const map = {
+    bodybuilding: "bodybuilding",
+    physique: "physique",
+    strength: "strength",
+    "strength-muscle": "strength",
+    crossfit: "crossfit",
+    calisthenics: "calisthenics",
+    "functional-fitness": "functional-fitness",
+    cardio: "cardio",
+    "weight-loss-fitness": "cardio",
+    running: "running",
+    "running-cardio": "running",
+    "running-general-fitness": "running",
+    cycling: "cycling",
+    yoga: "yoga",
+    pilates: "pilates",
+    rehab: "rehab",
+    "rehab-physio": "rehab",
+    "injury-rehab-online": "rehab",
+    "mobility-recovery": "rehab",
+    other: "other"
+  };
+  return map[normalized] || normalized;
+}
+
 function formatSpecializationLabel(value) {
   const map = {
-    "fat-loss": "تنشيف وخسارة وزن",
-    "muscle-gain": "بناء عضلات",
+    bodybuilding: "بناء أجسام",
+    physique: "فيزيك",
     strength: "قوة وأداء",
-    "general-fitness": "لياقة عامة",
+    crossfit: "كروس فيت",
+    calisthenics: "كاليسثينكس",
+    "functional-fitness": "لياقة وظيفية",
+    cardio: "كارديو وتحمل",
+    running: "جري",
+    pilates: "بيلاتس",
+    yoga: "يوغا",
+    cycling: "دراجة",
     rehab: "تأهيل وإصابات",
     other: "أخرى"
   };
