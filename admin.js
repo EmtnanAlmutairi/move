@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -69,6 +70,28 @@ function bindEvents() {
   elements.exportButton.addEventListener("click", exportCsv);
   elements.copyUidButton.addEventListener("click", copyUid);
   elements.signOutButton.addEventListener("click", handleSignOut);
+
+  const generateRefBtn = document.getElementById("generateRefBtn");
+  const customRefInput = document.getElementById("customRefInput");
+  const generatedRefResult = document.getElementById("generatedRefResult");
+  const generatedRefLink = document.getElementById("generatedRefLink");
+  const copyGeneratedRef = document.getElementById("copyGeneratedRef");
+
+  if (generateRefBtn && customRefInput) {
+    generateRefBtn.addEventListener("click", function () {
+      const code = customRefInput.value.trim().toUpperCase();
+      if (!code) return;
+      const link = window.location.origin + "/?ref=" + code;
+      generatedRefLink.textContent = link;
+      generatedRefResult.classList.remove("panel-hidden");
+    });
+    copyGeneratedRef.addEventListener("click", function () {
+      navigator.clipboard.writeText(generatedRefLink.textContent).then(function () {
+        copyGeneratedRef.textContent = "✓ تم النسخ";
+        setTimeout(function () { copyGeneratedRef.textContent = "نسخ"; }, 2000);
+      });
+    });
+  }
   if (elements.registrationsSearchInput) {
     elements.registrationsSearchInput.addEventListener("input", function () {
       state.filters.search = String(elements.registrationsSearchInput.value || "").trim().toLowerCase();
@@ -398,6 +421,8 @@ function renderEntries() {
 }
 
 function renderCoachProfileDetails(entry) {
+  const refCode = (entry.id || "").slice(0, 8).toUpperCase();
+  const refLink = window.location.origin + "/?ref=" + refCode;
   return (
     '<details class="entry-profile">' +
     '<summary>عرض الملف الكامل</summary>' +
@@ -417,6 +442,11 @@ function renderCoachProfileDetails(entry) {
     renderProfileField("كود الدعوة", entry.referralCode || "-") +
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
+    "</div>" +
+    '<div class="entry-actions">' +
+    '<div class="entry-ref-box"><span>' + refLink + '</span>' +
+    '<button type="button" class="copy-ref-btn" data-link="' + refLink + '">نسخ رابط الدعوة</button></div>' +
+    '<button type="button" class="delete-entry-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="coachApplications">حذف التسجيل</button>' +
     "</div>" +
     "</details>"
   );
@@ -441,6 +471,11 @@ function renderTraineeProfileDetails(entry) {
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
     "</div>" +
+    '<div class="entry-actions">' +
+    '<div class="entry-ref-box"><span>' + (window.location.origin + "/?ref=" + (entry.id || "").slice(0, 8).toUpperCase()) + '</span>' +
+    '<button type="button" class="copy-ref-btn" data-link="' + (window.location.origin + "/?ref=" + (entry.id || "").slice(0, 8).toUpperCase()) + '">نسخ رابط الدعوة</button></div>' +
+    '<button type="button" class="delete-entry-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="traineeInterests">حذف التسجيل</button>' +
+    "</div>" +
     "</details>"
   );
 }
@@ -460,10 +495,29 @@ function bindProfileAccordion(container) {
     details.addEventListener("toggle", function () {
       if (!details.open) return;
       container.querySelectorAll(".entry-profile").forEach(function (other) {
-        if (other !== details) {
-          other.open = false;
-        }
+        if (other !== details) other.open = false;
       });
+    });
+  });
+
+  container.querySelectorAll(".copy-ref-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      navigator.clipboard.writeText(btn.dataset.link).then(function () {
+        btn.textContent = "✓ تم النسخ";
+        setTimeout(function () { btn.textContent = "نسخ رابط الدعوة"; }, 2000);
+      });
+    });
+  });
+
+  container.querySelectorAll(".delete-entry-btn").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      if (!confirm("هل أنت متأكد من حذف هذا التسجيل؟")) return;
+      try {
+        await deleteDoc(doc(db, btn.dataset.collection, btn.dataset.id));
+        btn.closest("li").remove();
+      } catch (e) {
+        alert("تعذر الحذف: " + e.message);
+      }
     });
   });
 }

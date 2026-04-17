@@ -565,6 +565,112 @@ select {
   word-break: break-word;
 }
 
+.entry-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.entry-ref-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1.5px solid rgba(181, 255, 69, 0.4);
+  border-radius: 10px;
+  background: rgba(181, 255, 69, 0.06);
+  font-size: 0.78rem;
+  word-break: break-all;
+  flex-wrap: wrap;
+}
+
+.copy-ref-btn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #b5ff45;
+  color: #111;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.delete-entry-btn {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1.5px solid rgba(220, 50, 50, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: #c0392b;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.delete-entry-btn:hover {
+  background: rgba(220, 50, 50, 0.08);
+}
+
+.ref-generator {
+  display: flex;
+  gap: 10px;
+  padding: 14px 0 6px;
+  flex-wrap: wrap;
+}
+
+.ref-generator input {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(17, 17, 17, 0.14);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.ref-generator button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #b5ff45;
+  color: #111;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.generated-ref-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(181, 255, 69, 0.4);
+  border-radius: 12px;
+  background: rgba(181, 255, 69, 0.06);
+  font-size: 0.82rem;
+  word-break: break-all;
+  flex-wrap: wrap;
+}
+
+.generated-ref-result button {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #b5ff45;
+  color: #111;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .stats-grid,
   .identity-bar,

@@ -141,6 +141,21 @@
 
       <div class="entries-card">
         <div class="entries-head">
+          <h3>إنشاء كود دعوة</h3>
+          <span>روابط مخصصة</span>
+        </div>
+        <div class="ref-generator">
+          <input id="customRefInput" type="text" placeholder="مثال: im2 أو coach1" maxlength="20" />
+          <button id="generateRefBtn" type="button">توليد الرابط</button>
+        </div>
+        <div id="generatedRefResult" class="generated-ref-result panel-hidden">
+          <span id="generatedRefLink"></span>
+          <button id="copyGeneratedRef" type="button">نسخ</button>
+        </div>
+      </div>
+
+      <div class="entries-card">
+        <div class="entries-head">
           <h3>فلترة التسجيلات</h3>
           <span>بحث مباشر</span>
         </div>
