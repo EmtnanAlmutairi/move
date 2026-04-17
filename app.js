@@ -8,6 +8,12 @@ import { db, initializeAnalytics } from "./firebase-client.js";
 window.__MOVE_APP_BOOTSTRAPPED__ = true;
 initializeAnalytics();
 
+function getReferralCode() {
+  const params = new URLSearchParams(window.location.search);
+  const code = (params.get("ref") || "").trim().toUpperCase();
+  return code.length > 0 && code.length <= 30 ? code : null;
+}
+
 window.addEventListener("DOMContentLoaded", function () {
   if (window.lucide) {
     window.lucide.createIcons();
@@ -212,7 +218,8 @@ function initializeTrainerForm() {
       experienceDetails: getFormValue(form, "experienceDetails"),
       availability: "full-time",
       source: "landing-page-coach",
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      ...(getReferralCode() && { referralCode: getReferralCode() })
     };
 
     if (
@@ -244,8 +251,16 @@ function initializeTrainerForm() {
     formMessage.textContent = "جاري حفظ بيانات المدرب...";
 
     try {
-      await addDoc(collection(db, "coachApplications"), payload);
-      formMessage.textContent = "تم استلام طلب المدرب بنجاح.";
+      const docRef = await addDoc(collection(db, "coachApplications"), payload);
+      const refCode = docRef.id.slice(0, 8).toUpperCase();
+      const refLink = window.location.origin + window.location.pathname + "?ref=" + refCode;
+      formMessage.innerHTML =
+        "تم استلام طلبك بنجاح! 🎉<br>" +
+        "<small>رابط دعوتك الخاص:</small><br>" +
+        '<div class="ref-link-box">' +
+          '<span id="coachRefLink">' + refLink + "</span>" +
+          '<button type="button" class="ref-copy-btn" onclick="navigator.clipboard.writeText(\'' + refLink + '\').then(function(){this.textContent=\'✓ تم النسخ\'},function(){}).bind(this)">نسخ</button>' +
+        "</div>";
       form.reset();
     } catch (error) {
       console.error("Failed to save coach application", error);
@@ -284,7 +299,8 @@ function initializeTraineeForm() {
       equipment: getFormValue(form, "equipment") || "none",
       healthNotes: getFormValue(form, "healthNotes") || "none",
       source: "landing-page-trainee",
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      ...(getReferralCode() && { referralCode: getReferralCode() })
     };
 
     if (
@@ -310,8 +326,16 @@ function initializeTraineeForm() {
     formMessage.textContent = "جاري حفظ تسجيل المتدرب...";
 
     try {
-      await addDoc(collection(db, "traineeInterests"), payload);
-      formMessage.textContent = "تم استلام تسجيل المتدرب بنجاح.";
+      const docRef = await addDoc(collection(db, "traineeInterests"), payload);
+      const refCode = docRef.id.slice(0, 8).toUpperCase();
+      const refLink = window.location.origin + window.location.pathname + "?ref=" + refCode;
+      formMessage.innerHTML =
+        "تم استلام تسجيلك بنجاح! 🎉<br>" +
+        "<small>رابط دعوتك الخاص:</small><br>" +
+        '<div class="ref-link-box">' +
+          '<span id="traineeRefLink">' + refLink + "</span>" +
+          '<button type="button" class="ref-copy-btn" onclick="navigator.clipboard.writeText(\'' + refLink + '\').then(function(){this.textContent=\'✓ تم النسخ\'},function(){}).bind(this)">نسخ</button>' +
+        "</div>";
       form.reset();
     } catch (error) {
       console.error("Failed to save trainee signup", error);

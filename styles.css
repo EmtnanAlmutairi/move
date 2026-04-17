@@ -1340,6 +1340,39 @@ textarea {
   margin: 18px 4px 0 0;
   color: #2f2a24;
   font-weight: 600;
+  line-height: 1.7;
+}
+
+.ref-link-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid rgba(181, 255, 69, 0.5);
+  border-radius: 14px;
+  background: rgba(181, 255, 69, 0.07);
+  font-size: 0.82rem;
+  font-weight: 500;
+  word-break: break-all;
+  flex-wrap: wrap;
+}
+
+.ref-copy-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.ref-copy-btn:hover {
+  opacity: 0.85;
 }
 
 .form-note {

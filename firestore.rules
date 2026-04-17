@@ -178,6 +178,7 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update, delete: if false;
       allow create: if
+        request.resource.data.keys().hasAll(["fullName","email","phone","goal","fitnessLevel","sportType","trainingLocation","equipment","healthNotes","source","createdAt"]) &&
         request.resource.data.keys().hasOnly([
           "fullName",
           "email",
@@ -189,8 +190,10 @@ service cloud.firestore {
           "equipment",
           "healthNotes",
           "source",
-          "createdAt"
+          "createdAt",
+          "referralCode"
         ]) &&
+        (!("referralCode" in request.resource.data) || (request.resource.data.referralCode is string && request.resource.data.referralCode.size() >= 1 && request.resource.data.referralCode.size() <= 30)) &&
         request.resource.data.fullName is string &&
         request.resource.data.fullName.size() >= 2 &&
         request.resource.data.fullName.size() <= 120 &&
@@ -240,6 +243,7 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update, delete: if false;
       allow create: if
+        request.resource.data.keys().hasAll(["fullName","email","phone","yearsExperience","specialization","sportCategory","certifications","coachingType","coachingLocation","experienceDetails","availability","source","createdAt"]) &&
         request.resource.data.keys().hasOnly([
           "fullName",
           "email",
@@ -253,8 +257,10 @@ service cloud.firestore {
           "experienceDetails",
           "availability",
           "source",
-          "createdAt"
+          "createdAt",
+          "referralCode"
         ]) &&
+        (!("referralCode" in request.resource.data) || (request.resource.data.referralCode is string && request.resource.data.referralCode.size() >= 1 && request.resource.data.referralCode.size() <= 30)) &&
         request.resource.data.fullName is string &&
         request.resource.data.fullName.size() >= 2 &&
         request.resource.data.fullName.size() <= 120 &&

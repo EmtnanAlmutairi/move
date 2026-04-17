@@ -414,6 +414,7 @@ function renderCoachProfileDetails(entry) {
     renderProfileField("نبذة الخبرة", entry.experienceDetails) +
     renderProfileField("التفرغ", formatAvailability(entry.availability)) +
     renderProfileField("المصدر", entry.source) +
+    renderProfileField("كود الدعوة", entry.referralCode || "-") +
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
     "</div>" +
@@ -436,6 +437,7 @@ function renderTraineeProfileDetails(entry) {
     renderProfileField("المعدات", entry.equipment) +
     renderProfileField("ملاحظات صحية", entry.healthNotes) +
     renderProfileField("المصدر", entry.source) +
+    renderProfileField("كود الدعوة", entry.referralCode || "-") +
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
     "</div>" +
