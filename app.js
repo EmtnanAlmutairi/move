@@ -281,7 +281,7 @@ function initializeTraineeForm() {
       fitnessLevel: getFormValue(form, "fitnessLevel"),
       sportType: getFormValue(form, "sportType"),
       trainingLocation: getFormValue(form, "trainingLocation"),
-      equipment: getFormValue(form, "equipment"),
+      equipment: getFormValue(form, "equipment") || "none",
       healthNotes: getFormValue(form, "healthNotes") || "none",
       source: "landing-page-trainee",
       createdAt: serverTimestamp()

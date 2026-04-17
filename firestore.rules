@@ -228,7 +228,7 @@ service cloud.firestore {
         request.resource.data.trainingLocation.size() >= 3 &&
         request.resource.data.trainingLocation.size() <= 20 &&
         request.resource.data.equipment is string &&
-        request.resource.data.equipment.size() >= 2 &&
+        request.resource.data.equipment.size() >= 1 &&
         request.resource.data.equipment.size() <= 1000 &&
         request.resource.data.healthNotes is string &&
         request.resource.data.healthNotes.size() <= 1000 &&
