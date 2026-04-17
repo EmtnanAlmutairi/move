@@ -447,16 +447,21 @@ textarea {
 .dashboard-plan {
   left: 0;
   bottom: 72px;
-  width: 270px;
+  width: 294px;
   padding: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.94), rgba(247, 241, 231, 0.92));
 }
 
 .dashboard-coach {
   right: 18px;
   bottom: 24px;
-  width: 240px;
+  width: 280px;
   padding: 22px;
-  background: #111111;
+  background:
+    radial-gradient(circle at top right, rgba(181, 255, 69, 0.16), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(255, 122, 24, 0.18), transparent 28%),
+    #111111;
   color: #f7f2e9;
 }
 
@@ -554,7 +559,8 @@ textarea {
 }
 
 .dashboard-plan li {
-  padding: 12px 0;
+  gap: 14px;
+  padding: 14px 0;
   border-bottom: 1px solid rgba(17, 17, 17, 0.08);
 }
 
@@ -563,18 +569,117 @@ textarea {
   padding-bottom: 0;
 }
 
+.dashboard-plan li span {
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-plan li span small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .dashboard-plan b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.08);
   font-family: var(--font-display);
 }
 
-.dashboard-coach p {
-  margin: 0 0 10px;
-  font-size: 1.08rem;
-  line-height: 1.7;
+.dashboard-plan-head,
+.dashboard-coach-head,
+.dashboard-coach-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.dashboard-coach span {
+.dashboard-plan-head strong,
+.dashboard-coach strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.28rem;
+  line-height: 1.15;
+}
+
+.dashboard-plan-badge,
+.dashboard-coach-kicker,
+.dashboard-coach-time,
+.dashboard-coach-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.dashboard-plan-badge {
+  background: rgba(181, 255, 69, 0.28);
+  color: #111111;
+}
+
+.dashboard-plan-progress {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(17, 17, 17, 0.05);
+}
+
+.dashboard-plan-progress span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.dashboard-plan-progress strong {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.dashboard-coach-head {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.dashboard-coach-kicker {
+  background: rgba(181, 255, 69, 0.16);
+  color: var(--lime);
+}
+
+.dashboard-coach-time {
+  background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.68);
+}
+
+.dashboard-coach p {
+  margin: 10px 0 16px;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: rgba(247, 242, 233, 0.84);
+}
+
+.dashboard-coach-meta {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.dashboard-coach-meta span {
+  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .ticker {
@@ -1147,6 +1252,138 @@ textarea {
     border-color 0.25s ease,
     box-shadow 0.25s ease,
     background-color 0.25s ease;
+}
+
+.form-grid .native-select-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  inset: auto;
+  width: 1px;
+  height: 1px;
+}
+
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  position: relative;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 52px 12px 18px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 244, 236, 0.92));
+  color: var(--ink);
+  text-align: right;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 10px 20px rgba(17, 17, 17, 0.05);
+  cursor: pointer;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+.custom-select-trigger::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  width: 11px;
+  height: 11px;
+  border-right: 2px solid rgba(17, 17, 17, 0.66);
+  border-bottom: 2px solid rgba(17, 17, 17, 0.66);
+  transform: translateY(-62%) rotate(45deg);
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.custom-select-trigger.is-placeholder {
+  color: rgba(17, 17, 17, 0.56);
+}
+
+.form-field:focus-within .custom-select-trigger,
+.custom-select.is-open .custom-select-trigger {
+  border-color: rgba(17, 17, 17, 0.24);
+  box-shadow:
+    0 0 0 3px rgba(181, 255, 69, 0.22),
+    0 0 0 6px rgba(255, 122, 24, 0.1),
+    0 18px 30px rgba(17, 17, 17, 0.08);
+}
+
+.custom-select.is-open .custom-select-trigger::before {
+  transform: translateY(-28%) rotate(225deg);
+}
+
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  left: 0;
+  z-index: 12;
+  display: grid;
+  gap: 6px;
+  max-height: 280px;
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 246, 0.98), rgba(249, 245, 238, 0.98));
+  box-shadow:
+    0 24px 40px rgba(17, 17, 17, 0.12),
+    0 8px 14px rgba(17, 17, 17, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0.2s ease;
+}
+
+.custom-select.is-open .custom-select-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.custom-select-option {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--ink);
+  text-align: right;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.custom-select-option:hover,
+.custom-select-option:focus-visible {
+  outline: none;
+  background: rgba(17, 17, 17, 0.06);
+  transform: translateX(-2px);
+}
+
+.custom-select-option.is-selected {
+  background:
+    linear-gradient(135deg, rgba(181, 255, 69, 0.26), rgba(255, 122, 24, 0.18));
+  color: #111111;
+  font-weight: 700;
+}
+
+.custom-select-option.is-placeholder {
+  color: rgba(17, 17, 17, 0.52);
 }
 
 .form-grid textarea {

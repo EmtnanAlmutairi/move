@@ -13,11 +13,177 @@ window.addEventListener("DOMContentLoaded", function () {
     window.lucide.createIcons();
   }
 
+  initializeCustomSelects();
   initializeTrainerForm();
   initializeTraineeForm();
   initializeNavigationUX();
   initializeAnimations();
 });
+
+function initializeCustomSelects() {
+  const selects = Array.from(document.querySelectorAll(".cta-panel .form-grid select"));
+  let activeDropdown = null;
+
+  selects.forEach(function (select, index) {
+    if (!select || select.dataset.customized === "true") {
+      return;
+    }
+
+    const field = select.closest(".form-field");
+    if (!field) {
+      return;
+    }
+
+    const options = Array.from(select.options);
+    const dropdown = document.createElement("div");
+    const trigger = document.createElement("button");
+    const menu = document.createElement("div");
+    const menuId = "custom-select-menu-" + index;
+
+    dropdown.className = "custom-select";
+    trigger.className = "custom-select-trigger";
+    trigger.type = "button";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", menuId);
+
+    menu.className = "custom-select-menu";
+    menu.id = menuId;
+    menu.setAttribute("role", "listbox");
+
+    options.forEach(function (option) {
+      const item = document.createElement("button");
+      const isPlaceholder = option.value === "";
+
+      item.type = "button";
+      item.className = "custom-select-option";
+      item.textContent = option.textContent;
+      item.dataset.value = option.value;
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", String(option.selected));
+
+      if (isPlaceholder) {
+        item.classList.add("is-placeholder");
+      }
+
+      if (option.selected) {
+        item.classList.add("is-selected");
+      }
+
+      item.addEventListener("click", function () {
+        select.value = option.value;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        syncCustomSelect(dropdown, select);
+        closeDropdown(dropdown);
+      });
+
+      menu.appendChild(item);
+    });
+
+    trigger.addEventListener("click", function () {
+      if (dropdown.classList.contains("is-open")) {
+        closeDropdown(dropdown);
+        return;
+      }
+
+      if (activeDropdown && activeDropdown !== dropdown) {
+        closeDropdown(activeDropdown);
+      }
+
+      dropdown.classList.add("is-open");
+      trigger.setAttribute("aria-expanded", "true");
+      activeDropdown = dropdown;
+    });
+
+    trigger.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        if (!dropdown.classList.contains("is-open")) {
+          trigger.click();
+        }
+      }
+    });
+
+    select.addEventListener("change", function () {
+      syncCustomSelect(dropdown, select);
+    });
+
+    select.classList.add("native-select-hidden");
+    select.dataset.customized = "true";
+    dropdown.appendChild(trigger);
+    dropdown.appendChild(menu);
+    field.appendChild(dropdown);
+    syncCustomSelect(dropdown, select);
+
+    const form = select.form;
+    if (form && !form.dataset.customSelectResetBound) {
+      form.dataset.customSelectResetBound = "true";
+      form.addEventListener("reset", function () {
+        window.requestAnimationFrame(function () {
+          const formSelects = form.querySelectorAll("select[data-customized='true']");
+          formSelects.forEach(function (formSelect) {
+            const custom = formSelect.parentElement && formSelect.parentElement.querySelector(".custom-select");
+            if (custom) {
+              syncCustomSelect(custom, formSelect);
+            }
+          });
+        });
+      });
+    }
+  });
+
+  document.addEventListener("click", function (event) {
+    if (activeDropdown && !activeDropdown.contains(event.target)) {
+      closeDropdown(activeDropdown);
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && activeDropdown) {
+      closeDropdown(activeDropdown);
+    }
+  });
+
+  function closeDropdown(dropdown) {
+    if (!dropdown) {
+      return;
+    }
+
+    dropdown.classList.remove("is-open");
+    const trigger = dropdown.querySelector(".custom-select-trigger");
+    if (trigger) {
+      trigger.setAttribute("aria-expanded", "false");
+    }
+    if (activeDropdown === dropdown) {
+      activeDropdown = null;
+    }
+  }
+}
+
+function syncCustomSelect(dropdown, select) {
+  if (!dropdown || !select) {
+    return;
+  }
+
+  const trigger = dropdown.querySelector(".custom-select-trigger");
+  const options = Array.from(dropdown.querySelectorAll(".custom-select-option"));
+  const selectedOption = Array.from(select.options).find(function (option) {
+    return option.value === select.value;
+  }) || select.options[0];
+  const selectedText = selectedOption ? selectedOption.textContent : "";
+  const isPlaceholder = !selectedOption || selectedOption.value === "";
+
+  if (trigger) {
+    trigger.textContent = selectedText;
+    trigger.classList.toggle("is-placeholder", isPlaceholder);
+  }
+
+  options.forEach(function (optionButton) {
+    const selected = optionButton.dataset.value === select.value;
+    optionButton.classList.toggle("is-selected", selected);
+    optionButton.setAttribute("aria-selected", String(selected));
+  });
+}
 
 function initializeTrainerForm() {
   const form = document.getElementById("trainerForm");
