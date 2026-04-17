@@ -612,25 +612,25 @@ function formatDate(timestamp) {
 
 function formatSportLabel(value) {
   const map = {
-    bodybuilding: "بناء أجسام",
-    physique: "فيزيك",
-    strength: "قوة وأداء",
-    crossfit: "كروس فيت",
-    calisthenics: "كاليسثينكس",
-    "functional-fitness": "لياقة وظيفية",
-    cardio: "كارديو وتحمل",
+    bodybuilding: "بناء أجسام Bodybuilding",
+    physique: "فيزيك (Physique)",
+    strength: "قوة وأداء Power & Performance",
+    crossfit: "كروس فيت CrossFit",
+    calisthenics: "كاليسثينكس Calisthenics",
+    "functional-fitness": "لياقة وظيفية Functional Fitness",
+    cardio: "كارديو وتحمل Cardio & Endurance",
     running: "جري",
-    cycling: "دراجة",
+    cycling: "دراجة Cycling",
     powerlifting: "باور لفتنق",
-    rehab: "تأهيل وإصابات",
+    rehab: "تأهيل وإصابات Rehab",
     other: "أخرى",
     "injury-rehab-online": "تأهيل الإصابات أون لاين",
-    "running-general-fitness": "جري ولياقة عامة",
+    "running-general-fitness": "جري Runningولياقة عامة",
     "strength-muscle": "بناء عضلات وقوة",
     "weight-loss-fitness": "خسارة وزن ولياقة",
-    "running-cardio": "جري وكارديو",
-    yoga: "يوغا",
-    pilates: "بيلاتس",
+    "running-cardio": "جري Runningوكارديو",
+    yoga: "يوغا Yoga",
+    pilates: "بيلاتس Pilates",
     "mobility-recovery": "مرونة وتعافٍ",
     "rehab-physio": "تأهيل وعلاج طبيعي"
   };
@@ -666,18 +666,18 @@ function normalizeSportValue(value) {
 
 function formatSpecializationLabel(value) {
   const map = {
-    bodybuilding: "بناء أجسام",
-    physique: "فيزيك",
-    strength: "قوة وأداء",
-    crossfit: "كروس فيت",
-    calisthenics: "كاليسثينكس",
-    "functional-fitness": "لياقة وظيفية",
-    cardio: "كارديو وتحمل",
+    bodybuilding: "بناء أجسام Bodybuilding",
+    physique: "فيزيك (Physique)",
+    strength: "قوة وأداء Power & Performance",
+    crossfit: "كروس فيت CrossFit",
+    calisthenics: "كاليسثينكس Calisthenics",
+    "functional-fitness": "لياقة وظيفية Functional Fitness",
+    cardio: "كارديو وتحمل Cardio & Endurance",
     running: "جري",
-    pilates: "بيلاتس",
-    yoga: "يوغا",
-    cycling: "دراجة",
-    rehab: "تأهيل وإصابات",
+    pilates: "بيلاتس Pilates",
+    yoga: "يوغا Yoga",
+    cycling: "دراجة Cycling",
+    rehab: "تأهيل وإصابات Rehab",
     other: "أخرى"
   };
   return map[value] || "غير محدد";

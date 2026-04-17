@@ -591,8 +591,8 @@ function renderWorkoutFilters() {
     { id: "strength", label: "قوة" },
     { id: "fat-loss", label: "حرق دهون" },
     { id: "fitness", label: "لياقة" },
-    { id: "pilates", label: "بيلاتس" },
-    { id: "yoga", label: "يوغا" },
+    { id: "pilates", label: "بيلاتس Pilates" },
+    { id: "yoga", label: "يوغا Yoga" },
     { id: "running", label: "جري" },
     { id: "cardio", label: "كارديو" }
   ];
