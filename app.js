@@ -355,6 +355,10 @@ function initializeAnimations() {
   }
 
   window.gsap.utils.toArray("[data-animate]").forEach(function (element) {
+    if (element.closest(".hero")) {
+      return;
+    }
+
     const animation = element.getAttribute("data-animate");
     const vars = {
       opacity: 0,
@@ -362,7 +366,8 @@ function initializeAnimations() {
       ease: "power3.out",
       scrollTrigger: {
         trigger: element,
-        start: "top 82%"
+        start: "top 82%",
+        once: true
       }
     };
 
