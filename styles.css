@@ -444,15 +444,6 @@ textarea {
   padding: 26px;
 }
 
-.dashboard-coach {
-  right: 18px;
-  bottom: 24px;
-  width: 240px;
-  padding: 22px;
-  background: #111111;
-  color: #f7f2e9;
-}
-
 .dashboard-head {
   display: flex;
   align-items: center;
@@ -534,14 +525,13 @@ textarea {
   font-size: 0.82rem;
 }
 
-.dashboard-coach p {
-  margin: 0 0 10px;
-  font-size: 1.08rem;
-  line-height: 1.7;
-}
-
-.dashboard-coach span {
-  color: rgba(255, 255, 255, 0.68);
+.dashboard-note {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  color: #4f4740;
+  font-size: 0.95rem;
+  line-height: 1.8;
 }
 
 .ticker {
