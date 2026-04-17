@@ -316,7 +316,8 @@ service cloud.firestore {
         request.resource.data.certifications.size() >= 2 &&
         request.resource.data.certifications.size() <= 300 &&
         request.resource.data.academicQualification is string &&
-        request.resource.data.academicQualification in ["none","diploma","bachelor","master","phd"] &&
+        request.resource.data.academicQualification.size() >= 2 &&
+        request.resource.data.academicQualification.size() <= 200 &&
         request.resource.data.coachingType is string &&
         request.resource.data.coachingType.size() >= 3 &&
         request.resource.data.coachingType.size() <= 20 &&
