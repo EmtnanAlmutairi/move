@@ -526,9 +526,39 @@ textarea {
 }
 
 .dashboard-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   margin: 16px 0 0;
   padding-top: 14px;
   border-top: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.dashboard-note-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #9fe870;
+  box-shadow: 0 0 0 6px rgba(159, 232, 112, 0.14);
+}
+
+.dashboard-note-copy {
+  min-width: 0;
+}
+
+.dashboard-note-copy strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #1f1a16;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.dashboard-note-copy p {
+  margin: 0;
   color: #4f4740;
   font-size: 0.95rem;
   line-height: 1.8;
