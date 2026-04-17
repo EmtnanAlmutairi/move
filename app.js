@@ -213,6 +213,7 @@ function initializeTrainerForm() {
       specialization: getFormValue(form, "specialization"),
       sportCategory: getFormValue(form, "sportCategory"),
       certifications: getFormValue(form, "certifications"),
+      academicQualification: getFormValue(form, "academicQualification"),
       coachingType: "online",
       coachingLocation: "online",
       experienceDetails: getFormValue(form, "experienceDetails"),
@@ -232,6 +233,7 @@ function initializeTrainerForm() {
       !payload.specialization ||
       !payload.sportCategory ||
       !payload.certifications ||
+      !payload.academicQualification ||
       !payload.experienceDetails
     ) {
       formMessage.textContent = "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.";

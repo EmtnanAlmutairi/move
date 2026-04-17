@@ -462,6 +462,7 @@ function renderCoachProfileDetails(entry) {
     renderProfileField("التخصص", formatSpecializationLabel(entry.specialization)) +
     renderProfileField("الرياضة", formatSportLabel(entry.sportCategory)) +
     renderProfileField("الشهادات", entry.certifications) +
+    renderProfileField("المؤهل الأكاديمي", formatAcademicQualificationLabel(entry.academicQualification)) +
     renderProfileField("نمط التدريب", formatCoachingType(entry.coachingType)) +
     renderProfileField("مكان التدريب", formatCoachingLocation(entry.coachingLocation)) +
     renderProfileField("نبذة الخبرة", entry.experienceDetails) +
@@ -766,6 +767,17 @@ function normalizeSportValue(value) {
     other: "other"
   };
   return map[normalized] || normalized;
+}
+
+function formatAcademicQualificationLabel(value) {
+  const map = {
+    none: "لا يوجد مؤهل أكاديمي",
+    diploma: "دبلوم",
+    bachelor: "بكالوريوس",
+    master: "ماجستير",
+    phd: "دكتوراه"
+  };
+  return map[value] || "غير محدد";
 }
 
 function formatSpecializationLabel(value) {

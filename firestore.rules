@@ -245,7 +245,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
       allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["customCode"]);
       allow create: if
-        request.resource.data.keys().hasAll(["fullName","email","phone","yearsExperience","specialization","sportCategory","certifications","coachingType","coachingLocation","experienceDetails","availability","source","createdAt"]) &&
+        request.resource.data.keys().hasAll(["fullName","email","phone","yearsExperience","specialization","sportCategory","certifications","academicQualification","coachingType","coachingLocation","experienceDetails","availability","source","createdAt"]) &&
         request.resource.data.keys().hasOnly([
           "fullName",
           "email",
@@ -254,6 +254,7 @@ service cloud.firestore {
           "specialization",
           "sportCategory",
           "certifications",
+          "academicQualification",
           "coachingType",
           "coachingLocation",
           "experienceDetails",
@@ -314,6 +315,8 @@ service cloud.firestore {
         request.resource.data.certifications is string &&
         request.resource.data.certifications.size() >= 2 &&
         request.resource.data.certifications.size() <= 300 &&
+        request.resource.data.academicQualification is string &&
+        request.resource.data.academicQualification in ["none","diploma","bachelor","master","phd"] &&
         request.resource.data.coachingType is string &&
         request.resource.data.coachingType.size() >= 3 &&
         request.resource.data.coachingType.size() <= 20 &&
