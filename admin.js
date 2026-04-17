@@ -550,7 +550,7 @@ function getFilteredCoachEntries() {
     if (!passesDateFilter(entry.createdAt)) return false;
     if (
       state.filters.coachSport !== "all" &&
-      normalizeSportValue(entry.sportCategory) !== normalizeSportValue(state.filters.coachSport)
+      (entry.specialization || "") !== state.filters.coachSport
     ) {
       return false;
     }
@@ -666,21 +666,15 @@ function normalizeSportValue(value) {
 
 function formatSpecializationLabel(value) {
   const map = {
-    bodybuilding: "بناء أجسام Bodybuilding",
-    physique: "فيزيك (Physique)",
-    strength: "قوة وأداء Power & Performance",
-    crossfit: "كروس فيت CrossFit",
-    calisthenics: "كاليسثينكس Calisthenics",
-    "functional-fitness": "لياقة وظيفية Functional Fitness",
-    cardio: "كارديو وتحمل Cardio & Endurance",
-    running: "جري",
-    pilates: "بيلاتس Pilates",
-    yoga: "يوغا Yoga",
-    cycling: "دراجة Cycling",
-    rehab: "تأهيل وإصابات Rehab",
-    other: "أخرى"
+    "sports-training": "التدريب الرياضي",
+    "sports-nutrition": "التغذية الرياضية",
+    "high-performance": "الأداء العالي",
+    "recovery-rehab": "الاستشفاء والتأهيل",
+    "sports-psychology": "الصحة النفسية الرياضية",
+    "therapeutic-nutrition": "التغذية العلاجية",
+    "yoga-relaxation": "اليوغا والاسترخاء"
   };
-  return map[value] || "غير محدد";
+  return map[value] || value || "غير محدد";
 }
 
 function formatGoalLabel(value) {

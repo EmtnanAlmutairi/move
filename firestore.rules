@@ -270,8 +270,15 @@ service cloud.firestore {
         request.resource.data.yearsExperience >= 0 &&
         request.resource.data.yearsExperience <= 50 &&
         request.resource.data.specialization is string &&
-        request.resource.data.specialization.size() >= 3 &&
-        request.resource.data.specialization.size() <= 40 &&
+        request.resource.data.specialization in [
+          "sports-training",
+          "sports-nutrition",
+          "high-performance",
+          "recovery-rehab",
+          "sports-psychology",
+          "therapeutic-nutrition",
+          "yoga-relaxation"
+        ] &&
         request.resource.data.sportCategory is string &&
         request.resource.data.sportCategory in [
           "bodybuilding",
