@@ -613,7 +613,7 @@ function formatDate(timestamp) {
 function formatSportLabel(value) {
   const map = {
     bodybuilding: "بناء أجسام Bodybuilding",
-    physique: "فيزيك (Physique)",
+    physique: "فيزيك Physique",
     strength: "قوة وأداء Power & Performance",
     crossfit: "كروس فيت CrossFit",
     calisthenics: "كاليسثينكس Calisthenics",
