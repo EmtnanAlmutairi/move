@@ -1170,7 +1170,7 @@ textarea {
   width: 100%;
   min-height: 54px;
   padding: 12px 52px 12px 18px;
-  border: 1px solid rgba(17, 17, 17, 0.12);
+  border: 1.5px solid rgba(181, 255, 69, 0.38);
   border-radius: 999px;
   appearance: none;
   -webkit-appearance: none;
@@ -1182,6 +1182,7 @@ textarea {
   text-decoration: none;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 0 0 3px rgba(181, 255, 69, 0.08),
     0 10px 20px rgba(17, 17, 17, 0.05);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -1198,8 +1199,8 @@ textarea {
   left: 18px;
   width: 11px;
   height: 11px;
-  border-right: 2px solid rgba(17, 17, 17, 0.66);
-  border-bottom: 2px solid rgba(17, 17, 17, 0.66);
+  border-right: 2px solid var(--lime);
+  border-bottom: 2px solid var(--lime);
   transform: translateY(-62%) rotate(45deg);
   transition: transform 0.25s ease, border-color 0.25s ease;
 }
@@ -1287,8 +1288,8 @@ textarea {
 }
 
 .custom-select-option.is-selected {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  background: rgba(181, 255, 69, 0.1);
+  color: var(--lime);
   font-weight: 700;
 }
 
@@ -1298,7 +1299,7 @@ textarea {
   left: 12px;
   top: 50%;
   transform: translateY(-52%);
-  color: rgba(255, 255, 255, 0.96);
+  color: var(--lime);
   font-size: 1rem;
   font-weight: 900;
 }

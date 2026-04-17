@@ -231,6 +231,11 @@ function initializeTrainerForm() {
       return;
     }
 
+    if (payload.experienceDetails.length < 10) {
+      formMessage.textContent = "الرجاء كتابة وصف تجربتك بأكثر من 10 أحرف.";
+      return;
+    }
+
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = "جاري الإرسال...";
