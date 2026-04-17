@@ -527,61 +527,41 @@ textarea {
 
 .dashboard-note {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   margin: 16px 0 0;
-  padding: 14px 16px;
-  overflow: hidden;
+  padding-top: 14px;
   border-top: 1px solid rgba(17, 17, 17, 0.08);
-  border-radius: 18px;
-  background: rgba(17, 17, 17, 0.035);
 }
 
 .dashboard-note-dot {
   width: 10px;
   height: 10px;
+  margin-top: 8px;
   flex: 0 0 auto;
   border-radius: 50%;
   background: #9fe870;
   box-shadow: 0 0 0 6px rgba(159, 232, 112, 0.14);
 }
 
-.dashboard-note-marquee {
-  position: relative;
-  flex: 1 1 auto;
+.dashboard-note-copy {
   min-width: 0;
-  overflow: hidden;
 }
 
-.dashboard-note-track {
-  display: flex;
-  align-items: center;
-  gap: 48px;
-  width: max-content;
-  animation: dashboard-note-marquee 18s linear infinite;
-  will-change: transform;
+.dashboard-note-copy strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #1f1a16;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
-.dashboard-note-track span {
-  white-space: nowrap;
+.dashboard-note-copy p {
+  margin: 0;
   color: #4f4740;
   font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-@keyframes dashboard-note-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(calc(-50% - 24px));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-note-track {
-    animation: none;
-  }
+  line-height: 1.8;
 }
 
 .ticker {
