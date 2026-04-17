@@ -8,7 +8,12 @@ import { db, initializeAnalytics } from "./firebase-client.js";
 window.__MOVE_APP_BOOTSTRAPPED__ = true;
 initializeAnalytics();
 
-function getReferralCode() {
+function getReferralCode(form) {
+  if (form) {
+    const input = form.querySelector('[name="referralCodeInput"]');
+    const manual = input ? input.value.trim().toUpperCase() : "";
+    if (manual.length > 0 && manual.length <= 30) return manual;
+  }
   const params = new URLSearchParams(window.location.search);
   const code = (params.get("ref") || "").trim().toUpperCase();
   return code.length > 0 && code.length <= 30 ? code : null;
@@ -220,7 +225,7 @@ function initializeTrainerForm() {
       availability: "full-time",
       source: "landing-page-coach",
       createdAt: serverTimestamp(),
-      ...(getReferralCode() && { referralCode: getReferralCode() })
+      ...(getReferralCode(form) && { referralCode: getReferralCode(form) })
     };
 
     if (
@@ -302,7 +307,7 @@ function initializeTraineeForm() {
       healthNotes: getFormValue(form, "healthNotes") || "none",
       source: "landing-page-trainee",
       createdAt: serverTimestamp(),
-      ...(getReferralCode() && { referralCode: getReferralCode() })
+      ...(getReferralCode(form) && { referralCode: getReferralCode(form) })
     };
 
     if (
