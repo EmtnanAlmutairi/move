@@ -325,6 +325,13 @@ function initializeAnimations() {
     return;
   }
 
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isCompactViewport = window.matchMedia("(max-width: 820px)").matches;
+
+  if (prefersReducedMotion) {
+    return;
+  }
+
   window.gsap.registerPlugin(window.ScrollTrigger);
 
   window.gsap.from(".hero-copy > *", {
@@ -335,15 +342,17 @@ function initializeAnimations() {
     ease: "power3.out"
   });
 
-  window.gsap.from(".hero-visual .dashboard-card", {
-    opacity: 0,
-    x: -40,
-    y: 20,
-    duration: 1.1,
-    stagger: 0.16,
-    ease: "power3.out",
-    delay: 0.2
-  });
+  if (!isCompactViewport) {
+    window.gsap.from(".hero-visual .dashboard-card", {
+      opacity: 0,
+      x: -40,
+      y: 20,
+      duration: 1.1,
+      stagger: 0.16,
+      ease: "power3.out",
+      delay: 0.2
+    });
+  }
 
   window.gsap.utils.toArray("[data-animate]").forEach(function (element) {
     const animation = element.getAttribute("data-animate");
@@ -357,20 +366,24 @@ function initializeAnimations() {
       }
     };
 
-    if (animation === "fade-left") {
+    if (!isCompactViewport && animation === "fade-left") {
       vars.x = -44;
     }
 
-    if (animation === "fade-right") {
+    if (!isCompactViewport && animation === "fade-right") {
       vars.x = 44;
     }
 
     if (!vars.x) {
-      vars.y = 34;
+      vars.y = isCompactViewport ? 18 : 34;
     }
 
     window.gsap.from(element, vars);
   });
+
+  if (isCompactViewport) {
+    return;
+  }
 
   window.gsap.utils.toArray("[data-parallax]").forEach(function (element) {
     const distance = Number(element.getAttribute("data-parallax")) || 18;

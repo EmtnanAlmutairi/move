@@ -36,7 +36,8 @@
     <header class="header">
       <nav class="nav">
         <a href="#" class="logo" aria-label="MOVE home">
-          <img src="logo.png" alt="MOVE" class="logo-image" width="1564" height="938" />
+          <img src="logo.png" alt="MOVE" class="logo-image" width="1564" height="938" decoding="async"
+            fetchpriority="high" />
         </a>
 
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav"
@@ -748,63 +749,6 @@
       attachFallbackForm("trainerForm", "trainerFormMessage", "تم استلام تسجيل المدرب.");
       attachFallbackForm("traineeForm", "traineeFormMessage", "تم استلام تسجيل المتدرب.");
 
-      if (!window.gsap || !window.ScrollTrigger) {
-        return;
-      }
-
-      gsap.registerPlugin(ScrollTrigger);
-
-      gsap.from(".hero-copy > *", {
-        opacity: 0,
-        y: 28,
-        duration: 0.9,
-        stagger: 0.12,
-        ease: "power3.out"
-      });
-
-      gsap.from(".hero-visual .dashboard-card", {
-        opacity: 0,
-        x: -40,
-        y: 20,
-        duration: 1.1,
-        stagger: 0.16,
-        ease: "power3.out",
-        delay: 0.2
-      });
-
-      gsap.utils.toArray("[data-animate]").forEach(function (element) {
-        const animation = element.getAttribute("data-animate");
-        const vars = {
-          opacity: 0,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: element,
-            start: "top 82%"
-          }
-        };
-
-        if (animation === "fade-left") vars.x = -44;
-        if (animation === "fade-right") vars.x = 44;
-        if (!vars.x) vars.y = 34;
-
-        gsap.from(element, vars);
-      });
-
-      gsap.utils.toArray("[data-parallax]").forEach(function (element) {
-        const distance = Number(element.getAttribute("data-parallax")) || 18;
-
-        gsap.to(element, {
-          y: distance,
-          ease: "none",
-          scrollTrigger: {
-            trigger: ".hero",
-            start: "top top",
-            end: "bottom top",
-            scrub: true
-          }
-        });
-      });
     });
   </script>
 </body>

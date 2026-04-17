@@ -1424,6 +1424,10 @@ textarea {
 }
 
 @media (max-width: 820px) {
+  .page-shell {
+    overflow: hidden;
+  }
+
   .nav-toggle {
     display: inline-flex;
   }
@@ -1488,7 +1492,18 @@ textarea {
   }
 
   .hero {
+    gap: 22px;
     padding-top: 52px;
+  }
+
+  .hero-copy {
+    text-align: right;
+  }
+
+  .hero-text {
+    max-width: none;
+    font-size: 0.98rem;
+    line-height: 1.75;
   }
 
   .cta-panel {
@@ -1516,6 +1531,7 @@ textarea {
     position: relative;
     inset: auto;
     margin-bottom: 18px;
+    padding: 20px;
   }
 
   .dashboard-coach {
@@ -1530,6 +1546,23 @@ textarea {
     min-height: auto;
     display: grid;
     gap: 18px;
+  }
+
+  .hero-backdrop,
+  .grid-glow {
+    display: none;
+  }
+
+  .hero-stats article,
+  .dashboard-card,
+  .cta-panel,
+  .bento-card,
+  .experience-card,
+  .result-panel,
+  .community-showcase,
+  .community-metrics article {
+    backdrop-filter: none;
+    box-shadow: 0 14px 28px rgba(17, 17, 17, 0.08);
   }
 
   .form-grid,
@@ -1548,6 +1581,15 @@ textarea {
 
   .logo-image {
     height: 40px;
+  }
+
+  .header {
+    padding-top: 10px;
+  }
+
+  .nav {
+    min-height: 72px;
+    padding-inline: 14px;
   }
 
   .back-to-top {
@@ -1569,12 +1611,63 @@ textarea {
 
   .hero h1 {
     font-size: clamp(2.5rem, 14vw, 4rem);
+    line-height: 1.02;
   }
 
   .section-heading h2,
   .split-copy h2,
   .cta-panel h2 {
     font-size: 2rem;
+  }
+
+  .hero-actions {
+    gap: 10px;
+  }
+
+  .hero-stats {
+    gap: 10px;
+  }
+
+  .hero-stats article {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .hero-stats strong {
+    font-size: 1.4rem;
+  }
+
+  .dashboard-main {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .dashboard-score {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-score strong {
+    font-size: 2.6rem;
+  }
+
+  .score-ring {
+    width: 96px;
+    font-size: 0.74rem;
+  }
+
+  .metric-grid article {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .dashboard-note {
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .dashboard-note-track span {
+    font-size: 0.88rem;
   }
 
   .cta-panel,
@@ -1587,6 +1680,13 @@ textarea {
   .form-field {
     padding: 10px;
     border-radius: 14px;
+  }
+
+  .custom-select-trigger,
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    min-height: 50px;
   }
 }
 
