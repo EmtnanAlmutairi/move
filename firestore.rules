@@ -285,7 +285,8 @@ service cloud.firestore {
           "recovery-rehab",
           "sports-psychology",
           "therapeutic-nutrition",
-          "yoga-relaxation"
+          "yoga-relaxation",
+          "academic-qualification"
         ] &&
         request.resource.data.sportCategory is string &&
         request.resource.data.sportCategory in [

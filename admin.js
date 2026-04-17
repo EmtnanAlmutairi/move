@@ -776,7 +776,8 @@ function formatSpecializationLabel(value) {
     "recovery-rehab": "الاستشفاء والتأهيل",
     "sports-psychology": "الصحة النفسية الرياضية",
     "therapeutic-nutrition": "التغذية العلاجية",
-    "yoga-relaxation": "اليوغا والاسترخاء"
+    "yoga-relaxation": "اليوغا والاسترخاء",
+    "academic-qualification": "المؤهل الأكاديمي"
   };
   return map[value] || value || "غير محدد";
 }
@@ -805,6 +806,7 @@ function formatTrainingLocationLabel(value) {
   const map = {
     gym: "النادي",
     home: "البيت",
+    outdoor: "مساحة مفتوحة",
     both: "الاثنين"
   };
   return map[value] || "غير محدد";
