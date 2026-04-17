@@ -5,7 +5,8 @@ import {
   getDoc,
   getDocs,
   orderBy,
-  query
+  query,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import {
   onAuthStateChanged,
@@ -420,9 +421,36 @@ function renderEntries() {
   bindProfileAccordion(elements.traineeEntriesList);
 }
 
+function renderRefSection(entry, collectionName) {
+  const incomingCode = entry.referralCode
+    ? '<div class="ref-incoming">سجّل من رابط: <strong>' + escapeHtml(entry.referralCode) + '</strong></div>'
+    : '<div class="ref-incoming ref-direct">سجّل مباشرة (بدون رابط)</div>';
+
+  const customCode = entry.customCode ? entry.customCode.toUpperCase() : "";
+  const refLink = customCode ? window.location.origin + "/?ref=" + customCode : "";
+
+  const ownCodeSection = customCode
+    ? '<div class="entry-ref-box">' +
+      '<span>' + escapeHtml(refLink) + '</span>' +
+      '<button type="button" class="copy-ref-btn" data-link="' + escapeHtml(refLink) + '">نسخ</button>' +
+      '<button type="button" class="change-code-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="' + collectionName + '">تغيير الكود</button>' +
+      '</div>'
+    : '<div class="assign-code-box">' +
+      '<input type="text" class="assign-code-input" placeholder="اكتب كوداً مخصصاً مثل im2" maxlength="20" data-id="' + escapeHtml(entry.id) + '" data-collection="' + collectionName + '" />' +
+      '<button type="button" class="assign-code-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="' + collectionName + '">تعيين كود</button>' +
+      '</div>';
+
+  return (
+    '<div class="entry-actions">' +
+    incomingCode +
+    '<div class="ref-own-label">كود الدعوة الخاص به:</div>' +
+    ownCodeSection +
+    '<button type="button" class="delete-entry-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="' + collectionName + '">حذف التسجيل</button>' +
+    "</div>"
+  );
+}
+
 function renderCoachProfileDetails(entry) {
-  const refCode = (entry.id || "").slice(0, 8).toUpperCase();
-  const refLink = window.location.origin + "/?ref=" + refCode;
   return (
     '<details class="entry-profile">' +
     '<summary>عرض الملف الكامل</summary>' +
@@ -439,15 +467,10 @@ function renderCoachProfileDetails(entry) {
     renderProfileField("نبذة الخبرة", entry.experienceDetails) +
     renderProfileField("التفرغ", formatAvailability(entry.availability)) +
     renderProfileField("المصدر", entry.source) +
-    renderProfileField("كود الدعوة", entry.referralCode || "-") +
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
     "</div>" +
-    '<div class="entry-actions">' +
-    '<div class="entry-ref-box"><span>' + refLink + '</span>' +
-    '<button type="button" class="copy-ref-btn" data-link="' + refLink + '">نسخ رابط الدعوة</button></div>' +
-    '<button type="button" class="delete-entry-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="coachApplications">حذف التسجيل</button>' +
-    "</div>" +
+    renderRefSection(entry, "coachApplications") +
     "</details>"
   );
 }
@@ -467,15 +490,10 @@ function renderTraineeProfileDetails(entry) {
     renderProfileField("المعدات", entry.equipment) +
     renderProfileField("ملاحظات صحية", entry.healthNotes) +
     renderProfileField("المصدر", entry.source) +
-    renderProfileField("كود الدعوة", entry.referralCode || "-") +
     renderProfileField("وقت التسجيل", formatDate(entry.createdAt)) +
     renderProfileField("رقم المستند", entry.id) +
     "</div>" +
-    '<div class="entry-actions">' +
-    '<div class="entry-ref-box"><span>' + (window.location.origin + "/?ref=" + (entry.id || "").slice(0, 8).toUpperCase()) + '</span>' +
-    '<button type="button" class="copy-ref-btn" data-link="' + (window.location.origin + "/?ref=" + (entry.id || "").slice(0, 8).toUpperCase()) + '">نسخ رابط الدعوة</button></div>' +
-    '<button type="button" class="delete-entry-btn" data-id="' + escapeHtml(entry.id) + '" data-collection="traineeInterests">حذف التسجيل</button>' +
-    "</div>" +
+    renderRefSection(entry, "traineeInterests") +
     "</details>"
   );
 }
@@ -503,9 +521,39 @@ function bindProfileAccordion(container) {
   container.querySelectorAll(".copy-ref-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       navigator.clipboard.writeText(btn.dataset.link).then(function () {
+        const prev = btn.textContent;
         btn.textContent = "✓ تم النسخ";
-        setTimeout(function () { btn.textContent = "نسخ رابط الدعوة"; }, 2000);
+        setTimeout(function () { btn.textContent = prev; }, 2000);
       });
+    });
+  });
+
+  container.querySelectorAll(".assign-code-btn").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      const actions = btn.closest(".entry-actions");
+      const input = actions.querySelector(".assign-code-input");
+      const code = (input ? input.value : "").trim().toUpperCase();
+      if (!code) { input && (input.style.borderColor = "red"); return; }
+      try {
+        await updateDoc(doc(db, btn.dataset.collection, btn.dataset.id), { customCode: code });
+        btn.textContent = "✓ تم الحفظ";
+        setTimeout(refreshDashboard, 800);
+      } catch (e) {
+        alert("تعذر الحفظ: " + e.message);
+      }
+    });
+  });
+
+  container.querySelectorAll(".change-code-btn").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      const newCode = prompt("أدخل الكود الجديد:");
+      if (!newCode || !newCode.trim()) return;
+      try {
+        await updateDoc(doc(db, btn.dataset.collection, btn.dataset.id), { customCode: newCode.trim().toUpperCase() });
+        refreshDashboard();
+      } catch (e) {
+        alert("تعذر التغيير: " + e.message);
+      }
     });
   });
 

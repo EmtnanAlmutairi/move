@@ -177,7 +177,7 @@ service cloud.firestore {
     match /traineeInterests/{documentId} {
       allow read: if isAdmin();
       allow delete: if isAdmin();
-      allow update: if false;
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["customCode"]);
       allow create: if
         request.resource.data.keys().hasAll(["fullName","email","phone","goal","fitnessLevel","sportType","trainingLocation","equipment","healthNotes","source","createdAt"]) &&
         request.resource.data.keys().hasOnly([
@@ -243,7 +243,7 @@ service cloud.firestore {
     match /coachApplications/{documentId} {
       allow read: if isAdmin();
       allow delete: if isAdmin();
-      allow update: if false;
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["customCode"]);
       allow create: if
         request.resource.data.keys().hasAll(["fullName","email","phone","yearsExperience","specialization","sportCategory","certifications","coachingType","coachingLocation","experienceDetails","availability","source","createdAt"]) &&
         request.resource.data.keys().hasOnly([

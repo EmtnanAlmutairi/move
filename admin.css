@@ -566,13 +566,29 @@ select {
 }
 
 .entry-actions {
-  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.ref-incoming {
+  font-size: 0.82rem;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(17, 17, 17, 0.04);
+  color: #595249;
+}
+
+.ref-direct { color: #aaa; }
+
+.ref-own-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #595249;
+  margin-top: 2px;
 }
 
 .entry-ref-box {
@@ -588,7 +604,25 @@ select {
   flex-wrap: wrap;
 }
 
-.copy-ref-btn {
+.assign-code-box {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.assign-code-input {
+  flex: 1;
+  min-width: 140px;
+  padding: 7px 12px;
+  border: 1.5px solid rgba(17,17,17,0.14);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.copy-ref-btn,
+.assign-code-btn,
+.change-code-btn {
   flex-shrink: 0;
   padding: 5px 12px;
   border: none;
@@ -598,6 +632,11 @@ select {
   font-weight: 700;
   font-size: 0.78rem;
   cursor: pointer;
+}
+
+.change-code-btn {
+  background: rgba(17,17,17,0.07);
+  color: #595249;
 }
 
 .delete-entry-btn {
