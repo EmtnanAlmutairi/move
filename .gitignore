@@ -3,3 +3,10 @@
 firebase-debug.log
 server.out.log
 server.err.log
+node_modules/
+package.json
+package-lock.json
+review-*.png
+screenshot.mjs
+move-mobile/
+"Newbrand identity/"
