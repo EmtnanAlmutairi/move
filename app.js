@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import { db, initializeAnalytics } from "./firebase-client.js";
 
-window.__MOVE_APP_BOOTSTRAPPED__ = true;
+window.__5AM_APP_BOOTSTRAPPED__ = true;
 initializeAnalytics();
 
 function getReferralCode(form) {

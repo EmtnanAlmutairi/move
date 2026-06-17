@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" fill="none" role="img" aria-label="5AM">
+  <g transform="translate(42,40)">
+    <!-- 11 tick marks — skip 150° (5 o'clock, where hour hand sits) -->
+    <rect transform="rotate(0)"   x="-4"   y="-33" width="8"   height="13" rx="3.5" fill="#0D2B52"/>
+    <rect transform="rotate(30)"  x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <rect transform="rotate(60)"  x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <rect transform="rotate(90)"  x="-4"   y="-33" width="8"   height="13" rx="3.5" fill="#0D2B52"/>
+    <rect transform="rotate(120)" x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <!-- 150° skipped -->
+    <rect transform="rotate(180)" x="-4"   y="-33" width="8"   height="13" rx="3.5" fill="#0D2B52"/>
+    <rect transform="rotate(210)" x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <rect transform="rotate(240)" x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <rect transform="rotate(270)" x="-4"   y="-33" width="8"   height="13" rx="3.5" fill="#0D2B52"/>
+    <rect transform="rotate(300)" x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <rect transform="rotate(330)" x="-3"   y="-33" width="6"   height="10" rx="3"   fill="#0D2B52"/>
+    <!-- Minute hand at 12 o'clock -->
+    <rect x="-2.5" y="-25" width="5" height="25" rx="2.5" fill="#0D2B52"/>
+    <!-- Hour hand at 5 o'clock (150° CW from 12): endpoint = (sin150°·21, −cos150°·21) = (10.5, 18.2) -->
+    <line x1="0" y1="0" x2="10.5" y2="18" stroke="#3B78C8" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+  <text
+    x="96" y="57"
+    font-family="'Archivo', 'Arial Black', sans-serif"
+    font-weight="900"
+    font-size="52"
+    letter-spacing="-2"
+    fill="#0D2B52"
+  >5AM</text>
+</svg>
