@@ -6,15 +6,18 @@ import {
   Community,
   CommunityPost,
   Exercise,
+  FeedPost,
   HealthSnapshot,
   InjuryReport,
   LeaderboardEntry,
   MealItem,
+  NearbyUser,
   Professional,
   RunSession,
   ScheduledSession,
   StoreItem,
   SubscriptionPlan,
+  UserPostGrid,
   UserProfile,
   WeeklyProgressDay,
   WorkoutTask
@@ -50,35 +53,43 @@ export const subscriptionPlans: SubscriptionPlan[] = [
 
 // ─── Exercises ─────────────────────────────────────────────────────────────
 const chestExercises: Exercise[] = [
-  { id: 'e1', name: 'بنش بريس بالبار', sets: 4, reps: '8-10', restSec: 90, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400' },
-  { id: 'e2', name: 'فلاي على المنحدر', sets: 3, reps: '12', restSec: 60, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1534258936925-c58bed479fcb?w=400', notes: 'ركز على الامتداد الكامل' },
-  { id: 'e3', name: 'ضغط بالدمبلز على المنحدر', sets: 3, reps: '10-12', restSec: 60, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400' },
-  { id: 'e4', name: 'تمرين الترايسبس بالحبل', sets: 3, reps: '15', restSec: 45, muscleGroup: 'ترايسبس', thumbnail: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=400' },
-  { id: 'e5', name: 'ضغط الترايسبس المعكوس', sets: 3, reps: '12', restSec: 45, muscleGroup: 'ترايسبس', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400' }
+  { id: 'e1', name: 'بنش بريس بالبار', sets: 4, reps: '8-10', restSec: 90, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600', coachNote: 'أبقِ كتفيك مثبتتين على المقعد طوال الحركة. أنزل البار حتى يلمس صدرك بلطف، ولا تقفل المرفقين في القمة. تخيّل أنك تدفع المقعد بعيداً عنك بدلاً من دفع البار للأعلى.' },
+  { id: 'e2', name: 'فلاي على المنحدر', sets: 3, reps: '12', restSec: 60, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1534258936925-c58bed479fcb?w=600', notes: 'ركز على الامتداد الكامل', coachNote: 'ذراعاك شبه مستقيمتان مع انحناء بسيط في المرفق — كأنك تعانق شجرة كبيرة. ركّز على إحساس الشد في الصدر عند الانفتاح، والانقباض في منتصف الصدر عند الإغلاق.' },
+  { id: 'e3', name: 'ضغط بالدمبلز على المنحدر', sets: 3, reps: '10-12', restSec: 60, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600', coachNote: 'ابدأ بأوزان معقولة حتى تُتقن المسار. أبقِ المعصمين مستقيمين تماماً طوال الحركة. زاوية المقعد 30-45 درجة تشغّل الصدر العلوي بشكل أفضل.' },
+  { id: 'e4', name: 'تمرين الترايسبس بالحبل', sets: 3, reps: '15', restSec: 45, muscleGroup: 'ترايسبس', thumbnail: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=600', coachNote: 'المرفقان ثابتان بجانب الجسم ولا يتحركان. اضغط حتى نهاية الحركة الكاملة، وقف ثانية في الأسفل. لا تتأرجح — الحركة من المرفق فقط.' },
+  { id: 'e5', name: 'ضغط الترايسبس المعكوس', sets: 3, reps: '12', restSec: 45, muscleGroup: 'ترايسبس', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600', coachNote: 'الإمساك المعكوس يشغّل الترايسبس من زاوية مختلفة. الحركة البطيئة للأعلى أهم من السرعة — التحكم يساوي النتيجة.' },
 ];
 
 const backExercises: Exercise[] = [
-  { id: 'e6', name: 'سحب بالبار (ديدليفت)', sets: 4, reps: '6-8', restSec: 120, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400' },
-  { id: 'e7', name: 'سحب علوي بالحبل', sets: 4, reps: '10-12', restSec: 75, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=400' },
-  { id: 'e8', name: 'سحب البار للبطن', sets: 3, reps: '10', restSec: 60, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=400', notes: 'اسحب الكوعين للخلف' },
-  { id: 'e9', name: 'عضلة الباي بالبار', sets: 4, reps: '10-12', restSec: 60, muscleGroup: 'بايسبس', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400' },
-  { id: 'e10', name: 'هامر كيرل بالدمبلز', sets: 3, reps: '12', restSec: 45, muscleGroup: 'بايسبس', thumbnail: 'https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?w=400' }
+  { id: 'e6', name: 'سحب بالبار (ديدليفت)', sets: 4, reps: '6-8', restSec: 120, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600', coachNote: 'ظهرك مستقيم دائماً — أهم قاعدة في التمرين. الحركة تبدأ من الورك وليس الظهر. الصدر للأمام، النظر للأمام، والبار قريب من جسمك طوال المسار.' },
+  { id: 'e7', name: 'سحب علوي بالحبل', sets: 4, reps: '10-12', restSec: 75, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=600', coachNote: 'تخيّل أنك تضغط أكواعك نحو جيوب بنطالك. لا تسحب بالعضلات الأمامية — الظهر يقود الحركة. أبقِ صدرك ممتلئاً ومرتفعاً.' },
+  { id: 'e8', name: 'سحب البار للبطن', sets: 3, reps: '10', restSec: 60, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=600', notes: 'اسحب الكوعين للخلف', coachNote: 'الجذع بزاوية 45 درجة وثابت — لا يتحرك مع الوزن. اسحب الكوعين للخلف والأعلى. وقفة في نهاية الحركة لثانية كاملة لتشغيل العضلة الوسطى.' },
+  { id: 'e9', name: 'عضلة الباي بالبار', sets: 4, reps: '10-12', restSec: 60, muscleGroup: 'بايسبس', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600', coachNote: 'المرفقان ثابتان على جانبي الجسم ولا يتحركان للأمام. ركّز على الانقباض الكامل في القمة. النزول البطيء يبني العضلة أكثر من الصعود.' },
+  { id: 'e10', name: 'هامر كيرل بالدمبلز', sets: 3, reps: '12', restSec: 45, muscleGroup: 'بايسبس', thumbnail: 'https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?w=600', coachNote: 'الإمساك المحايد (كالمطرقة) يُشغّل باي الإبهام والعضلة الطولية معاً. حركة متناوبة بين اليدين تُحسّن التركيز العضلي.' },
 ];
 
 const cardioExercises: Exercise[] = [
-  { id: 'e11', name: 'إحماء: مشي سريع', sets: 1, reps: '10 دقائق', restSec: 0, muscleGroup: 'كارديو', thumbnail: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400' },
-  { id: 'e12', name: 'سبرنت متقطع HIIT', sets: 8, reps: '30 ث عمل / 30 ث راحة', restSec: 30, muscleGroup: 'كارديو', thumbnail: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400' },
-  { id: 'e13', name: 'قفز الحبل', sets: 3, reps: '100 قفزة', restSec: 60, muscleGroup: 'كارديو', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400' },
-  { id: 'e14', name: 'بلانك', sets: 3, reps: '60 ثانية', restSec: 45, muscleGroup: 'كور', thumbnail: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400' },
-  { id: 'e15', name: 'تمرين بطني دائري', sets: 3, reps: '20', restSec: 45, muscleGroup: 'كور', thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400' }
+  { id: 'e11', name: 'إحماء: مشي سريع', sets: 1, reps: '10 دقائق', restSec: 0, muscleGroup: 'كارديو', thumbnail: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600', coachNote: 'الإحماء ليس اختيارياً — هو جزء من التمرين. ارفع نبضك تدريجياً. خصص دقيقتين لتمديد ديناميكي قبل البدء.' },
+  { id: 'e12', name: 'سبرنت متقطع HIIT', sets: 8, reps: '30 ث عمل / 30 ث راحة', restSec: 30, muscleGroup: 'كارديو', thumbnail: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600', coachNote: 'في فترة العمل أعطِ 90-100% من طاقتك. في فترة الراحة تعافَ تماماً — استرح ولا تتحرك. الكثافة الحقيقية هي المفتاح لحرق الدهون بعد التمرين.' },
+  { id: 'e13', name: 'قفز الحبل', sets: 3, reps: '100 قفزة', restSec: 60, muscleGroup: 'كارديو', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600', coachNote: 'أبقِ المرفقين قريبين من جسمك والحبل يدار من المعصمين لا الذراعين. القفز بسيط وصغير — لا داعي للارتفاع الكبير. إيقاع منتظم أهم من سرعة عالية.' },
+  { id: 'e14', name: 'بلانك', sets: 3, reps: '60 ثانية', restSec: 45, muscleGroup: 'كور', thumbnail: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600', coachNote: 'جسمك خط مستقيم من الرأس للعقب. لا ترفع أردافك للأعلى، ولا تتركها تنخفض. شدّ بطنك وأرداف للداخل، واضغط على الأرض بأمتانتيك. النفَس المنتظم ضروري.' },
+  { id: 'e15', name: 'تمرين بطني دائري', sets: 3, reps: '20', restSec: 45, muscleGroup: 'كور', thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600', coachNote: 'الزفير عند الضغط للأعلى يُشغّل الكور أكثر. يداك تدعمان رقبتك فقط — لا تسحبانها. ركّز على تقلص العضلة البطنية وليس مجرد الحركة.' },
 ];
 
 const legExercises: Exercise[] = [
-  { id: 'e16', name: 'سكوات بالبار', sets: 4, reps: '8-10', restSec: 120, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400' },
-  { id: 'e17', name: 'ليج بريس', sets: 4, reps: '12-15', restSec: 90, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400' },
-  { id: 'e18', name: 'لانج متناوب بالدمبلز', sets: 3, reps: '10 لكل رجل', restSec: 60, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=400' },
-  { id: 'e19', name: 'رفع الساق (كالف)', sets: 4, reps: '20', restSec: 45, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400', notes: 'ابقَ على رؤوس الأصابع' },
-  { id: 'e20', name: 'هام كيرل جهاز', sets: 3, reps: '12-15', restSec: 60, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1516748088049-71b9c5e9f73b?w=400' }
+  { id: 'e16', name: 'سكوات بالبار', sets: 4, reps: '8-10', restSec: 120, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600', coachNote: 'الركبتان تتبعان اتجاه أصابع القدمين دائماً. انزل حتى الإفخاذ موازية للأرض أو أقل. الوزن على الكعبين — لو رفعت أصابعك عن الأرض فأنت صح. ظهرك مستقيم طوال الحركة.' },
+  { id: 'e17', name: 'ليج بريس', sets: 4, reps: '12-15', restSec: 90, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600', coachNote: 'لا تقفل ركبتيك في الأعلى أبداً. القدمان على مستوى الكتف أو أوسع قليلاً. تحكّم في الإنزال ببطء — 2 ثانية للنزول، انفجر في الصعود.' },
+  { id: 'e18', name: 'لانج متناوب بالدمبلز', sets: 3, reps: '10 لكل رجل', restSec: 60, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=600', coachNote: 'الركبة الخلفية تقترب من الأرض دون أن تلمسها. الجذع مستقيم وصدرك مرتفع. الخطوة كبيرة بما يكفي لتكون الساق الأمامية عمودية على الأرض.' },
+  { id: 'e19', name: 'رفع الساق (كالف)', sets: 4, reps: '20', restSec: 45, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600', notes: 'ابقَ على رؤوس الأصابع', coachNote: 'الصعود الكامل على رؤوس الأصابع مع توقف ثانية في الأعلى. النزول البطيء يمدّ العضلة كاملاً — هذا أهم من الصعود. جرّب تمرينها بقدم واحدة لتركيز أكبر.' },
+  { id: 'e20', name: 'هام كيرل جهاز', sets: 3, reps: '12-15', restSec: 60, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1516748088049-71b9c5e9f73b?w=600', coachNote: 'الورك ثابت على الكرسي لا يتحرك. ركّز على تقلص الجهة الخلفية من الفخذ بالكامل. النزول بمقاومة أهم من سرعة الصعود — أبطئ في مرحلة الإرجاع.' },
+];
+
+const barbellExercises: Exercise[] = [
+  { id: 'e21', name: 'ديدليفت', sets: 4, reps: '5', restSec: 180, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600', coachNote: 'هذا الملك — الديدليفت يشغّل كل جسمك. ظهرك مستقيم كالقضيب، الصدر للأمام، والنظر أمامك. ابدأ بالدفع من الأرض عبر الساقين، ثم الورك. البار يبقى ملتصقاً بجسمك طوال الحركة.' },
+  { id: 'e22', name: 'سكوات بالبار', sets: 5, reps: '5', restSec: 180, muscleGroup: 'أرجل', thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600', coachNote: 'البار على الجزء العلوي من الظهر، ليس على الرقبة. انزل حتى الإفخاذ موازية للأرض — "parallel or bust". الوزن على الكعبين، الركبتان تتبعان أصابع القدم.' },
+  { id: 'e23', name: 'أوفرهيد بريس بالبار', sets: 3, reps: '6-8', restSec: 120, muscleGroup: 'كتف', thumbnail: 'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=600', coachNote: 'ادفع البار مباشرة للأعلى فوق الرأس — مسار مستقيم هو الأفضل. الجذع مشدود كالحجر، لا تقوّس ظهرك. تنفّس للخارج عند الدفع، للداخل عند الإنزال.' },
+  { id: 'e24', name: 'بنش بريس بالبار', sets: 4, reps: '6-8', restSec: 120, muscleGroup: 'صدر', thumbnail: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600', coachNote: 'كتفاك مثبّتتان على المقعد — اسحبهما للأسفل والخلف وابقِهما هناك. أنزل البار للصدر بشكل مسيطر، ادفع بقوة. المسار بشكل قوس خفيف — ليس خطاً مستقيماً.' },
+  { id: 'e25', name: 'بنت أوفر رو بالبار', sets: 4, reps: '8', restSec: 120, muscleGroup: 'ظهر', thumbnail: 'https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=600', coachNote: 'الجذع موازٍ للأرض تقريباً، الظهر مستقيم. اسحب البار نحو السرّة لا الصدر. الأكواع تتحرك للخلف والأعلى. وقفة في القمة لثانية — ستشعر بضغط في منتصف الظهر.' },
 ];
 
 // ─── Weekly Workouts ────────────────────────────────────────────────────────
@@ -134,15 +145,28 @@ export const weeklyWorkout: WorkoutTask[] = [
     coachId: 'p1',
     thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=700',
     exercises: legExercises
+  },
+  {
+    id: 'w5',
+    dayLabel: 'الخميس',
+    title: 'تمرين الأثقال الحر',
+    durationMin: 75,
+    intensity: 'high',
+    completed: false,
+    videoUrl: 'https://example.com/workout-5',
+    coachName: 'كابتن خالد',
+    coachId: 'p1',
+    thumbnail: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=700',
+    exercises: barbellExercises
   }
 ];
 
 // ─── Today's Schedule ───────────────────────────────────────────────────────
 export const todaySchedule: ScheduledSession[] = [
   { id: 's1', time: '07:30', title: 'فحص الجاهزية', type: 'checkin', durationMin: 5, subtitle: 'سجّل نومك وحالتك', isCompleted: true, color: '#30B36A' },
-  { id: 's2', time: '09:00', title: 'تمرين الصدر والترايسبس', type: 'workout', durationMin: 60, subtitle: 'كابتن خالد • 5 تمارين', isCompleted: false, workoutId: 'w3', color: '#FF5C39' },
+  { id: 's2', time: '09:00', title: 'تمرين الصدر والترايسبس', type: 'workout', durationMin: 60, subtitle: 'كابتن خالد • 5 تمارين', isCompleted: false, workoutId: 'w1', color: '#FF5C39' },
   { id: 's3', time: '12:30', title: 'وجبة الغداء', type: 'meal', durationMin: 30, subtitle: 'سارة منير • 450 سعرة', isCompleted: false, color: '#F79A3E' },
-  { id: 's4', time: '15:00', title: 'استشفاء وتمديد', type: 'recovery', durationMin: 20, subtitle: 'د. يثنى • روتين الاسترخاء', isCompleted: false, color: '#7C5CBF' },
+  { id: 's4', time: '15:00', title: 'تمرين الأثقال الحر', type: 'workout', durationMin: 75, subtitle: 'كابتن خالد • 5 تمارين', isCompleted: false, workoutId: 'w5', color: '#8E5CF5' },
   { id: 's5', time: '17:00', title: 'وجبة خفيفة', type: 'meal', durationMin: 10, subtitle: 'زبادي + فواكه • 180 سعرة', isCompleted: false, color: '#F79A3E' },
   { id: 's6', time: '19:00', title: 'مراجعة أسبوعية مع المدرب', type: 'coaching', durationMin: 15, subtitle: 'كابتن خالد • متابعة التقدم', isCompleted: false, color: '#1A9ECC' }
 ];
@@ -329,7 +353,7 @@ export const communities: Community[] = [
     isJoined: true,
     isFree: false,
     priceMonthly: 99,
-    coverGradient: ['#FF4E2A', '#FFA24A'],
+    coverGradient: ['#FF4500', '#FF7A18'],
     latestPost: 'انتهيت من تمرين الصدر اليوم 💪 الأوزان تقدمت!',
     latestPostTime: 'منذ 3 دقائق'
   },
@@ -346,7 +370,7 @@ export const communities: Community[] = [
     postsCount: 2100,
     isJoined: false,
     isFree: true,
-    coverGradient: ['#1A9ECC', '#56CCF2'],
+    coverGradient: ['#D96010', '#FF9A00'],
     latestPost: 'ركضت 10 كم الصباح! 🔥',
     latestPostTime: 'منذ 12 دقيقة'
   },
@@ -364,7 +388,7 @@ export const communities: Community[] = [
     isJoined: true,
     isFree: false,
     priceMonthly: 79,
-    coverGradient: ['#30B36A', '#56E39F'],
+    coverGradient: ['#B5FF45', '#FF7A18'],
     latestPost: 'وصفة الغداء اليوم: سلمون مع كينوا! 🥗',
     latestPostTime: 'منذ 1 ساعة'
   },
@@ -382,7 +406,7 @@ export const communities: Community[] = [
     isJoined: false,
     isFree: false,
     priceMonthly: 89,
-    coverGradient: ['#F79A3E', '#FFC371'],
+    coverGradient: ['#FF7A18', '#FFBA5C'],
     latestPost: 'فقدت 3 كيلو هذا الشهر! شكراً للفريق',
     latestPostTime: 'منذ 2 ساعة'
   }
@@ -478,5 +502,81 @@ export const userProfile: UserProfile = {
   age: 26,
   selectedCoachId: 'p1',
   selectedNutritionistId: 'p3',
-  selectedPhysioId: 'p5'
+  selectedPhysioId: 'p5',
+  xpPoints: 340,
+  xpToNextLevel: 500,
+  level: 12,
 };
+
+// ─── Social / Map ────────────────────────────────────────────────────────────
+
+export const nearbyUsers: NearbyUser[] = [
+  { id: 'n1', initials: 'أم', name: 'أمجد المطيري', sport: 'run',   distanceM: 280,  isLive: true,  color: '#FF6B35', posX: 32, posY: 22 },
+  { id: 'n2', initials: 'سع', name: 'سعود الحارثي', sport: 'lift',  distanceM: 450,  isLive: false, color: '#5E81F4', posX: 64, posY: 38 },
+  { id: 'n3', initials: 'رش', name: 'رشيد القحطاني',sport: 'yoga',  distanceM: 680,  isLive: true,  color: '#8E5CF5', posX: 18, posY: 56 },
+  { id: 'n4', initials: 'خل', name: 'خالد العنزي',  sport: 'cycle', distanceM: 1100, isLive: false, color: '#00BFA5', posX: 78, posY: 64 },
+  { id: 'n5', initials: 'فه', name: 'فهد الدوسري',  sport: 'run',   distanceM: 1380, isLive: true,  color: '#FF4500', posX: 48, posY: 74 },
+  { id: 'n6', initials: 'نو', name: 'نورة الشمري',  sport: 'yoga',  distanceM: 920,  isLive: false, color: '#FF69B4', posX: 82, posY: 28 },
+  { id: 'n7', initials: 'عب', name: 'عبدالله العتيبي',sport: 'lift', distanceM: 760, isLive: true,  color: '#26C6DA', posX: 55, posY: 48 },
+];
+
+export const feedPosts: FeedPost[] = [
+  {
+    id: 'f1', userId: 'n1', userName: 'أمجد المطيري', userInitials: 'أم', userColor: '#FF6B35',
+    sport: 'run', activityType: 'pr',
+    headline: 'سجّل رقماً قياسياً جديداً في 5 كم',
+    subtext: 'أسرع من سجله السابق بـ 1:24 دقيقة',
+    metric: '24:18', metricLabel: 'دقيقة',
+    timeLabel: 'منذ 12 دقيقة', likesCount: 47, commentsCount: 8, isLiked: false,
+    pointsEarned: 150, isPR: true,
+    imageUrl: 'https://images.unsplash.com/photo-1461897104016-0b3b00cc81ee?w=800'
+  },
+  {
+    id: 'f2', userId: 'n2', userName: 'سعود الحارثي', userInitials: 'سع', userColor: '#5E81F4',
+    sport: 'lift', activityType: 'workout',
+    headline: 'أتمّ تمرين الصدر والترايسبس',
+    subtext: 'حجم إجمالي: 8,400 كغ — 5 تمارين',
+    metric: '65', metricLabel: 'دقيقة',
+    timeLabel: 'منذ 34 دقيقة', likesCount: 23, commentsCount: 3, isLiked: true,
+    pointsEarned: 80,
+  },
+  {
+    id: 'f3', userId: 'n3', userName: 'رشيد القحطاني', userInitials: 'رش', userColor: '#8E5CF5',
+    sport: 'yoga', activityType: 'milestone',
+    headline: 'أكمل 30 يوماً من تحدي اليوغا',
+    subtext: 'إنجاز غير عادي، واصل الزخم',
+    timeLabel: 'منذ ساعتين', likesCount: 112, commentsCount: 14, isLiked: false,
+    pointsEarned: 500,
+  },
+  {
+    id: 'f4', userId: 'n6', userName: 'نورة الشمري', userInitials: 'نو', userColor: '#FF69B4',
+    sport: 'run', activityType: 'run',
+    headline: 'ركضت 8.4 كم صباحاً',
+    subtext: 'معدل الإيقاع: 5:12 دقيقة/كم',
+    metric: '8.4', metricLabel: 'كم',
+    timeLabel: 'منذ 3 ساعات', likesCount: 31, commentsCount: 5, isLiked: false,
+    pointsEarned: 95,
+    imageUrl: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800'
+  },
+  {
+    id: 'f5', userId: 'n7', userName: 'عبدالله العتيبي', userInitials: 'عب', userColor: '#26C6DA',
+    sport: 'lift', activityType: 'pr',
+    headline: 'رقم قياسي جديد في السكوات',
+    subtext: '140 كغ × 5 تكرارات — مسيرة قوة',
+    metric: '140', metricLabel: 'كغ',
+    timeLabel: 'منذ 5 ساعات', likesCount: 88, commentsCount: 12, isLiked: true,
+    pointsEarned: 200, isPR: true,
+  },
+];
+
+export const myPostGrid: UserPostGrid[] = [
+  { id: 'pg1', imageUrl: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400',  type: 'workout',   likesCount: 34 },
+  { id: 'pg2', imageUrl: 'https://images.unsplash.com/photo-1461897104016-0b3b00cc81ee?w=400',  type: 'run',       likesCount: 56 },
+  { id: 'pg3', imageUrl: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=400',  type: 'run',       likesCount: 21 },
+  { id: 'pg4', imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400',  type: 'workout',   likesCount: 45 },
+  { id: 'pg5', imageUrl: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400',     type: 'milestone', likesCount: 78 },
+  { id: 'pg6', imageUrl: 'https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=400',  type: 'workout',   likesCount: 29 },
+  { id: 'pg7', imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400',  type: 'meal',      likesCount: 18 },
+  { id: 'pg8', imageUrl: 'https://images.unsplash.com/photo-1516748088049-71b9c5e9f73b?w=400',  type: 'workout',   likesCount: 37 },
+  { id: 'pg9', imageUrl: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=400',  type: 'workout',   likesCount: 42 },
+];

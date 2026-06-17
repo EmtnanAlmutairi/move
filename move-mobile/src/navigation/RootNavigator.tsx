@@ -14,9 +14,22 @@ import { RecoveryScreen } from '../screens/RecoveryScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ChatRoomScreen } from '../screens/ChatRoomScreen';
 import { CommunitiesScreen } from '../screens/CommunitiesScreen';
+import { CommunityScreen } from '../screens/CommunityScreen';
 import { CommunityDetailScreen } from '../screens/CommunityDetailScreen';
 import { TeamSelectionScreen } from '../screens/TeamSelectionScreen';
 import { ProfessionalProfileScreen } from '../screens/ProfessionalProfileScreen';
+import { CheckoutScreen } from '../screens/CheckoutScreen';
+import { PaymentHistoryScreen } from '../screens/PaymentHistoryScreen';
+import { StoreScreen } from '../screens/StoreScreen';
+import { UserProfileScreen } from '../screens/UserProfileScreen';
+import { TweaksScreen } from '../screens/TweaksScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { WelcomeScreen } from '../screens/WelcomeScreen';
+import { WeeklyPlanScreen } from '../screens/WeeklyPlanScreen';
+import { FoodScanScreen } from '../screens/FoodScanScreen';
+import { BarcodeScanScreen } from '../screens/BarcodeScanScreen';
+import { ManualAddMealScreen } from '../screens/ManualAddMealScreen';
 import { colors } from '../theme/tokens';
 
 const Stack = createNativeStackNavigator();
@@ -45,6 +58,7 @@ export function RootNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="Onboarding" component={OnboardingGoalScreen} />
+        <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Subscription" component={SubscriptionScreen} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="Workout" component={WorkoutScreen} options={{ presentation: 'modal' }} />
@@ -54,10 +68,22 @@ export function RootNavigator() {
         <Stack.Screen name="Recovery" component={RecoveryScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="ChatRoom" component={ChatRoomScreen} />
+        <Stack.Screen name="Community" component={CommunityScreen} />
         <Stack.Screen name="Communities" component={CommunitiesScreen} />
         <Stack.Screen name="CommunityDetail" component={CommunityDetailScreen} />
         <Stack.Screen name="TeamSelection" component={TeamSelectionScreen} />
         <Stack.Screen name="ProfessionalProfile" component={ProfessionalProfileScreen} />
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
+        <Stack.Screen name="Store" component={StoreScreen} />
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+        <Stack.Screen name="Tweaks" component={TweaksScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="FoodScan"       component={FoodScanScreen}       options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="BarcodeScan"    component={BarcodeScanScreen}    options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="ManualAddMeal"  component={ManualAddMealScreen}  options={{ presentation: 'modal' }} />
+        <Stack.Screen name="WeeklyPlan"     component={WeeklyPlanScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

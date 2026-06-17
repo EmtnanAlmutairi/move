@@ -1,223 +1,240 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RatingStars } from '../components/RatingStars';
 import { professionals, userProfile } from '../data/mockData';
-import { colors, radius, shadows, spacing } from '../theme/tokens';
+import { useTheme } from '../theme/ThemeContext';
+import { spacing } from '../theme/tokens';
 import { Professional } from '../types';
 
 type RoleGroup = Professional['role'];
 
 const ROLE_TITLES: Record<RoleGroup, string> = {
-  coach: 'المدرب',
-  nutritionist: 'أخصائي التغذية',
-  physio: 'العلاج الطبيعي'
+  coach:        'المدرب',
+  nutritionist: 'التغذية',
+  physio:       'العلاج الطبيعي',
 };
 
-export function TeamSelectionScreen({ navigation }: any) {
-  const [activeRole, setActiveRole] = useState<RoleGroup>('coach');
-  const [selectedIds, setSelectedIds] = useState<Record<RoleGroup, string>>({
-    coach: userProfile.selectedCoachId,
-    nutritionist: userProfile.selectedNutritionistId,
-    physio: userProfile.selectedPhysioId
-  });
+const GOAL_TEAM: Record<string, Record<RoleGroup, string>> = {
+  'muscle-gain': { coach: 'p1', nutritionist: 'p3', physio: 'p5' },
+  'weight-loss': { coach: 'p2', nutritionist: 'p3', physio: 'p5' },
+  'fitness':     { coach: 'p2', nutritionist: 'p4', physio: 'p6' },
+};
 
-  const grouped = useMemo(
-    () => ({
-      coach: professionals.filter((item) => item.role === 'coach'),
-      nutritionist: professionals.filter((item) => item.role === 'nutritionist'),
-      physio: professionals.filter((item) => item.role === 'physio')
-    }),
-    []
-  );
+export function TeamSelectionScreen({ navigation, route }: any) {
+  const { theme: t } = useTheme();
+  const goalId     = route?.params?.goalId ?? userProfile.goal;
+  const recommended = GOAL_TEAM[goalId] ?? GOAL_TEAM['muscle-gain'];
+
+  const [activeRole, setActiveRole] = useState<RoleGroup>('coach');
+  const [selectedIds, setSelectedIds] = useState<Record<RoleGroup, string>>(recommended);
+
+  const grouped = useMemo(() => ({
+    coach:        professionals.filter((p) => p.role === 'coach'),
+    nutritionist: professionals.filter((p) => p.role === 'nutritionist'),
+    physio:       professionals.filter((p) => p.role === 'physio'),
+  }), []);
+
+  const cardShadow = {
+    shadowColor: t.mode === 'dark' ? '#000' : '#6A5A4A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: t.mode === 'dark' ? 0.2 : 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>→ رجوع</Text>
+    <SafeAreaView style={[st.safe, { backgroundColor: t.background }]}>
+      <ScrollView contentContainerStyle={st.container} showsVerticalScrollIndicator={false}>
+
+        <Pressable
+          style={[st.backBtn, { backgroundColor: t.cardSoft }]}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-forward" size={20} color={t.muted} />
         </Pressable>
 
-        <Text style={styles.kicker}>فريقك الصحي</Text>
-        <Text style={styles.title}>اختر المختص المناسب</Text>
-        <Text style={styles.subtitle}>بدل أعضاء فريقك حسب هدفك، ميزانيتك، وأسلوب المتابعة الذي تفضله.</Text>
+        <Text style={[st.kicker, { color: t.primary }]}>فريقك الصحي</Text>
+        <Text style={[st.title, { color: t.text }]}>فريقك المقترح</Text>
+        <Text style={[st.subtitle, { color: t.muted }]}>تم اختيار فريقك تلقائياً بناءً على هدفك · يمكنك تغيير أي عضو في أي وقت</Text>
 
-        <View style={styles.roleTabs}>
+        {/* Assigned team strip — always dark for contrast */}
+        <View style={st.assignedStrip}>
+          {(['coach', 'nutritionist', 'physio'] as RoleGroup[]).map((role) => {
+            const pro = professionals.find((p) => p.id === selectedIds[role]);
+            if (!pro) return null;
+            return (
+              <View key={role} style={st.assignedMember}>
+                <View style={[st.assignedAvatar, { backgroundColor: pro.avatarColor + '20', borderColor: pro.avatarColor }]}>
+                  <Text style={[st.assignedInitials, { color: pro.avatarColor }]}>{pro.avatarInitials}</Text>
+                </View>
+                <Text style={st.assignedRole}>{ROLE_TITLES[role]}</Text>
+                <Text style={st.assignedName} numberOfLines={1}>{pro.name.split(' ')[0]}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <Text style={[st.browseHint, { color: t.muted }]}>استعرض واستبدل أعضاء الفريق</Text>
+
+        {/* Role tabs */}
+        <View style={st.roleTabs}>
           {(['coach', 'nutritionist', 'physio'] as RoleGroup[]).map((role) => (
             <Pressable
               key={role}
-              style={[styles.roleTab, activeRole === role && styles.roleTabActive]}
+              style={[
+                st.roleTab,
+                { backgroundColor: activeRole === role ? t.cardSoft : t.card, borderColor: activeRole === role ? t.primary : t.line },
+              ]}
               onPress={() => setActiveRole(role)}
             >
-              <Text style={[styles.roleTabText, activeRole === role && styles.roleTabTextActive]}>
+              <Text style={[st.roleTabTxt, { color: activeRole === role ? t.primary : t.muted }]}>
                 {ROLE_TITLES[role]}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {grouped[activeRole].map((professional) => {
-          const isSelected = professional.id === selectedIds[activeRole];
+        {/* Professional cards */}
+        {grouped[activeRole].map((pro) => {
+          const isSelected    = pro.id === selectedIds[activeRole];
+          const isRecommended = pro.id === recommended[activeRole];
           return (
-            <View key={professional.id} style={[styles.card, isSelected && styles.cardSelected]}>
-              <View style={styles.cardHeader}>
-                <View style={[styles.avatar, { backgroundColor: `${professional.avatarColor}18`, borderColor: professional.avatarColor }]}>
-                  <Text style={[styles.avatarText, { color: professional.avatarColor }]}>{professional.avatarInitials}</Text>
+            <View
+              key={pro.id}
+              style={[
+                st.card,
+                { backgroundColor: isSelected ? t.primary + '08' : t.card, borderColor: isSelected ? t.primary : t.line },
+                cardShadow,
+              ]}
+            >
+              <View style={st.cardHeader}>
+                <View style={[st.avatar, { backgroundColor: pro.avatarColor + '18', borderColor: pro.avatarColor }]}>
+                  <Text style={[st.avatarTxt, { color: pro.avatarColor }]}>{pro.avatarInitials}</Text>
                 </View>
-                <View style={styles.cardBody}>
-                  <View style={styles.nameRow}>
-                    {professional.badge ? (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{professional.badge}</Text>
+                <View style={st.cardBody}>
+                  <View style={st.nameRow}>
+                    {isRecommended && (
+                      <View style={[st.recBadge, { backgroundColor: t.success + '18', borderColor: t.success + '40' }]}>
+                        <Text style={[st.recBadgeTxt, { color: t.success }]}>مقترح لهدفك ✓</Text>
+                      </View>
+                    )}
+                    {!isRecommended && pro.badge ? (
+                      <View style={[st.badge, { backgroundColor: t.cardSoft }]}>
+                        <Text style={[st.badgeTxt, { color: t.primary }]}>{pro.badge}</Text>
                       </View>
                     ) : null}
-                    <Text style={styles.name}>{professional.name}</Text>
+                    <Text style={[st.name, { color: t.text }]}>{pro.name}</Text>
                   </View>
-                  <Text style={styles.specialization}>{professional.specialization}</Text>
-                  <Text style={styles.bio} numberOfLines={2}>
-                    {professional.bio}
-                  </Text>
+                  <Text style={[st.specialization, { color: t.primary }]}>{pro.specialization}</Text>
+                  <Text style={[st.bio, { color: t.muted }]} numberOfLines={2}>{pro.bio}</Text>
                 </View>
               </View>
 
-              <View style={styles.ratingRow}>
-                <RatingStars rating={professional.rating} reviewsCount={professional.reviewsCount} size="sm" />
+              <View style={st.ratingRow}>
+                <RatingStars rating={pro.rating} reviewsCount={pro.reviewsCount} size="sm" />
               </View>
 
-              <View style={styles.statsRow}>
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>{professional.yearsExp}</Text>
-                  <Text style={styles.statLabel}>سنوات</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>{professional.videos.length}</Text>
-                  <Text style={styles.statLabel}>فيديو</Text>
-                </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>{professional.pricePerMonth}</Text>
-                  <Text style={styles.statLabel}>ر.س/شهر</Text>
-                </View>
+              <View style={st.statsRow}>
+                {[
+                  { val: pro.yearsExp,        lbl: 'سنوات' },
+                  { val: pro.videos.length,   lbl: 'فيديو'  },
+                  { val: pro.pricePerMonth,   lbl: 'ر.س/شهر' },
+                ].map((s, i) => (
+                  <View key={i} style={[st.statCard, { backgroundColor: t.cardSoft }]}>
+                    <Text style={[st.statVal, { color: t.text }]}>{s.val}</Text>
+                    <Text style={[st.statLbl, { color: t.muted }]}>{s.lbl}</Text>
+                  </View>
+                ))}
               </View>
 
-              <View style={styles.actionsRow}>
+              <View style={st.actionsRow}>
                 <Pressable
-                  style={[styles.selectBtnWrap, isSelected && styles.selectBtnWrapSelected]}
-                  onPress={() =>
-                    setSelectedIds((prev) => ({
-                      ...prev,
-                      [activeRole]: professional.id
-                    }))
-                  }
+                  style={[
+                    st.selectWrap,
+                    isSelected && { backgroundColor: t.cardSoft, borderWidth: 1.5, borderColor: t.success, paddingVertical: 13 },
+                  ]}
+                  onPress={() => setSelectedIds((prev) => ({ ...prev, [activeRole]: pro.id }))}
                 >
                   {isSelected ? (
-                    <Text style={styles.selectBtnTextSelected}>✓ مختار</Text>
+                    <Text style={[st.selectTxtDone, { color: t.success }]}>✓ مختار</Text>
                   ) : (
-                    <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.selectGrad} start={{ x: 1, y: 0 }} end={{ x: 0, y: 0 }}>
-                      <Text style={styles.selectBtnText}>اختيار</Text>
+                    <LinearGradient
+                      colors={[t.gradientStart, t.gradientEnd]}
+                      style={st.selectGrad}
+                      start={{ x: 1, y: 0 }} end={{ x: 0, y: 0 }}
+                    >
+                      <Text style={st.selectTxt}>اختيار</Text>
                     </LinearGradient>
                   )}
                 </Pressable>
                 <Pressable
-                  style={styles.detailsBtn}
-                  onPress={() => navigation.navigate('ProfessionalProfile', { professionalId: professional.id })}
+                  style={[st.detailsBtn, { borderColor: t.line }]}
+                  onPress={() => navigation.navigate('ProfessionalProfile', { professionalId: pro.id })}
                 >
-                  <Text style={styles.detailsBtnText}>عرض الملف</Text>
+                  <Text style={[st.detailsBtnTxt, { color: t.text }]}>عرض الملف</Text>
                 </Pressable>
               </View>
             </View>
           );
         })}
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+const st = StyleSheet.create({
+  safe:      { flex: 1 },
   container: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: 120 },
-  backBtn: { alignItems: 'flex-end', marginBottom: spacing.sm },
-  backText: { color: colors.primary, fontWeight: '700', fontSize: 15 },
-  kicker: { textAlign: 'right', color: colors.primary, fontWeight: '700', marginBottom: spacing.xs },
-  title: { textAlign: 'right', fontSize: 30, fontWeight: '900', color: colors.text },
-  subtitle: { textAlign: 'right', color: colors.muted, lineHeight: 20, marginTop: spacing.xs, marginBottom: spacing.md },
-  roleTabs: { flexDirection: 'row-reverse', gap: 8, marginBottom: spacing.md },
-  roleTab: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 16,
-    paddingVertical: 12,
-    alignItems: 'center'
+  backBtn:   { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  kicker:    { textAlign: 'right', fontWeight: '700', marginBottom: spacing.xs },
+  title:     { textAlign: 'right', fontSize: 30, fontWeight: '900' },
+  subtitle:  { textAlign: 'right', lineHeight: 20, marginTop: spacing.xs, marginBottom: spacing.md },
+
+  assignedStrip: {
+    flexDirection: 'row-reverse', backgroundColor: '#111111',
+    borderRadius: 20, padding: spacing.md, marginBottom: spacing.md, gap: 4,
   },
-  roleTabActive: { backgroundColor: colors.cardSoft, borderColor: colors.primary },
-  roleTabText: { color: colors.muted, fontWeight: '700', fontSize: 13 },
-  roleTabTextActive: { color: colors.primary },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: spacing.md,
-    marginBottom: spacing.md
-  },
-  cardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: '#FFF9F6'
-  },
+  assignedMember:   { flex: 1, alignItems: 'center', gap: 4 },
+  assignedAvatar:   { width: 48, height: 48, borderRadius: 24, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  assignedInitials: { fontWeight: '900', fontSize: 16 },
+  assignedRole:     { color: 'rgba(255,255,255,0.45)', fontSize: 9, fontWeight: '600' },
+  assignedName:     { color: '#fff', fontSize: 11, fontWeight: '800', textAlign: 'center' },
+
+  browseHint: { textAlign: 'right', fontSize: 13, fontWeight: '600', marginBottom: spacing.sm },
+
+  roleTabs:  { flexDirection: 'row-reverse', gap: 8, marginBottom: spacing.md },
+  roleTab:   { flex: 1, borderWidth: 1, borderRadius: 16, paddingVertical: 12, alignItems: 'center' },
+  roleTabTxt:{ fontWeight: '700', fontSize: 13 },
+
+  card:       { borderRadius: 22, borderWidth: 1, padding: spacing.md, marginBottom: spacing.md },
   cardHeader: { flexDirection: 'row-reverse', gap: spacing.sm },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  avatarText: { fontWeight: '800', fontSize: 18 },
-  cardBody: { flex: 1, alignItems: 'flex-end' },
-  nameRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 4 },
-  badge: { backgroundColor: colors.cardSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
-  name: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  specialization: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  bio: { color: colors.muted, textAlign: 'right', lineHeight: 19, marginTop: 6 },
-  statsRow: { flexDirection: 'row-reverse', gap: 8, marginTop: spacing.md },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.cardSoft,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center'
-  },
-  statValue: { color: colors.text, fontSize: 18, fontWeight: '800' },
-  statLabel: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  ratingRow: { marginTop: 6, alignItems: 'flex-end' },
+  avatar:     { width: 58, height: 58, borderRadius: 29, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
+  avatarTxt:  { fontWeight: '800', fontSize: 18 },
+  cardBody:   { flex: 1, alignItems: 'flex-end' },
+  nameRow:    { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 4 },
+  recBadge:   { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1 },
+  recBadgeTxt:{ fontSize: 11, fontWeight: '700' },
+  badge:      { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  badgeTxt:   { fontSize: 11, fontWeight: '700' },
+  name:       { fontSize: 18, fontWeight: '800' },
+  specialization: { fontSize: 13, fontWeight: '700' },
+  bio:        { textAlign: 'right', lineHeight: 19, marginTop: 6 },
+
+  statsRow:   { flexDirection: 'row-reverse', gap: 8, marginTop: spacing.md },
+  statCard:   { flex: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
+  statVal:    { fontSize: 18, fontWeight: '800' },
+  statLbl:    { fontSize: 11, marginTop: 3 },
+  ratingRow:  { marginTop: 6, alignItems: 'flex-end' },
+
   actionsRow: { flexDirection: 'row-reverse', gap: 10, marginTop: spacing.md },
-  selectBtnWrap: {
-    flex: 1,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  selectBtnWrapSelected: {
-    backgroundColor: colors.cardSoft,
-    borderWidth: 1.5,
-    borderColor: colors.success,
-    paddingVertical: 13
-  },
-  selectGrad: { width: '100%', paddingVertical: 13, alignItems: 'center', borderRadius: radius.lg },
-  selectBtnText: { color: '#fff', fontWeight: '800' },
-  selectBtnTextSelected: { color: colors.success, fontWeight: '800' },
-  detailsBtn: {
-    flex: 1,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingVertical: 13,
-    alignItems: 'center'
-  },
-  detailsBtnText: { color: colors.text, fontWeight: '700' }
+  selectWrap: { flex: 1, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  selectGrad: { width: '100%', paddingVertical: 13, alignItems: 'center', borderRadius: 18 },
+  selectTxt:  { color: '#fff', fontWeight: '800' },
+  selectTxtDone: { fontWeight: '800' },
+  detailsBtn: { flex: 1, borderRadius: 18, borderWidth: 1, paddingVertical: 13, alignItems: 'center' },
+  detailsBtnTxt: { fontWeight: '700' },
 });

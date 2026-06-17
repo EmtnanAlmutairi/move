@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import {
@@ -8,27 +9,28 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { chatMessages, chats } from '../data/mockData';
-import { colors, spacing } from '../theme/tokens';
+import { useTheme } from '../theme/ThemeContext';
+import { spacing } from '../theme/tokens';
 import { ChatMessage } from '../types';
 
 const ROLE_LABEL: Record<string, string> = {
-  coach: 'مدرب بدني',
+  coach:        'مدرب بدني',
   nutritionist: 'أخصائية تغذية',
-  physio: 'معالج طبيعي',
-  team: 'فريق متكامل'
+  physio:       'معالج طبيعي',
+  team:         'فريق متكامل',
 };
 
 export function ChatRoomScreen({ route, navigation }: any) {
+  const { theme: t } = useTheme();
   const { threadId } = route.params;
   const thread = chats.find((c) => c.id === threadId)!;
-  const initialMessages = chatMessages[threadId] || [];
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [text, setText] = useState('');
-  const listRef = useRef<FlatList>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>(chatMessages[threadId] || []);
+  const [text, setText]         = useState('');
+  const listRef                  = useRef<FlatList>(null);
 
   const send = () => {
     if (!text.trim()) return;
@@ -36,10 +38,10 @@ export function ChatRoomScreen({ route, navigation }: any) {
       id: `msg-${Date.now()}`,
       threadId,
       senderName: 'أنا',
-      isMe: true,
-      text: text.trim(),
-      timeLabel: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-      type: 'text'
+      isMe:       true,
+      text:       text.trim(),
+      timeLabel:  new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
+      type:       'text',
     };
     setMessages((prev) => [...prev, msg]);
     setText('');
@@ -47,84 +49,104 @@ export function ChatRoomScreen({ route, navigation }: any) {
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => (
-    <View style={[styles.msgRow, item.isMe ? styles.msgRowMe : styles.msgRowOther]}>
+    <View style={[st.msgRow, item.isMe ? st.msgRowMe : st.msgRowOther]}>
       {!item.isMe && (
-        <View style={[styles.msgAvatar, { backgroundColor: thread.avatarColor + '33', borderColor: thread.avatarColor }]}>
-          <Text style={[styles.msgAvatarText, { color: thread.avatarColor }]}>
+        <View style={[st.msgAvt, { backgroundColor: thread.avatarColor + '22', borderColor: thread.avatarColor + '55' }]}>
+          <Text style={[st.msgAvtTxt, { color: thread.avatarColor }]}>
             {item.senderName.slice(0, 1)}
           </Text>
         </View>
       )}
-      <View style={styles.msgBubbleWrap}>
+      <View style={st.bubbleWrap}>
         {!item.isMe && (
-          <Text style={styles.msgSender}>{item.senderName}</Text>
+          <Text style={[st.msgSender, { color: t.muted }]}>{item.senderName}</Text>
         )}
-        <View style={[styles.bubble, item.isMe ? styles.bubbleMe : styles.bubbleOther]}>
-          <Text style={[styles.bubbleText, item.isMe && styles.bubbleTextMe]}>{item.text}</Text>
-        </View>
-        <Text style={[styles.msgTime, item.isMe && styles.msgTimeMe]}>{item.timeLabel}</Text>
+        {item.isMe ? (
+          <LinearGradient
+            colors={[t.gradientStart, t.gradientEnd]}
+            style={[st.bubble, st.bubbleMe]}
+            start={{ x: 1, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          >
+            <Text style={[st.bubbleTxt, { color: '#fff' }]}>{item.text}</Text>
+          </LinearGradient>
+        ) : (
+          <View style={[st.bubble, st.bubbleOther, { backgroundColor: t.cardSoft, borderColor: t.line }]}>
+            <Text style={[st.bubbleTxt, { color: t.text }]}>{item.text}</Text>
+          </View>
+        )}
+        <Text style={[st.msgTime, { color: t.muted }, item.isMe && st.msgTimeMe]}>{item.timeLabel}</Text>
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>→</Text>
+    <SafeAreaView style={[st.safe, { backgroundColor: t.background }]} edges={['top']}>
+
+      {/* ── HEADER ────────────────────────────── */}
+      <View style={[st.header, { backgroundColor: t.card, borderBottomColor: t.line }]}>
+        <Pressable
+          style={[st.backBtn, { backgroundColor: t.cardSoft }]}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-forward" size={20} color={t.muted} />
         </Pressable>
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{thread.name}</Text>
-          <Text style={styles.headerRole}>{ROLE_LABEL[thread.role]}</Text>
+        <View style={st.headerInfo}>
+          <Text style={[st.headerName, { color: t.text }]}>{thread.name}</Text>
+          <View style={st.statusRow}>
+            <View style={[st.onlineDot, { backgroundColor: t.success }]} />
+            <Text style={[st.headerRole, { color: t.muted }]}>{ROLE_LABEL[thread.role]}</Text>
+          </View>
         </View>
-        <View style={[styles.headerAvatar, { backgroundColor: thread.avatarColor + '22', borderColor: thread.avatarColor }]}>
-          <Text style={[styles.headerAvatarText, { color: thread.avatarColor }]}>
+        <View style={[st.headerAvt, { backgroundColor: thread.avatarColor + '18', borderColor: thread.avatarColor + '55' }]}>
+          <Text style={[st.headerAvtTxt, { color: thread.avatarColor }]}>
             {thread.name.slice(0, 1)}
           </Text>
+          <View style={[st.avOnlineDot, { backgroundColor: t.success, borderColor: t.card }]} />
         </View>
       </View>
 
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={st.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <FlatList
           ref={listRef}
           data={messages}
           keyExtractor={(m) => m.id}
           renderItem={renderMessage}
-          contentContainerStyle={styles.messageList}
+          contentContainerStyle={st.msgList}
           onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>لا توجد رسائل بعد. ابدأ المحادثة!</Text>
+            <View style={st.emptyWrap}>
+              <Text style={[st.emptyTxt, { color: t.muted }]}>لا توجد رسائل بعد. ابدأ المحادثة!</Text>
             </View>
           }
           ListHeaderComponent={
-            <View style={styles.chatDateSep}>
-              <Text style={styles.chatDateText}>اليوم</Text>
+            <View style={st.dateSep}>
+              <Text style={[st.dateTxt, { backgroundColor: t.line, color: t.muted }]}>اليوم</Text>
             </View>
           }
         />
 
-        <View style={styles.inputBar}>
+        {/* ── INPUT BAR ─────────────────────────── */}
+        <View style={[st.inputBar, { backgroundColor: t.card, borderTopColor: t.line }]}>
           <Pressable onPress={send} disabled={!text.trim()}>
             <LinearGradient
-              colors={text.trim() ? [colors.gradientStart, colors.gradientEnd] : ['#ddd', '#ccc']}
-              style={styles.sendBtn}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              colors={text.trim() ? [t.gradientStart, t.gradientEnd] : [t.cardSoft, t.cardSoft]}
+              style={st.sendBtn}
+              start={{ x: 1, y: 0 }}
+              end={{ x: 0, y: 1 }}
             >
-              <Text style={styles.sendIcon}>↑</Text>
+              <Ionicons name="arrow-up" size={20} color={text.trim() ? '#fff' : t.muted} />
             </LinearGradient>
           </Pressable>
           <TextInput
-            style={styles.input}
+            style={[st.input, { backgroundColor: t.background, borderColor: t.line, color: t.text }]}
             value={text}
             onChangeText={setText}
             placeholder="اكتب رسالتك..."
-            placeholderTextColor={colors.muted}
+            placeholderTextColor={t.muted}
             multiline
             maxLength={500}
             textAlign="right"
@@ -136,143 +158,42 @@ export function ChatRoomScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  flex: { flex: 1 },
-  header: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    gap: spacing.sm
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.cardSoft,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  backText: { fontSize: 18, color: colors.primary },
+const st = StyleSheet.create({
+  safe:  { flex: 1 },
+  flex:  { flex: 1 },
+
+  header:     { flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderBottomWidth: 1, gap: spacing.sm },
+  backBtn:    { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   headerInfo: { flex: 1, alignItems: 'flex-end' },
-  headerName: { fontWeight: '800', fontSize: 16, color: colors.text },
-  headerRole: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  headerAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  headerAvatarText: { fontWeight: '800', fontSize: 16 },
-  messageList: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xl
-  },
-  chatDateSep: {
-    alignItems: 'center',
-    marginBottom: spacing.md
-  },
-  chatDateText: {
-    backgroundColor: colors.line,
-    color: colors.muted,
-    fontSize: 12,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 99
-  },
-  msgRow: {
-    flexDirection: 'row-reverse',
-    marginBottom: spacing.sm,
-    gap: 8,
-    alignItems: 'flex-end'
-  },
-  msgRowMe: { justifyContent: 'flex-start' },
+  headerName: { fontWeight: '800', fontSize: 16 },
+  statusRow:  { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  onlineDot:  { width: 7, height: 7, borderRadius: 4 },
+  headerRole: { fontSize: 12 },
+  headerAvt:  { width: 42, height: 42, borderRadius: 21, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  headerAvtTxt:{ fontWeight: '800', fontSize: 16 },
+  avOnlineDot: { position: 'absolute', bottom: 0, left: 0, width: 11, height: 11, borderRadius: 6, borderWidth: 2 },
+
+  msgList: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xl },
+  dateSep: { alignItems: 'center', marginBottom: spacing.md },
+  dateTxt: { fontSize: 12, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: 99 },
+
+  msgRow:      { flexDirection: 'row-reverse', marginBottom: spacing.sm, gap: 8, alignItems: 'flex-end' },
+  msgRowMe:    { justifyContent: 'flex-start' },
   msgRowOther: { justifyContent: 'flex-end' },
-  msgAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0
-  },
-  msgAvatarText: { fontSize: 13, fontWeight: '800' },
-  msgBubbleWrap: { maxWidth: '72%' },
-  msgSender: {
-    textAlign: 'right',
-    color: colors.muted,
-    fontSize: 11,
-    marginBottom: 3,
-    fontWeight: '600'
-  },
-  bubble: {
-    borderRadius: 18,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10
-  },
-  bubbleMe: {
-    backgroundColor: colors.primary,
-    borderBottomRightRadius: 4
-  },
-  bubbleOther: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderBottomLeftRadius: 4
-  },
-  bubbleText: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'right'
-  },
-  bubbleTextMe: { color: '#fff' },
-  msgTime: {
-    color: colors.muted,
-    fontSize: 10,
-    marginTop: 3,
-    textAlign: 'right'
-  },
-  msgTimeMe: { textAlign: 'left' },
-  emptyWrap: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { color: colors.muted },
-  inputBar: {
-    flexDirection: 'row-reverse',
-    alignItems: 'flex-end',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingBottom: 24,
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    gap: spacing.sm
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.line,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-    maxHeight: 100
-  },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  sendIcon: { color: '#fff', fontSize: 20, fontWeight: '800' }
+  msgAvt:      { width: 32, height: 32, borderRadius: 16, borderWidth: 1.5, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  msgAvtTxt:   { fontSize: 13, fontWeight: '800' },
+  bubbleWrap:  { maxWidth: '72%' },
+  msgSender:   { textAlign: 'right', fontSize: 11, marginBottom: 3, fontWeight: '600' },
+  bubble:      { borderRadius: 18, paddingHorizontal: spacing.md, paddingVertical: 10 },
+  bubbleMe:    { borderBottomRightRadius: 4 },
+  bubbleOther: { borderWidth: 1, borderBottomLeftRadius: 4 },
+  bubbleTxt:   { fontSize: 15, lineHeight: 22, textAlign: 'right' },
+  msgTime:     { fontSize: 10, marginTop: 3, textAlign: 'right' },
+  msgTimeMe:   { textAlign: 'left' },
+  emptyWrap:   { alignItems: 'center', paddingTop: 60 },
+  emptyTxt:    {},
+
+  inputBar: { flexDirection: 'row-reverse', alignItems: 'flex-end', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, paddingBottom: 24, borderTopWidth: 1, gap: spacing.sm },
+  input:    { flex: 1, borderRadius: 20, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: 10, fontSize: 15, maxHeight: 100 },
+  sendBtn:  { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
 });

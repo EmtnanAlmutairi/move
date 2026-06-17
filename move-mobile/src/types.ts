@@ -31,6 +31,13 @@ export type Exercise = {
   muscleGroup: string;
   thumbnail: string;
   notes?: string;
+  coachNote?: string;
+  exerciseType?: 'weight' | 'bodyweight' | 'cardio';
+};
+
+export type ExerciseSetLog = {
+  weightKg?: number;
+  completedAt: number;
 };
 
 export type MealItem = {
@@ -224,4 +231,147 @@ export type UserProfile = {
   selectedCoachId: string;
   selectedNutritionistId: string;
   selectedPhysioId: string;
+  xpPoints?: number;
+  xpToNextLevel?: number;
+  level?: number;
+};
+
+// ─── Social / Super-App types ───────────────────────────────────────────────
+
+export type SportType = 'run' | 'lift' | 'yoga' | 'cycle';
+
+export type NearbyUser = {
+  id: string;
+  initials: string;
+  name: string;
+  sport: SportType;
+  distanceM: number;
+  isLive: boolean;
+  color: string;
+  posX: number;
+  posY: number;
+};
+
+export type FeedPost = {
+  id: string;
+  userId: string;
+  userName: string;
+  userInitials: string;
+  userColor: string;
+  sport: SportType;
+  activityType: 'run' | 'workout' | 'pr' | 'milestone' | 'weight';
+  headline: string;
+  subtext?: string;
+  metric?: string;
+  metricLabel?: string;
+  timeLabel: string;
+  likesCount: number;
+  commentsCount: number;
+  isLiked: boolean;
+  pointsEarned?: number;
+  isPR?: boolean;
+  imageUrl?: string;
+};
+
+export type UserPostGrid = {
+  id: string;
+  imageUrl: string;
+  type: 'run' | 'workout' | 'meal' | 'milestone';
+  likesCount: number;
+};
+
+export type LiveSession = {
+  id: string;
+  userName: string;
+  userInitials: string;
+  userColor: string;
+  sport: SportType;
+  title: string;
+  durationMin: number;
+  pace?: string;
+  distanceKm?: number;
+  participantsCount: number;
+  maxParticipants: number;
+  isJoined: boolean;
+};
+
+export type SportRoute = {
+  id: string;
+  name: string;
+  sport: SportType;
+  distKm: number;
+  elevM: number;
+  color: string;
+  coordinates: Array<{ latitude: number; longitude: number }>;
+  isPopular?: boolean;
+};
+
+// ─── Nutrition / AI Food Tracking ──────────────────────────────────────────
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export type FoodItem = {
+  id: string;
+  name: string;
+  nameAr: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  portionGrams: number;
+  portionLabel: string;
+  category: 'arabic' | 'western' | 'snack' | 'drink' | 'supplement';
+  imageUrl?: string;
+  source: 'custom' | 'usda' | 'openfoodfacts' | 'ai' | 'barcode' | 'manual';
+  barcode?: string;
+};
+
+export type MealLog = {
+  id: string;
+  foodItem: FoodItem;
+  mealType: MealType;
+  portionMultiplier: number;
+  loggedAt: string;
+  date: string;
+};
+
+export type NutritionSummary = {
+  date: string;
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  waterCups: number;
+  mealsLogged: number;
+  nutritionScore: number;
+};
+
+export type MacroTarget = {
+  calorieGoal: number;
+  proteinGoal: number;
+  carbsGoal: number;
+  fatGoal: number;
+  waterGoal: number;
+};
+
+export type AIAnalysisResult = {
+  foodName: string;
+  arabicName: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  confidence: number;
+  portionGrams: number;
+  alternatives?: Array<{
+    foodName: string;
+    arabicName: string;
+    confidence: number;
+  }>;
+};
+
+export type BarcodeResult = {
+  barcode: string;
+  foodItem: FoodItem | null;
+  found: boolean;
 };

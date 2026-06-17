@@ -1,96 +1,104 @@
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ExerciseDemoModal } from '../components/ExerciseDemoModal';
 import { todaySchedule, weeklyWorkout } from '../data/mockData';
-import { screenStyles } from '../theme/screenStyles';
-import { colors, spacing } from '../theme/tokens';
-import { ScheduledSession, WorkoutTask } from '../types';
+import { useTheme } from '../theme/ThemeContext';
+import { spacing } from '../theme/tokens';
+import { Exercise, ScheduledSession, WorkoutTask } from '../types';
 
 const SESSION_LABELS: Record<ScheduledSession['type'], string> = {
-  workout: 'تمرين',
-  meal: 'تغذية',
+  workout:  'تمرين',
+  meal:     'تغذية',
   recovery: 'استشفاء',
-  checkin: 'فحص',
-  coaching: 'متابعة'
+  checkin:  'فحص',
+  coaching: 'متابعة',
 };
 
-const SESSION_ICONS: Record<ScheduledSession['type'], string> = {
-  workout: '🏋️',
-  meal: '🥗',
-  recovery: '🧘',
-  checkin: '📝',
-  coaching: '🎯'
-};
+function SessionIcon({ type, color }: { type: ScheduledSession['type']; color: string }) {
+  const s = 16;
+  switch (type) {
+    case 'workout':  return <MaterialCommunityIcons name="dumbbell" size={s} color={color} />;
+    case 'meal':     return <Ionicons name="restaurant-outline" size={s} color={color} />;
+    case 'recovery': return <Ionicons name="leaf-outline" size={s} color={color} />;
+    case 'checkin':  return <Ionicons name="document-text-outline" size={s} color={color} />;
+    case 'coaching': return <MaterialCommunityIcons name="bullseye-arrow" size={s} color={color} />;
+    default:         return null;
+  }
+}
 
 const DAY_ORDER = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 function intensityLabel(intensity: WorkoutTask['intensity']) {
-  if (intensity === 'high') return 'شدة عالية';
+  if (intensity === 'high')   return 'شدة عالية';
   if (intensity === 'medium') return 'شدة متوسطة';
   return 'شدة خفيفة';
 }
 
 export function WeeklyPlanScreen({ navigation }: any) {
+  const { theme: t } = useTheme();
+
   const [completedIds, setCompletedIds] = useState<string[]>(
-    todaySchedule.filter((session) => session.isCompleted).map((session) => session.id)
+    todaySchedule.filter((s) => s.isCompleted).map((s) => s.id)
+  );
+  const [demoExercise, setDemoExercise] = useState<Exercise | null>(null);
+
+  const completedCount  = completedIds.length;
+  const progressPct     = Math.round((completedCount / todaySchedule.length) * 100);
+  const upcomingSession = todaySchedule.find((s) => !completedIds.includes(s.id)) ?? todaySchedule[0];
+
+  const weekPlan = useMemo(
+    () => weeklyWorkout
+      .map((task) => ({ ...task, sortIndex: DAY_ORDER.indexOf(task.dayLabel) }))
+      .sort((a, b) => a.sortIndex - b.sortIndex),
+    []
   );
 
-  const completedCount = completedIds.length;
-  const progressPct = Math.round((completedCount / todaySchedule.length) * 100);
-  const upcomingSession = todaySchedule.find((session) => !completedIds.includes(session.id)) || todaySchedule[0];
+  const recommendedVideos = weeklyWorkout.filter((t) => !t.completed).slice(0, 3);
 
-  const weekPlan = useMemo(() => {
-    const mapped = weeklyWorkout.map((task) => ({
-      ...task,
-      sortIndex: DAY_ORDER.indexOf(task.dayLabel)
-    }));
-    return mapped.sort((a, b) => a.sortIndex - b.sortIndex);
-  }, []);
+  const todayWorkoutSession = todaySchedule.find((s) => s.type === 'workout' && s.workoutId);
+  const todayExercises: Exercise[] = todayWorkoutSession
+    ? (weeklyWorkout.find((w) => w.id === todayWorkoutSession.workoutId)?.exercises ?? [])
+    : [];
 
-  const recommendedVideos = weeklyWorkout.filter((task) => !task.completed).slice(0, 3);
+  const toggleSession = (id: string) =>
+    setCompletedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
 
-  function toggleSession(id: string) {
-    setCompletedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-  }
+  const cardShadow = {
+    shadowColor: t.mode === 'dark' ? '#000' : '#8A7060',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: t.mode === 'dark' ? 0.3 : 0.07,
+    shadowRadius: 10,
+    elevation: 3,
+  };
 
   return (
-    <SafeAreaView style={screenStyles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.kicker}>الخطة</Text>
-        <Text style={screenStyles.title}>جدول اليوم</Text>
-        <Text style={screenStyles.subtitle}>كل شيء مرتب حسب جاهزيتك وتوقيت فريقك الصحي</Text>
+    <SafeAreaView style={[st.safe, { backgroundColor: t.background }]}>
+      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
 
+        {/* ── TITLE ────────────────────────────────── */}
+        <Text style={[st.pageTitle, { color: t.text }]}>جدول اليوم</Text>
+
+        {/* ── HERO GRADIENT ─────────────────────────── */}
         <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          style={styles.heroCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          colors={[t.gradientStart, '#FF6800', t.gradientEnd]}
+          style={st.hero}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
         >
-          <Text style={styles.heroEyebrow}>جاهزية التنفيذ اليوم</Text>
-          <Text style={styles.heroValue}>{progressPct}%</Text>
-          <Text style={styles.heroText}>
-            أنجزت {completedCount} من {todaySchedule.length} محطات، والمتبقي الآن: {upcomingSession.title}
+          <Text style={st.heroEyebrow}>اكتمال الأسبوع</Text>
+          <Text style={st.heroValue}>{progressPct}%</Text>
+          <Text style={st.heroText}>
+            {completedCount} من {todaySchedule.length} محطات · القادم: {upcomingSession.title}
           </Text>
-          <View style={styles.heroMetaRow}>
-            <View style={styles.heroMetaCard}>
-              <Text style={styles.heroMetaValue}>{upcomingSession.time}</Text>
-              <Text style={styles.heroMetaLabel}>الموعد القادم</Text>
-            </View>
-            <View style={styles.heroMetaCard}>
-              <Text style={styles.heroMetaValue}>{todaySchedule.length}</Text>
-              <Text style={styles.heroMetaLabel}>محطات اليوم</Text>
-            </View>
-            <View style={styles.heroMetaCard}>
-              <Text style={styles.heroMetaValue}>{recommendedVideos.length}</Text>
-              <Text style={styles.heroMetaLabel}>فيديوهات مناسبة</Text>
-            </View>
-          </View>
         </LinearGradient>
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>اليوم بالتفصيل</Text>
-          <Text style={styles.sectionHint}>اضغط لتحديث الإنجاز</Text>
+        {/* ── TODAY'S SCHEDULE ──────────────────────── */}
+        <View style={st.sectionHeader}>
+          <Text style={[st.sectionTitle, { color: t.text }]}>اليوم بالتفصيل</Text>
+          <Text style={[st.sectionHint, { color: t.muted }]}>اضغط لتحديث الإنجاز</Text>
         </View>
 
         {todaySchedule.map((session) => {
@@ -98,294 +106,206 @@ export function WeeklyPlanScreen({ navigation }: any) {
           return (
             <Pressable
               key={session.id}
-              style={[styles.scheduleCard, isDone && styles.scheduleCardDone]}
+              style={[
+                st.scheduleCard,
+                {
+                  backgroundColor: isDone ? t.success + '0D' : t.card,
+                  borderColor:     isDone ? t.success + '40' : t.line,
+                },
+                cardShadow,
+              ]}
               onPress={() => toggleSession(session.id)}
             >
-              <View style={styles.scheduleTimeCol}>
-                <View style={[styles.statusDot, { backgroundColor: isDone ? colors.success : session.color }]} />
-                <Text style={styles.scheduleTime}>{session.time}</Text>
-                <Text style={styles.scheduleDuration}>{session.durationMin} د</Text>
+              <View style={st.scheduleTimeCol}>
+                <View style={[st.statusDot, { backgroundColor: isDone ? t.success : t.primary }]} />
+                <Text style={[st.scheduleTime, { color: t.text }]}>{session.time}</Text>
+                <Text style={[st.scheduleDur, { color: t.muted }]}>{session.durationMin} د</Text>
               </View>
-              <View style={styles.scheduleContent}>
-                <View style={styles.scheduleTopRow}>
-                  <Text style={styles.scheduleTag}>{SESSION_LABELS[session.type]}</Text>
-                  <Text style={styles.scheduleIcon}>{SESSION_ICONS[session.type]}</Text>
+              <View style={st.scheduleContent}>
+                <View style={st.scheduleTopRow}>
+                  <Text style={[st.scheduleTag, { color: t.primary }]}>{SESSION_LABELS[session.type]}</Text>
+                  <SessionIcon type={session.type} color={isDone ? t.muted : t.primary} />
                 </View>
-                <Text style={styles.scheduleTitle}>{session.title}</Text>
-                <Text style={styles.scheduleSubtitle}>{session.subtitle}</Text>
+                <Text style={[st.scheduleTitle, { color: t.text }]}>{session.title}</Text>
+                <Text style={[st.scheduleSub, { color: t.muted }]}>{session.subtitle}</Text>
               </View>
             </Pressable>
           );
         })}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>فيديوهات التمرين</Text>
-          <Text style={styles.sectionHint}>مقترحة من خطتك الحالية</Text>
+        {/* ── TODAY'S EXERCISES ────────────────────── */}
+        {todayExercises.length > 0 && (
+          <>
+            <View style={st.sectionHeader}>
+              <Text style={[st.sectionTitle, { color: t.text }]}>تمارين اليوم</Text>
+              <Text style={[st.sectionHint, { color: t.muted }]}>اضغط على الصورة للشرح</Text>
+            </View>
+
+            {todayExercises.map((ex, i) => (
+              <View
+                key={ex.id}
+                style={[st.exCard, { backgroundColor: t.card, borderColor: t.line }, cardShadow]}
+              >
+                {/* Thumbnail with demo tap */}
+                <Pressable onPress={() => setDemoExercise(ex)} style={st.exImgWrap}>
+                  <Image source={{ uri: ex.thumbnail }} style={st.exImg} resizeMode="cover" />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.75)']}
+                    style={st.exImgGrad}
+                  >
+                    <View style={st.demoTag}>
+                      <Ionicons name="play-circle" size={14} color="#fff" />
+                      <Text style={st.demoTagTxt}>شرح التمرين</Text>
+                    </View>
+                  </LinearGradient>
+                </Pressable>
+
+                {/* Info */}
+                <View style={st.exInfo}>
+                  <View style={st.exTopRow}>
+                    <View style={[st.exNumBadge, { backgroundColor: t.primary + '18' }]}>
+                      <Text style={[st.exNum, { color: t.primary }]}>{i + 1}</Text>
+                    </View>
+                    <View style={[st.musclePill, { backgroundColor: t.cardSoft }]}>
+                      <Text style={[st.muscleTxt, { color: t.muted }]}>{ex.muscleGroup}</Text>
+                    </View>
+                  </View>
+                  <Text style={[st.exName, { color: t.text }]}>{ex.name}</Text>
+                  <View style={st.exChips}>
+                    {[
+                      { icon: 'layers-outline', val: `${ex.sets} مج` },
+                      { icon: 'repeat-outline',  val: ex.reps         },
+                      { icon: 'timer-outline',   val: `${ex.restSec}ث`},
+                    ].map((c) => (
+                      <View key={c.val} style={[st.chip, { backgroundColor: t.cardSoft }]}>
+                        <Ionicons name={c.icon as any} size={11} color={t.muted} />
+                        <Text style={[st.chipTxt, { color: t.muted }]}>{c.val}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* ── VIDEO RECOMMENDATIONS ─────────────────── */}
+        <View style={st.sectionHeader}>
+          <Text style={[st.sectionTitle, { color: t.text }]}>فيديوهات التمرين</Text>
+          <Text style={[st.sectionHint, { color: t.muted }]}>مقترحة من خطتك الحالية</Text>
         </View>
 
         {recommendedVideos.map((task) => (
           <Pressable
             key={task.id}
-            style={styles.videoCard}
+            style={st.videoCard}
             onPress={() => navigation.navigate('Workout', { workoutId: task.id })}
           >
-            <Image source={{ uri: task.thumbnail }} style={styles.videoImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.82)']}
-              style={styles.videoOverlay}
-            >
-              <View style={styles.playBadge}>
-                <Text style={styles.playBadgeText}>▶</Text>
+            <Image source={{ uri: task.thumbnail }} style={st.videoImg} />
+            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.82)']} style={st.videoOverlay}>
+              <View style={[st.playBadge, { backgroundColor: 'rgba(255,255,255,0.88)' }]}>
+                <Ionicons name="play" size={14} color={t.primary} />
               </View>
-              <Text style={styles.videoCoach}>{task.coachName}</Text>
-              <Text style={styles.videoTitle}>{task.title}</Text>
-              <Text style={styles.videoMeta}>
-                {task.durationMin} دقيقة • {task.exercises?.length || 0} تمارين • {intensityLabel(task.intensity)}
+              <Text style={st.videoCoach}>{task.coachName}</Text>
+              <Text style={st.videoTitle}>{task.title}</Text>
+              <Text style={st.videoMeta}>
+                {task.durationMin} دقيقة · {task.exercises?.length ?? 0} تمارين · {intensityLabel(task.intensity)}
               </Text>
             </LinearGradient>
           </Pressable>
         ))}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>نظرة الأسبوع</Text>
-          <Text style={styles.sectionHint}>توزيع الجلسات القادمة</Text>
+        {/* ── WEEKLY OVERVIEW ───────────────────────── */}
+        <View style={st.sectionHeader}>
+          <Text style={[st.sectionTitle, { color: t.text }]}>نظرة الأسبوع</Text>
+          <Text style={[st.sectionHint, { color: t.muted }]}>توزيع الجلسات القادمة</Text>
         </View>
 
-        <View style={styles.weekRow}>
+        <View style={st.weekRow}>
           {weekPlan.map((task) => (
-            <View key={task.id} style={[styles.weekCard, task.completed && styles.weekCardDone]}>
-              <Text style={styles.weekDay}>{task.dayLabel}</Text>
-              <Text style={styles.weekWorkout} numberOfLines={2}>
-                {task.title}
-              </Text>
-              <Text style={styles.weekMeta}>{task.durationMin} د</Text>
+            <View
+              key={task.id}
+              style={[
+                st.weekCard,
+                {
+                  backgroundColor: task.completed ? t.cardSoft : t.card,
+                  borderColor:     t.line,
+                },
+                cardShadow,
+              ]}
+            >
+              <Text style={[st.weekDay, { color: t.primary }]}>{task.dayLabel}</Text>
+              <Text style={[st.weekWorkout, { color: t.text }]} numberOfLines={2}>{task.title}</Text>
+              <Text style={[st.weekMeta, { color: t.muted }]}>{task.durationMin} د</Text>
             </View>
           ))}
         </View>
+
       </ScrollView>
+
+      <ExerciseDemoModal
+        exercise={demoExercise}
+        onClose={() => setDemoExercise(null)}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 120
-  },
-  kicker: {
-    textAlign: 'right',
-    color: colors.primary,
-    marginBottom: spacing.xs,
-    fontWeight: '700'
-  },
-  heroCard: {
-    borderRadius: 28,
-    padding: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.lg
-  },
-  heroEyebrow: {
-    color: 'rgba(255,255,255,0.84)',
-    textAlign: 'right',
-    fontSize: 13,
-    fontWeight: '700'
-  },
-  heroValue: {
-    color: '#fff',
-    textAlign: 'right',
-    fontSize: 42,
-    fontWeight: '900',
-    marginTop: spacing.xs
-  },
-  heroText: {
-    color: '#fff',
-    textAlign: 'right',
-    lineHeight: 21,
-    marginTop: spacing.xs
-  },
-  heroMetaRow: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-    marginTop: spacing.md
-  },
-  heroMetaCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10
-  },
-  heroMetaValue: {
-    color: '#fff',
-    textAlign: 'right',
-    fontSize: 18,
-    fontWeight: '800'
-  },
-  heroMetaLabel: {
-    color: 'rgba(255,255,255,0.82)',
-    textAlign: 'right',
-    fontSize: 11,
-    marginTop: 3
-  },
-  sectionHeader: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm
-  },
-  sectionTitle: {
-    textAlign: 'right',
-    fontWeight: '800',
-    fontSize: 20,
-    color: colors.text
-  },
-  sectionHint: {
-    color: colors.muted,
-    fontSize: 12
-  },
-  scheduleCard: {
-    flexDirection: 'row-reverse',
-    alignItems: 'stretch',
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md
-  },
-  scheduleCardDone: {
-    backgroundColor: '#F5FBF7',
-    borderColor: '#BEE5CC'
-  },
-  scheduleTimeCol: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minWidth: 62
-  },
-  statusDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7
-  },
-  scheduleTime: {
-    color: colors.text,
-    fontWeight: '800',
-    fontSize: 15
-  },
-  scheduleDuration: {
-    color: colors.muted,
-    fontSize: 11
-  },
-  scheduleContent: {
-    flex: 1,
-    alignItems: 'flex-end'
-  },
-  scheduleTopRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4
-  },
-  scheduleTag: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  scheduleIcon: {
-    fontSize: 16
-  },
-  scheduleTitle: {
-    textAlign: 'right',
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text
-  },
-  scheduleSubtitle: {
-    textAlign: 'right',
-    color: colors.muted,
-    lineHeight: 19,
-    marginTop: 4
-  },
-  videoCard: {
-    height: 212,
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-    backgroundColor: colors.card
-  },
-  videoImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute'
-  },
-  videoOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: spacing.lg
-  },
-  playBadge: {
-    position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  playBadgeText: {
-    color: colors.primary,
-    fontWeight: '800'
-  },
-  videoCoach: {
-    color: 'rgba(255,255,255,0.82)',
-    textAlign: 'right',
-    fontSize: 12
-  },
-  videoTitle: {
-    color: '#fff',
-    textAlign: 'right',
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 4
-  },
-  videoMeta: {
-    color: 'rgba(255,255,255,0.88)',
-    textAlign: 'right',
-    marginTop: 4,
-    lineHeight: 19
-  },
-  weekRow: {
-    gap: spacing.sm
-  },
-  weekCard: {
-    backgroundColor: colors.card,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: spacing.md
-  },
-  weekCardDone: {
-    backgroundColor: colors.cardSoft
-  },
-  weekDay: {
-    textAlign: 'right',
-    color: colors.primary,
-    fontWeight: '700',
-    marginBottom: 4
-  },
-  weekWorkout: {
-    textAlign: 'right',
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '800'
-  },
-  weekMeta: {
-    textAlign: 'right',
-    color: colors.muted,
-    marginTop: 6
-  }
+const st = StyleSheet.create({
+  safe:   { flex: 1 },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 120 },
+
+  pageTitle: { textAlign: 'right', fontSize: 32, fontWeight: '900', lineHeight: 36, marginBottom: spacing.md },
+
+  hero:       { borderRadius: 24, padding: spacing.lg, marginBottom: spacing.lg },
+  heroEyebrow:{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', textAlign: 'right', marginBottom: 4 },
+  heroValue:  { color: '#fff', textAlign: 'right', fontSize: 42, fontWeight: '900', marginTop: spacing.xs },
+  heroText:   { color: 'rgba(255,255,255,0.88)', textAlign: 'right', lineHeight: 21, marginTop: spacing.xs },
+
+  sectionHeader:  { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  sectionTitle:   { fontWeight: '800', fontSize: 20, textAlign: 'right' },
+  sectionHint:    { fontSize: 12 },
+
+  scheduleCard:    { flexDirection: 'row-reverse', alignItems: 'stretch', borderRadius: 20, borderWidth: 1, padding: spacing.md, marginBottom: spacing.sm, gap: spacing.md },
+  scheduleTimeCol: { alignItems: 'center', justifyContent: 'space-between', minWidth: 62 },
+  statusDot:       { width: 14, height: 14, borderRadius: 7 },
+  scheduleTime:    { fontWeight: '800', fontSize: 15 },
+  scheduleDur:     { fontSize: 11 },
+  scheduleContent: { flex: 1, alignItems: 'flex-end' },
+  scheduleTopRow:  { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 4 },
+  scheduleTag:     { fontSize: 12, fontWeight: '700' },
+  scheduleTitle:   { textAlign: 'right', fontSize: 17, fontWeight: '800' },
+  scheduleSub:     { textAlign: 'right', lineHeight: 19, marginTop: 4 },
+
+  videoCard:    { height: 212, borderRadius: 24, overflow: 'hidden', marginBottom: spacing.md },
+  videoImg:     { width: '100%', height: '100%', position: 'absolute' },
+  videoOverlay: { flex: 1, justifyContent: 'flex-end', padding: spacing.lg },
+  playBadge:    { position: 'absolute', top: spacing.md, left: spacing.md, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  videoCoach:   { color: 'rgba(255,255,255,0.82)', textAlign: 'right', fontSize: 12 },
+  videoTitle:   { color: '#fff', textAlign: 'right', fontSize: 20, fontWeight: '800', marginTop: 4 },
+  videoMeta:    { color: 'rgba(255,255,255,0.88)', textAlign: 'right', marginTop: 4, lineHeight: 19 },
+
+  weekRow:    { gap: spacing.sm },
+  weekCard:   { borderRadius: 18, borderWidth: 1, padding: spacing.md },
+  weekDay:    { textAlign: 'right', fontWeight: '700', marginBottom: 4 },
+  weekWorkout:{ textAlign: 'right', fontSize: 16, fontWeight: '800' },
+  weekMeta:   { textAlign: 'right', marginTop: 6 },
+
+  // Exercise cards
+  exCard:      { flexDirection: 'row-reverse', borderRadius: 18, borderWidth: 1, marginBottom: spacing.sm, overflow: 'hidden' },
+  exImgWrap:   { width: 110, height: 100, flexShrink: 0 },
+  exImg:       { width: '100%', height: '100%' },
+  exImgGrad:   { position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, justifyContent: 'flex-end', padding: 6 },
+  demoTag:     { flexDirection: 'row-reverse', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 99, paddingHorizontal: 7, paddingVertical: 3, alignSelf: 'flex-start' },
+  demoTagTxt:  { color: '#fff', fontSize: 10, fontWeight: '700' },
+  exInfo:      { flex: 1, padding: spacing.sm, alignItems: 'flex-end', justifyContent: 'space-between' },
+  exTopRow:    { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, width: '100%' },
+  exNumBadge:  { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  exNum:       { fontSize: 12, fontWeight: '900' },
+  musclePill:  { borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+  muscleTxt:   { fontSize: 11, fontWeight: '700' },
+  exName:      { textAlign: 'right', fontSize: 14, fontWeight: '800', marginVertical: 4 },
+  exChips:     { flexDirection: 'row-reverse', gap: 5 },
+  chip:        { flexDirection: 'row-reverse', alignItems: 'center', gap: 3, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
+  chipTxt:     { fontSize: 10, fontWeight: '700' },
 });

@@ -70,7 +70,7 @@ body {
   color: #fff;
   background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
 }
-.gradient-card h2 { margin: 6px 0; font-size: 42px; line-height: 1; }
+.gradient-card h2 { margin: 6px 0; font-size: 42px; line-height: 1; color: #0D1B2E; }
 .gradient-card p { margin: 0; opacity: 0.95; }
 .gradient-card.slim h2 { font-size: 32px; }
 .hero-head {

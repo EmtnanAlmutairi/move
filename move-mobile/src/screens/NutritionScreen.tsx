@@ -1,427 +1,439 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { professionals, todayMeals, userProfile } from '../data/mockData';
-import { colors, radius, shadows, spacing, typography } from '../theme/tokens';
+import { useNutrition } from '../store/nutritionContext';
+import { ThemeTokens, useTheme } from '../theme/ThemeContext';
+import { radius, shadows, spacing, typography } from '../theme/tokens';
+import { MealLog, MealType } from '../types';
 
-const CALORIE_GOAL = 2200;
-const PROTEIN_GOAL = 160;
-const CARBS_GOAL = 220;
-const FAT_GOAL = 70;
-const WATER_GOAL = 8;
-
-const MEAL_TYPE_LABELS: Record<string, string> = {
+const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'الإفطار',
-  lunch: 'الغداء',
-  dinner: 'العشاء',
-  snack: 'وجبة خفيفة'
+  lunch:     'الغداء',
+  dinner:    'العشاء',
+  snack:     'وجبة خفيفة',
 };
 
-function MacroBar({ label, value, goal, color }: { label: string; value: number; goal: number; color: string }) {
-  const pct = Math.min(value / goal, 1);
+const CATEGORY_ICONS: Record<string, string> = {
+  arabic:     'restaurant',
+  western:    'leaf',
+  snack:      'nutrition',
+  drink:      'water',
+  supplement: 'medical',
+};
+
+// ── Circular Macro Ring (two-half-circle, no SVG) ─────────────────────────────
+function MacroRing({ value, goal, color, label, size = 74, thick = 7 }: {
+  value: number; goal: number; color: string; label: string; size?: number; thick?: number;
+}) {
+  const pct      = Math.min(value / goal, 1);
+  const half     = size / 2;
+  const rightDeg = pct <= 0.5 ? pct * 360 - 180 : 0;
+  const leftDeg  = pct > 0.5 ? (pct - 0.5) * 360 - 180 : -180;
+
+  const base: any = {
+    position: 'absolute', width: size, height: size,
+    borderRadius: half, borderWidth: thick,
+  };
+
   return (
-    <View style={bar.wrap}>
-      <View style={bar.labelRow}>
-        <Text style={bar.value}>{value}ج</Text>
-        <Text style={bar.label}>{label}</Text>
+    <View style={{ width: size, height: size }}>
+      <View style={[base, { borderColor: 'rgba(255,255,255,0.15)' }]} />
+
+      {/* right half (0% → 50%) */}
+      <View style={{ position: 'absolute', width: half, height: size, right: 0, overflow: 'hidden' }}>
+        <View style={[base, {
+          borderColor: color, borderLeftColor: 'transparent',
+          right: 0, transform: [{ rotate: `${rightDeg}deg` }],
+        }]} />
       </View>
-      <View style={bar.track}>
-        <LinearGradient
-          colors={[color, color + 'AA']}
-          start={{ x: 1, y: 0 }}
-          end={{ x: 0, y: 0 }}
-          style={[bar.fill, { width: `${pct * 100}%` }]}
-        />
+
+      {/* left half (50% → 100%) */}
+      <View style={{ position: 'absolute', width: half, height: size, left: 0, overflow: 'hidden' }}>
+        <View style={[base, {
+          borderColor: pct > 0.5 ? color : 'transparent',
+          borderRightColor: 'transparent',
+          left: 0, transform: [{ rotate: `${leftDeg}deg` }],
+        }]} />
       </View>
-      <Text style={bar.goal}>من {goal}ج</Text>
+
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>{value}ج</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, marginTop: 1 }}>{label}</Text>
+      </View>
     </View>
   );
 }
 
-function CalorieRing({ consumed, goal }: { consumed: number; goal: number }) {
-  const pct = Math.min(consumed / goal, 1);
+// ── Calorie strip inside hero ─────────────────────────────────────────────────
+function CalorieStrip({ consumed, goal, t }: { consumed: number; goal: number; t: ThemeTokens }) {
+  const pct       = Math.min(consumed / goal, 1);
   const remaining = Math.max(goal - consumed, 0);
-  const SIZE = 140;
-  const STROKE = 12;
-  const INNER = SIZE - STROKE * 2;
-  const ARC_DEGREES = pct * 360;
-
   return (
-    <View style={[ring.wrap, { width: SIZE, height: SIZE }]}>
-      <View style={[ring.outer, { width: SIZE, height: SIZE, borderRadius: SIZE / 2 }]}>
-        <View style={[ring.track, { width: SIZE, height: SIZE, borderRadius: SIZE / 2 }]} />
-        {pct > 0 && (
-          <View style={[ring.fillWrap, { width: SIZE, height: SIZE }]}>
-            <LinearGradient
-              colors={[colors.gradientStart, colors.gradientEnd]}
-              style={[
-                ring.fillArc,
-                {
-                  width: SIZE,
-                  height: SIZE,
-                  borderRadius: SIZE / 2,
-                  opacity: 1
-                }
-              ]}
-            />
-            {pct < 1 && (
-              <View
-                style={[
-                  ring.mask,
-                  {
-                    width: SIZE,
-                    height: SIZE,
-                    borderRadius: SIZE / 2,
-                    transform: [{ rotate: `${ARC_DEGREES}deg` }]
-                  }
-                ]}
-              />
-            )}
-          </View>
-        )}
-        <View style={[ring.inner, { width: INNER, height: INNER, borderRadius: INNER / 2 }]}>
-          <Text style={ring.consumed}>{consumed}</Text>
-          <Text style={ring.unit}>سعرة</Text>
-          <Text style={ring.remain}>باقي {remaining}</Text>
-        </View>
+    <View style={cs.wrap}>
+      <View style={cs.row}>
+        <View style={cs.stat}><Text style={cs.val}>{remaining}</Text><Text style={cs.lbl}>متبقي</Text></View>
+        <View style={cs.stat}><Text style={[cs.val, cs.valMain]}>{consumed}</Text><Text style={cs.lbl}>مستهلك</Text></View>
+        <View style={cs.stat}><Text style={cs.val}>{goal}</Text><Text style={cs.lbl}>الهدف</Text></View>
+      </View>
+      <View style={cs.track}>
+        <LinearGradient colors={[t.gradientStart, t.gradientEnd]} start={{ x: 1, y: 0 }} end={{ x: 0, y: 0 }} style={[cs.fill, { width: `${pct * 100}%` as any }]} />
       </View>
     </View>
   );
 }
 
-export function NutritionScreen({ navigation }: any) {
-  const [completedMeals, setCompletedMeals] = useState<Set<string>>(new Set(['m1']));
-  const [waterCups, setWaterCups] = useState(3);
+const cs = StyleSheet.create({
+  wrap:    { marginBottom: spacing.md },
+  row:     { flexDirection: 'row-reverse', justifyContent: 'space-around', marginBottom: spacing.sm },
+  stat:    { alignItems: 'center' },
+  val:     { color: 'rgba(255,255,255,0.9)', fontSize: 22, fontWeight: '800' },
+  valMain: { color: '#fff', fontSize: 30 },
+  lbl:     { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 },
+  track:   { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' },
+  fill:    { height: 6, borderRadius: 3 },
+});
 
-  const nutritionist = professionals.find((p) => p.id === userProfile.selectedNutritionistId);
-
-  const consumedCalories = todayMeals
-    .filter((m) => completedMeals.has(m.id))
-    .reduce((sum, m) => sum + m.calories, 0);
-
-  const consumed = {
-    protein: todayMeals.filter((m) => completedMeals.has(m.id)).reduce((s, m) => s + (m.protein ?? 0), 0),
-    carbs: todayMeals.filter((m) => completedMeals.has(m.id)).reduce((s, m) => s + (m.carbs ?? 0), 0),
-    fat: todayMeals.filter((m) => completedMeals.has(m.id)).reduce((s, m) => s + (m.fat ?? 0), 0)
-  };
-
-  const toggleMeal = (id: string) => {
-    setCompletedMeals((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+// ── Meal card ─────────────────────────────────────────────────────────────────
+function MealCard({ meal, t, onRemove, cardShadow }: {
+  meal: MealLog; t: ThemeTokens; onRemove: () => void; cardShadow: object;
+}) {
+  const cal     = Math.round(meal.foodItem.calories * meal.portionMultiplier);
+  const protein = Math.round(meal.foodItem.protein  * meal.portionMultiplier);
+  const carbs   = Math.round(meal.foodItem.carbs    * meal.portionMultiplier);
+  const fat     = Math.round(meal.foodItem.fat      * meal.portionMultiplier);
+  const iconName = CATEGORY_ICONS[meal.foodItem.category] ?? 'restaurant';
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Pressable onPress={() => navigation?.goBack?.()}>
-            <Text style={styles.back}>←</Text>
-          </Pressable>
-          <View style={styles.headerText}>
-            <Text style={styles.kicker}>التغذية</Text>
-            <Text style={styles.title}>خطة اليوم</Text>
+    <View style={[mc.card, { backgroundColor: t.card, borderColor: t.line }, cardShadow]}>
+      {/* image or icon */}
+      {meal.foodItem.imageUrl ? (
+        <Image source={{ uri: meal.foodItem.imageUrl }} style={mc.img} />
+      ) : (
+        <View style={[mc.imgPlaceholder, { backgroundColor: t.primary + '20' }]}>
+          <Ionicons name={iconName as any} size={26} color={t.primary} />
+        </View>
+      )}
+
+      <View style={mc.body}>
+        <View style={mc.topRow}>
+          <Text style={[mc.time, { color: t.muted }]}>{meal.loggedAt}</Text>
+          <View style={[mc.tag, { backgroundColor: t.cardSoft }]}>
+            <Text style={[mc.tagTxt, { color: t.primary }]}>{MEAL_LABELS[meal.mealType]}</Text>
           </View>
         </View>
+        <Text style={[mc.name, { color: t.text }]} numberOfLines={1}>{meal.foodItem.nameAr}</Text>
+        <View style={mc.macros}>
+          <View style={[mc.macroTag, { backgroundColor: t.cardSoft }]}><Text style={[mc.macroTxt, { color: '#E74424' }]}>{fat}ج د</Text></View>
+          <View style={[mc.macroTag, { backgroundColor: t.cardSoft }]}><Text style={[mc.macroTxt, { color: '#F79A3E' }]}>{carbs}ج ك</Text></View>
+          <View style={[mc.macroTag, { backgroundColor: t.cardSoft }]}><Text style={[mc.macroTxt, { color: '#30B36A' }]}>{protein}ج ب</Text></View>
+          <Text style={[mc.cal, { color: t.text }]}>{cal} سعرة</Text>
+        </View>
+      </View>
 
-        {/* Calorie summary card */}
-        <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.summaryCard} start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }}>
-          <View style={styles.summaryInner}>
-            <CalorieRing consumed={consumedCalories} goal={CALORIE_GOAL} />
-            <View style={styles.macrosBars}>
-              <MacroBar label="بروتين" value={consumed.protein} goal={PROTEIN_GOAL} color="#fff" />
-              <MacroBar label="كربوهيدرات" value={consumed.carbs} goal={CARBS_GOAL} color="#FFE0A3" />
-              <MacroBar label="دهون" value={consumed.fat} goal={FAT_GOAL} color="#FFB3A7" />
-            </View>
-          </View>
-          <View style={styles.kpiRow}>
-            <View style={styles.kpi}>
-              <Text style={styles.kpiVal}>{CALORIE_GOAL}</Text>
-              <Text style={styles.kpiLbl}>الهدف</Text>
-            </View>
-            <View style={styles.kpiDivider} />
-            <View style={styles.kpi}>
-              <Text style={styles.kpiVal}>{consumedCalories}</Text>
-              <Text style={styles.kpiLbl}>مستهلك</Text>
-            </View>
-            <View style={styles.kpiDivider} />
-            <View style={styles.kpi}>
-              <Text style={styles.kpiVal}>{Math.max(CALORIE_GOAL - consumedCalories, 0)}</Text>
-              <Text style={styles.kpiLbl}>متبقي</Text>
-            </View>
+      <Pressable style={mc.removeBtn} onPress={onRemove} hitSlop={8}>
+        <Ionicons name="close-circle" size={20} color={t.muted} />
+      </Pressable>
+    </View>
+  );
+}
+
+const mc = StyleSheet.create({
+  card:          { borderRadius: radius.xl, borderWidth: 1.5, padding: spacing.sm, marginBottom: spacing.sm, flexDirection: 'row-reverse', gap: spacing.sm, alignItems: 'center' },
+  img:           { width: 70, height: 70, borderRadius: radius.md },
+  imgPlaceholder:{ width: 70, height: 70, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  body:          { flex: 1, alignItems: 'flex-end' },
+  topRow:        { flexDirection: 'row-reverse', justifyContent: 'space-between', width: '100%', marginBottom: 3 },
+  tag:           { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
+  tagTxt:        { fontSize: 10, fontWeight: '700' },
+  time:          { fontSize: 11 },
+  name:          { fontSize: 14, fontWeight: '800', textAlign: 'right' },
+  macros:        { flexDirection: 'row-reverse', gap: 5, marginTop: 5, alignItems: 'center' },
+  macroTag:      { borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
+  macroTxt:      { fontSize: 10, fontWeight: '700' },
+  cal:           { fontSize: 13, fontWeight: '800' },
+  removeBtn:     { padding: 2 },
+});
+
+// ── Nutrition Score card ──────────────────────────────────────────────────────
+function ScoreCard({ score, t, cardShadow }: { score: number; t: ThemeTokens; cardShadow: object }) {
+  const { color, emoji, label } = score >= 80
+    ? { color: '#30B36A', emoji: '🏆', label: 'ممتاز' }
+    : score >= 60
+    ? { color: '#F79A3E', emoji: '💪', label: 'جيد' }
+    : { color: '#E74424', emoji: '⚡', label: 'يحتاج تحسين' };
+
+  return (
+    <View style={[sc.wrap, { backgroundColor: t.card }, cardShadow]}>
+      <View style={[sc.badge, { backgroundColor: color + '18' }]}>
+        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+        <Text style={[sc.scoreNum, { color }]}>{score}</Text>
+        <Text style={[sc.scoreMax, { color: t.muted }]}>/100</Text>
+      </View>
+      <View style={sc.info}>
+        <Text style={[sc.title, { color: t.text }]}>نقاط التغذية اليوم</Text>
+        <View style={[sc.labelPill, { backgroundColor: color + '22' }]}>
+          <Text style={[sc.labelTxt, { color }]}>{label}</Text>
+        </View>
+        <Text style={[sc.hint, { color: t.muted }]}>
+          بناءً على السعرات والبروتين والكربوهيدرات والدهون
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const sc = StyleSheet.create({
+  wrap:      { borderRadius: radius.xl, padding: spacing.md, marginBottom: spacing.md, flexDirection: 'row-reverse', gap: spacing.md, alignItems: 'center' },
+  badge:     { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center' },
+  scoreNum:  { fontSize: 22, fontWeight: '900', lineHeight: 26 },
+  scoreMax:  { fontSize: 10, fontWeight: '600' },
+  info:      { flex: 1, alignItems: 'flex-end', gap: 5 },
+  title:     { fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  labelPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill },
+  labelTxt:  { fontSize: 12, fontWeight: '800' },
+  hint:      { fontSize: 11, textAlign: 'right', lineHeight: 16 },
+});
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+export function NutritionScreen({ navigation }: any) {
+  const { theme: t } = useTheme();
+  const { summary, todayMeals, removeMeal, state, setWater } = useNutrition();
+
+  const cardShadow = {
+    shadowColor: t.mode === 'dark' ? '#000' : '#8A7060',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: t.mode === 'dark' ? 0.3 : 0.07,
+    shadowRadius: 10,
+    elevation: 3,
+  };
+
+  const targets = state.targets;
+  const waterCups = summary.waterCups;
+  const WATER_GOAL = targets.waterGoal;
+
+  return (
+    <SafeAreaView style={[st.safe, { backgroundColor: t.background }]}>
+      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* ── HEADER ──────────────────────────────── */}
+        <View style={st.header}>
+          <Pressable style={[st.backBtn, { backgroundColor: t.cardSoft }]} onPress={() => navigation?.goBack?.()}>
+            <Ionicons name="chevron-forward" size={20} color={t.muted} />
+          </Pressable>
+          <Text style={[st.pageTitle, { color: t.text }]}>التغذية</Text>
+        </View>
+
+        {/* ── HERO: CALORIES + MACRO RINGS ─────────── */}
+        <LinearGradient
+          colors={[t.gradientStart, t.gradientEnd]}
+          style={st.heroCard}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        >
+          <CalorieStrip consumed={summary.totalCalories} goal={targets.calorieGoal} t={t} />
+          <View style={st.ringsRow}>
+            <MacroRing value={summary.totalProtein} goal={targets.proteinGoal} color="#fff"    label="بروتين"      />
+            <MacroRing value={summary.totalCarbs}   goal={targets.carbsGoal}   color="#FFE0A3" label="كربوهيدرات" />
+            <MacroRing value={summary.totalFat}     goal={targets.fatGoal}     color="#FFB3A7" label="دهون"        />
           </View>
         </LinearGradient>
 
-        {/* Water tracker */}
-        <View style={styles.waterCard}>
-          <View style={styles.waterHeader}>
-            <Text style={styles.waterPct}>{waterCups}/{WATER_GOAL} كوب</Text>
-            <Text style={styles.sectionTitle}>شرب الماء 💧</Text>
+        {/* ── SCAN CTAs ───────────────────────────── */}
+        <View style={st.ctaRow}>
+          <Pressable style={[st.ctaBtn, { backgroundColor: t.card, borderColor: t.line }, cardShadow]} onPress={() => navigation?.navigate('FoodScan')}>
+            <LinearGradient colors={[t.gradientStart, t.gradientEnd]} style={st.ctaIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="camera" size={18} color="#fff" />
+            </LinearGradient>
+            <Text style={[st.ctaLabel, { color: t.text }]}>ذكاء اصطناعي</Text>
+            <Text style={[st.ctaSub, { color: t.muted }]}>مسح الصورة</Text>
+          </Pressable>
+
+          <Pressable style={[st.ctaBtn, { backgroundColor: t.card, borderColor: t.line }, cardShadow]} onPress={() => navigation?.navigate('BarcodeScan')}>
+            <LinearGradient colors={['#7C3AED', '#A855F7']} style={st.ctaIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="barcode-outline" size={18} color="#fff" />
+            </LinearGradient>
+            <Text style={[st.ctaLabel, { color: t.text }]}>باركود</Text>
+            <Text style={[st.ctaSub, { color: t.muted }]}>مسح المنتج</Text>
+          </Pressable>
+
+          <Pressable style={[st.ctaBtn, { backgroundColor: t.card, borderColor: t.line }, cardShadow]} onPress={() => navigation?.navigate('ManualAddMeal')}>
+            <LinearGradient colors={['#059669', '#10B981']} style={st.ctaIconWrap} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Ionicons name="pencil" size={18} color="#fff" />
+            </LinearGradient>
+            <Text style={[st.ctaLabel, { color: t.text }]}>يدوي</Text>
+            <Text style={[st.ctaSub, { color: t.muted }]}>إضافة وجبة</Text>
+          </Pressable>
+        </View>
+
+        {/* ── NUTRITION SCORE ─────────────────────── */}
+        <ScoreCard score={summary.nutritionScore} t={t} cardShadow={cardShadow} />
+
+        {/* ── WATER TRACKER ───────────────────────── */}
+        <View style={[st.waterCard, { backgroundColor: t.card }, cardShadow]}>
+          <View style={st.waterHeader}>
+            <Text style={[st.waterPct, { color: t.muted }]}>{waterCups}/{WATER_GOAL} كوب</Text>
+            <View style={st.waterTitleRow}>
+              <Ionicons name="water-outline" size={18} color={t.primary} />
+              <Text style={[st.sectionTitle, { color: t.text }]}>شرب الماء</Text>
+            </View>
           </View>
-          <View style={styles.waterCups}>
+          <View style={st.waterCups}>
             {Array.from({ length: WATER_GOAL }).map((_, i) => (
-              <Pressable key={i} onPress={() => setWaterCups(i < waterCups ? i : i + 1)}>
-                <Text style={[styles.cup, i < waterCups && styles.cupFilled]}>
-                  {i < waterCups ? '💧' : '○'}
-                </Text>
+              <Pressable key={i} onPress={() => setWater(i < waterCups ? i : i + 1)}>
+                <Ionicons
+                  name={i < waterCups ? 'water' : 'water-outline'}
+                  size={22}
+                  color={i < waterCups ? t.primary : t.line}
+                />
               </Pressable>
             ))}
           </View>
-          <View style={styles.waterBarTrack}>
+          <View style={[st.waterTrack, { backgroundColor: t.line }]}>
             <LinearGradient
-              colors={['#56CCF2', '#1A9ECC']}
+              colors={[t.gradientEnd, t.gradientStart]}
               start={{ x: 1, y: 0 }}
               end={{ x: 0, y: 0 }}
-              style={[styles.waterBarFill, { width: `${(waterCups / WATER_GOAL) * 100}%` }]}
+              style={[st.waterFill, { width: `${(waterCups / WATER_GOAL) * 100}%` as any }]}
             />
           </View>
         </View>
 
-        {/* Nutritionist tip */}
-        {nutritionist && (
-          <View style={styles.tipCard}>
-            <View style={styles.tipLeft}>
-              <View style={[styles.tipAvatar, { backgroundColor: nutritionist.avatarColor + '22' }]}>
-                <Text style={[styles.tipAvatarText, { color: nutritionist.avatarColor }]}>{nutritionist.avatarInitials}</Text>
-              </View>
-            </View>
-            <View style={styles.tipBody}>
-              <Text style={styles.tipName}>{nutritionist.name}</Text>
-              <Text style={styles.tipRole}>أخصائية التغذية</Text>
-              <Text style={styles.tipText}>احرص على تناول وجبة غنية بالبروتين خلال 30 دقيقة بعد التمرين لتسريع الاستشفاء العضلي.</Text>
-            </View>
-            <View style={[styles.tipAccent, { backgroundColor: nutritionist.avatarColor }]} />
+        {/* ── AI COACH CARD ───────────────────────── */}
+        <View style={[st.coachCard, { backgroundColor: t.card }, cardShadow]}>
+          <View style={[st.coachAccent, { backgroundColor: t.gradientStart }]} />
+          <View style={[st.coachAvt, { backgroundColor: t.primary + '22' }]}>
+            <Ionicons name="sparkles" size={22} color={t.primary} />
           </View>
-        )}
+          <View style={st.coachBody}>
+            <View style={st.coachTitleRow}>
+              <View style={[st.aiBadge, { backgroundColor: t.primary + '18' }]}>
+                <Text style={[st.aiBadgeTxt, { color: t.primary }]}>AI</Text>
+              </View>
+              <Text style={[st.coachName, { color: t.text }]}>مدربك الغذائي</Text>
+            </View>
+            <Text style={[st.coachTip, { color: t.muted }]}>
+              {summary.totalProtein < targets.proteinGoal * 0.5
+                ? `أنت بحاجة إلى ${targets.proteinGoal - summary.totalProtein}ج بروتين إضافي. جرّب صدر دجاج مشوي أو زبادي يوناني.`
+                : summary.totalCalories < targets.calorieGoal * 0.4
+                ? 'لا تنسَ تناول وجبة متوازنة — جسمك يحتاج الطاقة للتمرين.'
+                : 'أداء ممتاز! استمر في الحفاظ على توازن الماكرو طوال اليوم.'}
+            </Text>
+          </View>
+        </View>
 
-        {/* Meals section */}
-        <View style={styles.mealsHeader}>
-          <Pressable style={styles.addMealBtn}>
-            <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.addMealGrad}>
-              <Text style={styles.addMealText}>+ إضافة وجبة</Text>
+        {/* ── MEALS LIST ──────────────────────────── */}
+        <View style={st.mealsHeader}>
+          <Pressable style={st.addMealBtn} onPress={() => navigation?.navigate('ManualAddMeal')}>
+            <LinearGradient colors={[t.gradientStart, t.gradientEnd]} style={st.addMealGrad} start={{ x: 1, y: 0 }} end={{ x: 0, y: 0 }}>
+              <Text style={st.addMealTxt}>+ إضافة وجبة</Text>
             </LinearGradient>
           </Pressable>
-          <Text style={styles.sectionTitle}>وجبات اليوم</Text>
+          <Text style={[st.sectionTitle, { color: t.text }]}>وجبات اليوم</Text>
         </View>
 
-        {todayMeals.map((meal) => {
-          const done = completedMeals.has(meal.id);
-          return (
-            <Pressable key={meal.id} onPress={() => toggleMeal(meal.id)}>
-              <View style={[styles.mealCard, done && styles.mealCardDone]}>
-                <View style={[styles.checkCircle, done && styles.checkCircleDone]}>
-                  {done && <Text style={styles.checkMark}>✓</Text>}
-                </View>
-                <Image source={{ uri: meal.image }} style={[styles.mealImg, done && styles.mealImgDone]} />
-                <View style={styles.mealBody}>
-                  <View style={styles.mealTopRow}>
-                    <Text style={styles.mealTime}>{meal.time}</Text>
-                    <Text style={styles.mealTypeTag}>{MEAL_TYPE_LABELS[meal.mealType] ?? meal.mealType}</Text>
-                  </View>
-                  <Text style={[styles.mealTitle, done && styles.mealTitleDone]}>{meal.title}</Text>
-                  <View style={styles.mealMacros}>
-                    <View style={styles.macroTag}>
-                      <Text style={[styles.macroTagText, { color: '#E74424' }]}>{meal.fat ?? 0}ج د</Text>
-                    </View>
-                    <View style={styles.macroTag}>
-                      <Text style={[styles.macroTagText, { color: '#F79A3E' }]}>{meal.carbs ?? 0}ج ك</Text>
-                    </View>
-                    <View style={styles.macroTag}>
-                      <Text style={[styles.macroTagText, { color: '#30B36A' }]}>{meal.protein ?? 0}ج ب</Text>
-                    </View>
-                    <Text style={styles.mealCal}>{meal.calories} سعرة</Text>
-                  </View>
-                </View>
+        {todayMeals.length === 0 ? (
+          <View style={[st.emptyCard, { backgroundColor: t.card, borderColor: t.line }]}>
+            <Ionicons name="restaurant-outline" size={32} color={t.muted} />
+            <Text style={[st.emptyTxt, { color: t.muted }]}>لا توجد وجبات مسجّلة اليوم</Text>
+            <Text style={[st.emptySub, { color: t.muted }]}>استخدم المسح بالكاميرا أو أضف يدوياً</Text>
+          </View>
+        ) : (
+          todayMeals.map((meal) => (
+            <MealCard
+              key={meal.id}
+              meal={meal}
+              t={t}
+              cardShadow={cardShadow}
+              onRemove={() => removeMeal(meal.id)}
+            />
+          ))
+        )}
+
+        {/* ── DAILY PLAN SUMMARY ──────────────────── */}
+        <View style={[st.planSummary, { backgroundColor: t.card }, cardShadow]}>
+          <Text style={[st.planTitle, { color: t.text }]}>أهداف الماكرو اليومية</Text>
+          {[
+            { key: 'بروتين',       val: `${targets.proteinGoal}ج`,  done: summary.totalProtein,  goal: targets.proteinGoal,  color: '#30B36A' },
+            { key: 'كربوهيدرات', val: `${targets.carbsGoal}ج`,    done: summary.totalCarbs,    goal: targets.carbsGoal,    color: '#F79A3E' },
+            { key: 'دهون',         val: `${targets.fatGoal}ج`,      done: summary.totalFat,      goal: targets.fatGoal,      color: '#E74424' },
+            { key: 'سعرات',        val: `${targets.calorieGoal}`,   done: summary.totalCalories, goal: targets.calorieGoal,  color: t.primary },
+          ].map((item, i, arr) => (
+            <View key={i} style={[st.planRow, { borderBottomColor: t.line, borderBottomWidth: i < arr.length - 1 ? 1 : 0 }]}>
+              <View style={st.planRight}>
+                <Text style={[st.planVal, { color: t.text }]}>{item.val}</Text>
+                <Text style={[st.planKey, { color: t.muted }]}>{item.key}</Text>
               </View>
-            </Pressable>
-          );
-        })}
-
-        {/* Daily plan summary */}
-        <View style={styles.planSummary}>
-          <Text style={styles.planSummaryTitle}>ملخص الخطة اليومية</Text>
-          <View style={styles.planRow}>
-            <Text style={styles.planVal}>{PROTEIN_GOAL}ج</Text>
-            <Text style={styles.planKey}>بروتين مستهدف</Text>
-          </View>
-          <View style={styles.planRow}>
-            <Text style={styles.planVal}>{CARBS_GOAL}ج</Text>
-            <Text style={styles.planKey}>كربوهيدرات مستهدفة</Text>
-          </View>
-          <View style={styles.planRow}>
-            <Text style={styles.planVal}>{FAT_GOAL}ج</Text>
-            <Text style={styles.planKey}>دهون مستهدفة</Text>
-          </View>
-          <View style={[styles.planRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.planVal}>{CALORIE_GOAL}</Text>
-            <Text style={styles.planKey}>سعرات إجمالية</Text>
-          </View>
+              <View style={st.planBarWrap}>
+                <View style={[st.planBarTrack, { backgroundColor: t.line }]}>
+                  <View style={[st.planBarFill, { backgroundColor: item.color, width: `${Math.min(item.done / item.goal, 1) * 100}%` as any }]} />
+                </View>
+                <Text style={[st.planDone, { color: t.muted }]}>{item.done}/{item.goal}</Text>
+              </View>
+            </View>
+          ))}
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const bar = StyleSheet.create({
-  wrap: { marginBottom: 10 },
-  labelRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 4 },
-  label: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: '700' },
-  value: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  track: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3 },
-  goal: { color: 'rgba(255,255,255,0.55)', fontSize: 10, textAlign: 'right', marginTop: 2 }
-});
+const st = StyleSheet.create({
+  safe:   { flex: 1 },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: 110 },
 
-const ring = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
-  outer: { alignItems: 'center', justifyContent: 'center' },
-  track: {
-    position: 'absolute',
-    borderWidth: 12,
-    borderColor: 'rgba(255,255,255,0.2)'
-  },
-  fillWrap: { position: 'absolute', overflow: 'hidden' },
-  fillArc: { position: 'absolute' },
-  mask: {
-    position: 'absolute',
-    backgroundColor: colors.gradientStart,
-    top: 0,
-    right: 0,
-    width: '50%',
-    height: '100%'
-  },
-  inner: {
-    backgroundColor: colors.gradientStart,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0
-  },
-  consumed: { color: '#fff', fontSize: 26, fontWeight: '900' },
-  unit: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '600' },
-  remain: { color: 'rgba(255,255,255,0.65)', fontSize: 10, marginTop: 2 }
-});
+  header:    { flexDirection: 'row-reverse', alignItems: 'flex-end', marginBottom: spacing.md },
+  backBtn:   { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  pageTitle: { ...typography.h1 },
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  container: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: 100 },
+  heroCard: { borderRadius: radius.xl, padding: spacing.md, marginBottom: spacing.md, ...shadows.md },
+  ringsRow: { flexDirection: 'row-reverse', justifyContent: 'space-around', marginTop: spacing.sm },
 
-  headerRow: { flexDirection: 'row-reverse', alignItems: 'flex-end', marginBottom: spacing.md },
-  back: { fontSize: 22, color: colors.primary, paddingLeft: spacing.sm },
-  headerText: { flex: 1, alignItems: 'flex-end' },
-  kicker: { color: colors.primary, fontWeight: '700', fontSize: 13 },
-  title: { ...typography.h1, color: colors.text },
+  ctaRow: { flexDirection: 'row-reverse', gap: spacing.sm, marginBottom: spacing.md },
+  ctaBtn: { flex: 1, borderRadius: radius.xl, borderWidth: 1.5, padding: spacing.sm, alignItems: 'center', gap: 5 },
+  ctaIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  ctaLabel: { fontSize: 13, fontWeight: '800', textAlign: 'center' },
+  ctaSub:   { fontSize: 10, textAlign: 'center' },
 
-  summaryCard: {
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    ...shadows.md
-  },
-  summaryInner: { flexDirection: 'row-reverse', gap: spacing.md, alignItems: 'center', marginBottom: spacing.md },
-  macrosBars: { flex: 1 },
-  kpiRow: { flexDirection: 'row-reverse', justifyContent: 'space-around' },
-  kpi: { alignItems: 'center' },
-  kpiVal: { color: '#fff', fontSize: 20, fontWeight: '900' },
-  kpiLbl: { color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 },
-  kpiDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', height: 30, alignSelf: 'center' },
+  waterCard:     { borderRadius: radius.xl, padding: spacing.md, marginBottom: spacing.md },
+  waterHeader:   { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  waterTitleRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 5 },
+  waterPct:      { fontSize: 13, fontWeight: '700' },
+  waterCups:     { flexDirection: 'row-reverse', gap: 6, marginBottom: spacing.sm, flexWrap: 'wrap' },
+  waterTrack:    { height: 6, borderRadius: 3, overflow: 'hidden' },
+  waterFill:     { height: 6, borderRadius: 3 },
 
-  waterCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    ...shadows.sm
-  },
-  waterHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  waterPct: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  waterCups: { flexDirection: 'row-reverse', gap: 4, marginBottom: spacing.sm, flexWrap: 'wrap' },
-  cup: { fontSize: 22, color: colors.line },
-  cupFilled: { color: '#1A9ECC' },
-  waterBarTrack: { height: 6, backgroundColor: colors.line, borderRadius: 3, overflow: 'hidden' },
-  waterBarFill: { height: 6, borderRadius: 3 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', textAlign: 'right' },
 
-  tipCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    flexDirection: 'row-reverse',
-    gap: spacing.sm,
-    ...shadows.sm,
-    overflow: 'hidden'
-  },
-  tipAccent: { width: 4, borderRadius: 2, position: 'absolute', left: 0, top: 0, bottom: 0 },
-  tipLeft: {},
-  tipAvatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  tipAvatarText: { fontWeight: '800', fontSize: 15 },
-  tipBody: { flex: 1, alignItems: 'flex-end' },
-  tipName: { color: colors.text, fontWeight: '800', fontSize: 14 },
-  tipRole: { color: colors.primary, fontSize: 11, fontWeight: '700', marginBottom: 6 },
-  tipText: { color: colors.muted, fontSize: 13, textAlign: 'right', lineHeight: 19 },
+  coachCard:     { borderRadius: radius.xl, padding: spacing.md, marginBottom: spacing.md, flexDirection: 'row-reverse', gap: spacing.sm, overflow: 'hidden' },
+  coachAccent:   { width: 4, borderRadius: 2, position: 'absolute', left: 0, top: 0, bottom: 0 },
+  coachAvt:      { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  coachBody:     { flex: 1, alignItems: 'flex-end', gap: 5 },
+  coachTitleRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6 },
+  aiBadge:       { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
+  aiBadgeTxt:    { fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  coachName:     { fontWeight: '800', fontSize: 14 },
+  coachTip:      { fontSize: 13, textAlign: 'right', lineHeight: 19 },
 
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '800', textAlign: 'right' },
   mealsHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  addMealBtn: { borderRadius: radius.pill, overflow: 'hidden' },
+  addMealBtn:  { borderRadius: radius.pill, overflow: 'hidden' },
   addMealGrad: { paddingHorizontal: spacing.md, paddingVertical: 8 },
-  addMealText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  addMealTxt:  { color: '#fff', fontWeight: '800', fontSize: 13 },
 
-  mealCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-    flexDirection: 'row-reverse',
-    gap: spacing.sm,
-    alignItems: 'center',
-    ...shadows.sm
-  },
-  mealCardDone: { backgroundColor: '#F4FCF7', borderColor: '#B8EDD0' },
-  checkCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  checkCircleDone: { backgroundColor: colors.success, borderColor: colors.success },
-  checkMark: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  mealImg: { width: 72, height: 72, borderRadius: radius.md },
-  mealImgDone: { opacity: 0.65 },
-  mealBody: { flex: 1, alignItems: 'flex-end' },
-  mealTopRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', width: '100%', marginBottom: 3 },
-  mealTypeTag: { backgroundColor: colors.cardSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, color: colors.primary, fontSize: 10, fontWeight: '700' },
-  mealTime: { color: colors.muted, fontSize: 11 },
-  mealTitle: { color: colors.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
-  mealTitleDone: { color: colors.muted, textDecorationLine: 'line-through' },
-  mealCal: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  mealMacros: { flexDirection: 'row-reverse', gap: 6, marginTop: 5, alignItems: 'center' },
-  macroTag: { backgroundColor: '#F7F4EF', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3 },
-  macroTagText: { fontSize: 10, fontWeight: '700' },
+  emptyCard: { borderRadius: radius.xl, borderWidth: 1.5, borderStyle: 'dashed', padding: spacing.xl, alignItems: 'center', gap: 6, marginBottom: spacing.md },
+  emptyTxt:  { fontSize: 14, fontWeight: '700' },
+  emptySub:  { fontSize: 12 },
 
-  planSummary: {
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginTop: spacing.sm,
-    ...shadows.sm
-  },
-  planSummaryTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'right', marginBottom: spacing.sm },
-  planRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line
-  },
-  planKey: { color: colors.muted, fontSize: 14 },
-  planVal: { color: colors.text, fontSize: 14, fontWeight: '800' }
+  planSummary: { borderRadius: radius.xl, padding: spacing.md, marginTop: spacing.sm, marginBottom: spacing.sm },
+  planTitle:   { fontSize: 16, fontWeight: '800', textAlign: 'right', marginBottom: spacing.sm },
+  planRow:     { paddingVertical: 10 },
+  planRight:   { flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 6 },
+  planKey:     { fontSize: 13 },
+  planVal:     { fontSize: 13, fontWeight: '800' },
+  planBarWrap: { gap: 4 },
+  planBarTrack:{ height: 5, borderRadius: 3, overflow: 'hidden' },
+  planBarFill: { height: 5, borderRadius: 3 },
+  planDone:    { fontSize: 10, textAlign: 'right' },
 });

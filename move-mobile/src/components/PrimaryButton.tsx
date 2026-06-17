@@ -1,35 +1,47 @@
-﻿import React from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../theme/tokens';
 
 type Props = {
   label: string;
   onPress?: () => void;
+  variant?: 'dark' | 'light';
 };
 
-export function PrimaryButton({ label, onPress }: Props) {
+export function PrimaryButton({ label, onPress, variant = 'dark' }: Props) {
   return (
-    <Pressable onPress={onPress} style={styles.wrapper}>
-      <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.button}>
-        <Text style={styles.label}>{label}</Text>
-      </LinearGradient>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, variant === 'light' && styles.light, pressed && styles.pressed]}
+    >
+      <Text style={[styles.label, variant === 'light' && styles.labelLight]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginTop: 16
-  },
   button: {
-    paddingVertical: 16,
-    borderRadius: 30,
+    marginTop: 16,
+    backgroundColor: '#111111',
+    borderRadius: 8,
+    paddingVertical: 17,
     alignItems: 'center'
   },
+  light: {
+    backgroundColor: '#FFFFFF'
+  },
+  pressed: {
+    opacity: 0.82
+  },
   label: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800'
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase'
+  },
+  labelLight: {
+    color: '#111111'
   }
 });

@@ -1,5 +1,5 @@
-﻿import { StyleSheet } from 'react-native';
-import { colors, spacing } from './tokens';
+import { StyleSheet } from 'react-native';
+import { colors, shadows, spacing } from './tokens';
 
 export const screenStyles = StyleSheet.create({
   safe: {
@@ -14,25 +14,37 @@ export const screenStyles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.text,
     textAlign: 'right'
   },
   subtitle: {
     marginTop: spacing.xs,
     color: colors.muted,
-    textAlign: 'right'
+    textAlign: 'right',
+    fontSize: 15
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 20,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: spacing.md,
-    marginBottom: spacing.md
+    ...shadows.sm
   },
   row: {
     flexDirection: 'row-reverse',
     alignItems: 'center'
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: colors.muted,
+    textAlign: 'right',
+    textTransform: 'uppercase',
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm
   }
 });
